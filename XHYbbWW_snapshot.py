@@ -1,7 +1,7 @@
 import ROOT, time
 ROOT.gROOT.SetBatch(True)
 from argparse import ArgumentParser
-from XHYbbWW import XHYbbWW
+from XHYbbWW_class import XHYbbWW
 
 parser = ArgumentParser()
 parser.add_argument('-s', type=str, dest='setname',
@@ -21,7 +21,7 @@ args = parser.parse_args()
 start = time.time()
 
 # use the XHYbbWW class to gather all the information automatically
-selection = XHYbbWW('raw_nano/%s_%s.txt'%(args.setname,args.era),int(args.era),args.ijob,args.njobs)
+selection = XHYbbWW('raw_nano/{}_{}.txt'.format(args.setname,args.era),int(args.era),args.ijob,args.njobs)
 # apply kinematic cuts
 out = selection.kinematic_cuts()
 # feed outfile to class' Snapshot function
