@@ -1,10 +1,10 @@
 # X->HY->bbWW
 Based off of Lucas Corcodilos' work [here](https://github.com/lcorcodilos/TopHBoostedAllHad).
 
-##1) Populate raw NanoAOD text files
+## 1) Populate raw NanoAOD text files
 Run ```python raw_nano/get_all_lpc.py``` to get the locations of all the raw NanoAOD data.
 
-##2) Perform snapshot on `raw_nano/` files
+## 2) Perform snapshot on `raw_nano/` files
 To perform a snapshot on a single .txt file holding either data or simulation, run
 
 ```
@@ -53,5 +53,5 @@ Here, `-i` incldues local scripts to the node for use.
 
 **NOTE:** This step assumes that you've created an env tarball as well as a list of jobs to submit in the condor task.
 
-##3) Collect condor snapshot outputs
+## 3) Collect condor snapshot outputs
 Jobs automatically get moved to tour EOS space under
