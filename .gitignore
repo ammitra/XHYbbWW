@@ -1,3 +1,11 @@
 *.pyc
 logs/*
 *.root
+docker_stderror
+*.log
+*.tgz
+condor/*.txt
+CondorHelper.py
+trijet_nano/*.txt
+plots
+raw_nano/*.txt
