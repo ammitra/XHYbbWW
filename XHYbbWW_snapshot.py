@@ -22,6 +22,7 @@ start = time.time()
 
 # use the XHYbbWW class to gather all the information automatically
 selection = XHYbbWW('raw_nano/{}_{}.txt'.format(args.setname,args.era),int(args.era),args.ijob,args.njobs)
+#selection = XHYbbWW('XYs/{}_{}.txt'.format(args.setname,args.era),int(args.era),args.ijob,args.njobs)
 # apply kinematic cuts
 out = selection.kinematic_cuts()
 # feed outfile to class' Snapshot function
