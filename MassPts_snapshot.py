@@ -1,7 +1,7 @@
 import ROOT, time
 ROOT.gROOT.SetBatch(True)
 from argparse import ArgumentParser
-from XHYbbWW_class import XHYbbWW
+from MassPts_class import MassPts
 
 parser = ArgumentParser()
 parser.add_argument('-s', type=str, dest='setname',
@@ -23,7 +23,7 @@ args = parser.parse_args()
 start = time.time()
 
 # use the MassPts class to gather all the information automatically
-selection = XHYbbWW('massPts/XYH_WWbb_{}_loc.txt'.format(args.setname),args.ijob,args.njobs)
+selection = MassPts('massPts/XYH_WWbb_{}_loc.txt'.format(args.setname),args.ijob,args.njobs)
 # apply kinematic cuts
 out = selection.kinematic_cuts()
 # feed outfile to class' Snapshot function
