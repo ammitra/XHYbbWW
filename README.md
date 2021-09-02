@@ -2,7 +2,21 @@
 Based off of Lucas Corcodilos' work [here](https://github.com/lcorcodilos/TopHBoostedAllHad).
 
 ## 1) Populate raw NanoAOD text files
-Run ```python raw_nano/get_all_lpc.py``` to get the locations of all the raw NanoAOD data.
+Run
+ 
+```
+python raw_nano/get_all_lpc.py
+``` 
+
+to get the locations of all the raw NanoAOD data.
+
+Run 
+
+```
+source massPts/get_all_massPts.sh
+```
+
+to grab all the massPts from Lucas' directories
 
 ## 2) Perform snapshot on `raw_nano/` files
 To perform a snapshot on a single .txt file holding either data or simulation, run
@@ -46,10 +60,16 @@ ln -s $TIMBERPATH/TIMBER/Utilities/Condor/CondorHelper.py
 Then run 
 
 ```
-python CondorHelper.py -r condor/run_snapshot.sh -a condor/snapshot_args.txt -i "XHYbbWW_class.py XHYbbWW_snapshot.py"`
+python CondorHelper.py -r condor/run_snapshot.sh -a condor/snapshot_args.txt -i "XHYbbWW_class.py XHYbbWW_snapshot.py"
 ```
 
-Here, `-i` incldues local scripts to the node for use. 
+Here, `-i` incldues local scripts to the node for use.
+
+**NOTE:** For the Mass point snapshots, run 
+
+```
+python CondorHelper.py -r condor/massPt_run_snapshot.sh -a condor/massPt_snapshot_args.txt -i "MassPts_class.py MassPts_snapshot.py"
+```
 
 **NOTE:** This step assumes that you've created an env tarball as well as a list of jobs to submit in the condor task.
 
