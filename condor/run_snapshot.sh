@@ -11,7 +11,7 @@ scramv1 project CMSSW CMSSW_11_1_4
 tar -xzvf XHYbbWW.tgz
 # clear up tarball and remaining junk
 rm XHYbbWW.tgz
-rm *.root
+#rm *.root
 
 mkdir tardir; cp tarball.tgz tardir/; cd tardir/
 tar -xzf tarball.tgz; rm tarball.tgz
