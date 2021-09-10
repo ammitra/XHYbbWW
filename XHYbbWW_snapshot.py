@@ -21,12 +21,19 @@ args = parser.parse_args()
 start = time.time()
 
 # use the XHYbbWW class to gather all the information automatically
-''' for now, just comment out the next line if you only want to run on Signal '''
-#selection = XHYbbWW('raw_nano/{}_{}.txt'.format(args.setname,args.era),int(args.era),args.ijob,args.njobs)
-selection = XHYbbWW('raw_nano/
+# first, determine if we are looking at Signal
+if 'XYH_WWbb' in args.setname:
+    filename = 'raw_nano/XYH_WWbb_{}_loc.txt'.format(args.setname)
+else:
+    filename = 'raw_nano/{}_{}.txt'.format(args.setname, args.era)
+
+# then pass the appropriate file to the class constructor
+selection = XHYbbWW(filename, int(args.era), args.ijob, args.njobs)
 
 # apply kinematic cuts
 out = selection.kinematic_cuts()
+
 # feed outfile to class' Snapshot function
 selection.Snapshot(out)
+
 print('%s sec'%(time.time()-start))
