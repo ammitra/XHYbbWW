@@ -63,10 +63,14 @@ Then run
 python CondorHelper.py -r condor/run_snapshot.sh -a condor/snapshot_args.txt -i "XHYbbWW_class.py XHYbbWW_snapshot.py"
 ```
 
-Here, `-i` incldues local scripts to the node for use.
+Here, `-i` includes local scripts to the node for use.
 
 
 **NOTE:** This step assumes that you've created an env tarball as well as a list of jobs to submit in the condor task.
 
 ## 3) Collect condor snapshot outputs
-Jobs automatically get moved to tour EOS space under
+Job outputs (snapshots) automatically get moved to EOS space under `/store/user/ammitra/XHYbbWW/snapshots/`. The information for those snapshots can be collected with 
+
+```
+python trijet_nano/get_all.py
+```
