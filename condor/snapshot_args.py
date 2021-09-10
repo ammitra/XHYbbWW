@@ -7,7 +7,7 @@ for f in glob.glob('raw_nano/*.txt'):
     nfiles = len(open(f,'r').readlines())
     # determine if file is signal or not
     if 'XYH_WWbb' in filename:
-	setname = (filename.split('_')[2]) + '-' + (filename.split('_')[3])
+	setname = (filename.split('_')[2]) + '_' + (filename.split('_')[3])
 	year = '18'	# might have to change later
     else:
 	setname = filename.split('_')[0]
