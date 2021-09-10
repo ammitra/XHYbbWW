@@ -22,7 +22,7 @@ start = time.time()
 
 # use the XHYbbWW class to gather all the information automatically
 # first, determine if we are looking at Signal
-if 'XYH_WWbb' in args.setname:
+if 'MX' in args.setname:
     filename = 'raw_nano/XYH_WWbb_{}_loc.txt'.format(args.setname)
 else:
     filename = 'raw_nano/{}_{}.txt'.format(args.setname, args.era)
