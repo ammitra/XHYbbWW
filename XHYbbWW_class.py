@@ -86,7 +86,7 @@ class XHYbbWW:
             columns.extend(['GenPart_.*', 'nGenPart','genWeight'])
             
         # get ready to send out snapshot
-        self.a.Snapshot(columns, 'HWWsnapshot_{}_{}_{}of{}.root'.format(self.setname,self.year,self.ijob,self.njobs),'Events')
+        self.a.Snapshot(columns, 'HWWsnapshot_{}_{}_{}of{}.root'.format(self.setname,self.year,self.ijob,self.njobs),'Events', openOption='RECREATE')
         self.a.SetActiveNode(startNode)
         
 
