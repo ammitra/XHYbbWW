@@ -12,6 +12,9 @@ org_files = {}
 for f in files.split('\n'):
     if (f == ''): continue
     info = f.split('.')[0].split('_')	# get everything before .root, make list split on '_'
+    setname = info[1]
+    setname = info[2]
+'''
     # now we need to have separate cases depending on if it's signal files or not 
     if 'MX' in f:
 	setname = info[1] + '_' + info[2]	# "MX_<MASS>"
@@ -19,6 +22,7 @@ for f in files.split('\n'):
     else:
 	setname = info[1]
 	year = info[2]
+'''   
     file_path = redirector + eos_path + f
 
     if year not in org_files.keys():	# create new key of this year
