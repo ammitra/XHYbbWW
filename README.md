@@ -65,11 +65,6 @@ python CondorHelper.py -r condor/run_snapshot.sh -a condor/snapshot_args.txt -i 
 
 Here, `-i` incldues local scripts to the node for use.
 
-**NOTE:** For the Mass point snapshots, run 
-
-```
-python CondorHelper.py -r condor/massPt_run_snapshot.sh -a condor/massPt_snapshot_args.txt -i "MassPts_class.py MassPts_snapshot.py"
-```
 
 **NOTE:** This step assumes that you've created an env tarball as well as a list of jobs to submit in the condor task.
 

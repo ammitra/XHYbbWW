@@ -38,7 +38,12 @@ class XHYbbWW:
             infiles = inputfile
         self.a = analyzer(infiles)
         if inputfile.endswith('.txt'):
-            self.setname = inputfile.split('/')[-1].split('_')[0]
+            if 'XYH_WWbb' in inputfile:
+		# format is (raw_nano/XYH_WWbb_MX_<MASS>_loc.txt)
+		self.setname = (inputfile.split('/')[-1].split('_')[2] + '_' + inputfile.split('/')[-1].split('_')[3])
+	    else:
+		# format is (raw_nano/setname_era.txt)
+		self.setname = inputfile.split('/')[-1].split('_')[0]
         else:
             self.setname = inputfile.split('/')[-1].split('_')[1]
         
