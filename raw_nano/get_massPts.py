@@ -52,6 +52,7 @@ for xmass, ymasses in grid.items():
 	# check to see which YMass is associated with this Xmass - loop over all files for this XMass
 	for rootfile in filenames[xmass]:
 	    print("opening {}".format(rootfile))
+	    # this is the proper way to open ROOT file on EOS according to https://uscms.org/uscms_at_work/computing/LPC/usingEOSAtLPC.shtml#workWithROOTFilesInpyScripts
 	    f = ROOT.TFile.Open("{}{}{}".format(redirector,base_dir,rootfile))
 	    t = f.Get("Events")
 	    # now check which ymass is associated with this xmass
