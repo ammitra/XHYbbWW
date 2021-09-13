@@ -49,7 +49,7 @@ for xmass, ymasses in grid.items():
     # first check to see if we are dealing with xmass==2000 - generalize 
     if (len(ymasses) != 1):
 	# create files to store the results
-	out_locations = {ymass : open("XYH_WWbb_MX_{}_MY_{}_loc.txt".format(xmass,ymass),'w') for ymass in ymasses}
+	out_locations = {ymass : open("raw_nano/XYH_WWbb_MX_{}_MY_{}_loc.txt".format(xmass,ymass),'w') for ymass in ymasses}
 	# check to see which YMass is associated with this Xmass - loop over all files for this XMass
 	for rootfile in filenames[xmass]:
 	    print("opening {}".format(rootfile))
@@ -68,7 +68,7 @@ for xmass, ymasses in grid.items():
 
     # otherwise we are looking at an XMass file with only one associated YMass
     else:
-	out_file = open("XYH_WWbb_MX_{}_MY_{}_loc.txt".format(xmass,ymasses[0]),'w')
+	out_file = open("raw_nano/XYH_WWbb_MX_{}_MY_{}_loc.txt".format(xmass,ymasses[0]),'w')
 	# loop through all files for this XMass
 	for name in filenames[xmass]:
 	    out_file.write("{}{}{}{}\n".format(redirector,base_dir,eos[xmass],name))
