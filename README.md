@@ -13,10 +13,10 @@ to get the locations of all the raw NanoAOD data.
 Run 
 
 ```
-source massPts/get_all_massPts.sh
+python raw_nano/get_massPts.py
 ```
 
-to grab all the massPts from Lucas' directories
+to grab all the massPts from Lucas' directories. These files have a specific XMass corresponding to one or more YMasses.
 
 ## 2) Perform snapshot on `raw_nano/` files
 To perform a snapshot on a single .txt file holding either data or simulation, run
