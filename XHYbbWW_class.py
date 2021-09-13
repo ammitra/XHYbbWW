@@ -36,16 +36,26 @@ class XHYbbWW:
             infiles = SplitUp(inputfile, njobs)[ijob-1]
         else:
             infiles = inputfile
-        self.a = analyzer(infiles)
+
+        #self.a = analyzer(infiles)
+
         if inputfile.endswith('.txt'):
+	    # we're looking at signal
             if 'XYH_WWbb' in inputfile:
-		# format is (raw_nano/XYH_WWbb_MX_<MASS>_loc.txt)
-		self.setname = (inputfile.split('/')[-1].split('_')[2] + '_' + inputfile.split('/')[-1].split('_')[3])
+		# format is (raw_nano/XYH_WWbb_MX_<XMASS>_MY_<YMASS>_loc.txt
+		prefix = inputfile.split('/')[-1].split('_')   # [XYH, WWbb, MX, <XMASS>, MY, <YMASS>, loc.txt]
+		self.setname = (prefix[2] + '_' + prefix[3] + '_' + prefix[4] + prefix.[5])  # MX_XMASS_MY_YMASS
+	        # create an analyzer module with the proper multiSampleStr argument
+		self.a = analyzer(infiles,multiSampleStr=prefix[5])
+		# ensure we're working with the proper YMass
+		self.a.Cut('CorrectMass', 'GenModel_YMass_{} == 1'.format(prefix[5]))
 	    else:
 		# format is (raw_nano/setname_era.txt)
 		self.setname = inputfile.split('/')[-1].split('_')[0]
-        else:
+		self.a = analyzer(infiles)
+        else:	# not likely to encounter this for this analysis
             self.setname = inputfile.split('/')[-1].split('_')[1]
+	    self.a = analyzer(infiles)
         
         self.year = year
         self.ijob = ijob
