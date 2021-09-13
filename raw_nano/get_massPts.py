@@ -14,6 +14,7 @@ this should be used instead of raw_nano/get_all_massPts.sh
 '''
 
 redirector = 'root://cmsxrootd.fnal.gov/'
+#redirector='root://cmseos.fnal.gov/'
 base_dir = '/store/user/lcorcodi/XYH_WWbb_gridpacks/'
 eosls = 'eos root://cmseos.fnal.gov ls'
 
@@ -52,15 +53,13 @@ for xmass, ymasses in grid.items():
 	# check to see which YMass is associated with this Xmass - loop over all files for this XMass
 	for rootfile in filenames[xmass]:
 	    print("opening {}".format(rootfile))
-	    # this is the proper way to open ROOT file on EOS according to https://uscms.org/uscms_at_work/computing/LPC/usingEOSAtLPC.shtml#workWithROOTFilesInpyScripts
-	    f = ROOT.TFile.Open("{}{}{}".format(redirector,base_dir,rootfile))
+	    f = ROOT.TFile.Open("{}{}{}{}".format(redirector,base_dir,eos[xmass],rootfile))
 	    t = f.Get("Events")
 	    # now check which ymass is associated with this xmass
 	    for ymass in ymasses:
 		print("searching {} for YMass={}".format(rootfile,ymass))
 		if (t.GetListOfBranches().FindObject("GenModel_YMass_{}".format(ymass)) != None):
-		    out_locations[ymass].write("{}{}{}\n".format(redirector,base_dir,rootfile))
-		    break
+		    out_locations[ymass].write("{}{}{}{}\n".format(redirector,base_dir,eos[xmass],rootfile))
 		else:	# we are not looking at the right ymass, pass
 		    pass
 	# we should now be done - close all files
@@ -72,6 +71,6 @@ for xmass, ymasses in grid.items():
 	out_file = open("XYH_WWbb_MX_{}_MY_{}_loc.txt".format(xmass,ymasses[0]),'w')
 	# loop through all files for this XMass
 	for name in filenames[xmass]:
-	    out_file.write("{}{}{}\n".format(redirector,base_dir,name))
+	    out_file.write("{}{}{}{}\n".format(redirector,base_dir,eos[xmass],name))
 	out_file.close()
 
