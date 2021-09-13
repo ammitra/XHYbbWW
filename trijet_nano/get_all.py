@@ -17,8 +17,8 @@ for f in files.split('\n'):
 
     # now we need to have separate cases depending on if it's signal files or not 
     if 'MX' in f:
-	setname = info[1] + '_' + info[2]	# "MX_<MASS>"
-	year = info[3]
+	setname = info[1] + '_' + info[2] + '_' + info[3] + '_' + info[4]  # MX_XMASS_MY_YMASS
+	year = info[5]
     else:
 	setname = info[1]
 	year = info[2]
@@ -34,9 +34,9 @@ for f in files.split('\n'):
 
 for y in org_files.keys():
     for s in org_files[y].keys():
-	out = open('trijet_nano/{}_{}_snapshot.txt'.format(s, y), 'w')
+	out = open('trijet_nano/{}_{}_snapshot.txt'.format(s, y), 'w')  # setname_era_snapshot.txt
 	for f in org_files[y][s]:
-	    out.write(f+'\n')
+	    out.write(f+'\n')  # write a new line after each
 	out.close()
 
     # consolidate data files (i.e. one file for each setname + year)
