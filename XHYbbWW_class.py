@@ -78,7 +78,9 @@ class XHYbbWW:
         self.a.Cut('eta_cut', 'abs(FatJet_eta[0]) < 2.4 && abs(FatJet_eta[1]) < 2.4 && abs(FatJet_eta[2]) < 2.4')   # no super forward jets
         self.a.Cut('msoftdop_cut','FatJet_msoftdrop[0] > 50 && FatJet_msoftdrop[1] > 40 && FatJet_msoftdrop[2] > 40') # should always use softdrop mass
         self.a.Define('TrijetIdxs','ROOT::VecOps::RVec({0,1,2})')   # create a vector of the three jets - assume Higgs & Ws will be 3 leading jets
-	self.a.SubCollection('Trijet','FatJet','TrijetIdxs',useTake=True) # takes every attribute of FatJet and replace with "Trijet" -> then this is used in columns for Snapshot()
+	# now we make a subcollection, which maps all branches with "FatJet" to a new subcollection named "Trijet", in this case
+	# we specify that the Trijet indices are given by the TrijetIdxs vector above
+	self.a.SubCollection('Trijet','FatJet','TrijetIdxs',useTake=True)
         return self.a.GetActiveNode()
         
     # for creating snapshots
