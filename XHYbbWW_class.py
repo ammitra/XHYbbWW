@@ -1,6 +1,6 @@
 import ROOT
 from TIMBER.Analyzer import CutGroup, analyzer
-from TIMBER.Tools.Common import CompileCpp
+from TIMBER.Tools.Common import CompileCpp, OpenJSON
 
 # Helper file for dealing with .txt files containing NanoAOD file locs
 def SplitUp(filename,npieces,nFiles=False):
@@ -61,6 +61,10 @@ class XHYbbWW:
         self.ijob = ijob
         self.njobs = njobs
         
+	# get config from JSON
+	self.config = OpenJSON('XHYbbWWconfig.JSON')
+	self.cuts = self.config['CUTS']
+
         # check if data or sim
         if 'Data' in inputfile:
             self.a.isData = True
@@ -100,4 +104,26 @@ class XHYbbWW:
         self.a.Snapshot(columns, 'HWWsnapshot_{}_{}_{}of{}.root'.format(self.setname,self.year,self.ijob,self.njobs),'Events', openOption='RECREATE')
         self.a.SetActiveNode(startNode)
         
+    # xsecs from JSON config file
+    def GetXsecScale(self):	
+	lumi = self.config['lumi{}'.format(self.year)]
+	xsec = self.config['XSECS'][self.setname]
+	if self.a.genEventSumw == 0:
+	    raise ValueError('{} {}: genEventSumw is 0'.format(self.setname, self.year))
+        return lumi*xsec/self.a.genEventSumw
 
+    # N-1 group - this returns a dict of nodes, where each node is such that it has all but one of the cuts applied. 
+    # used in order to see the effect of varying the tagger on selection
+    def GetNminus1Group(self,tagger):
+	cutgroup = CutGroup('taggingVars')
+	# inside the studies code, we'll have made SubCollections called LeadHiggs, LeadW, SubleadW
+	# first, cuts based on softdrop mass
+	cutgroup.Add('mH_{}_cut'.format(tagger),'LeadHiggs_msoftdrop > {0} && LeadHiggs_msoftdrop < {1}'.format(*self.cuts['mh']))
+	cutgroup.Add('mW1_{}_cut'.format(tagger),'LeadW_msoftdrop > {0} && LeadW_msoftdrop < {1]'.format(*self.cuts['mw']))
+	cutgroup.Add('mW2_{}_cut'.format(tagger),'SubleadW_msoftdrop > {0} && SubleadW_msoftdrop < {1}'.format(*self.cuts['mw']))
+	# now, cuts based on particleNet scores (for now, don't use mass-decorrelated)
+	# taggers are: particleNet_HbbvsQCD, particleNet_WvsQCD
+	cutgroup.Add('{}_H_cut'.format(tagger),'LeadHiggs_{0}_HbbvsQCD > {1}'.format(tagger, self.cuts[tagger+'_HbbvsQCD']))
+	cutgroup.Add('{}_W1_cut'.format(tagger),'LeadW_{0}_WvsQCD > {1}'.format(tagger, self.cuts[tagger+'_WvsQCD']))
+	cutgroup.Add('{}_W2_cut'.format(tagger),'SubleadW_{0}_WvsQCD > {1}'.format(tagger, self.cuts[tagger+'_WvsQCD']))
+	return cutgroup
