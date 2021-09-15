@@ -62,7 +62,7 @@ class XHYbbWW:
         self.njobs = njobs
         
 	# get config from JSON
-	self.config = OpenJSON('XHYbbWWconfig.JSON')
+	self.config = OpenJSON('XHYbbWWconfig.json')
 	self.cuts = self.config['CUTS']
 
         # check if data or sim

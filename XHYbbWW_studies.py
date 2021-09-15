@@ -20,14 +20,14 @@ def XHYbbWW_studies(args):
 
     # files are under trijet_nano/setname_era_snapshot.txt
     selection = XHYbbWW('trijet_nano/{}_{}_snapshot.txt'.format(args.setname,args.era),int(args.era),1,1)  # 1/1 jobs
-    selection.OpenForSelection('None')
+    #selection.OpenForSelection('None')    # I'll do this later
     selection.a.Define('Trijet_vect','hardware::TLvector(Trijet_pt, Trijet_eta, Trijet_phi, Trijet_msoftdrop)')
     selection.a.Define('mhww','hardware::InvariantMass(Trijet_vect)')
     selection.a.Define('m_avg','(Trijet_msoftdrop[0]+Trijet_msoftdrop[1]+Trijet_msoftdrop[2])/3')    # is this necessary?
     # make Lorentz vectors for each of the three jets
-    selection.a.Define('H_vect','hardware::TLVector(Trijet_pt[0], Trijet_eta[0], Trijet_phi[0], Trijet_msoftdrop[0])')    # Higgs
-    selection.a.Define('W1_vect','hardware::TLVector(Trijet_pt[1], Trijet_eta[1], Trijet_phi[1], Trijet_msoftdrop[1])')   # W1
-    selection.a.Define('W2_vect','hardware::TLVector(Trijet_pt[2], Trijet_eta[2], Trijet_phi[2], Trijet_msoftdrop[2])')   # W2
+    selection.a.Define('H_vect','hardware::TLvector(Trijet_pt[0], Trijet_eta[0], Trijet_phi[0], Trijet_msoftdrop[0])')    # Higgs
+    selection.a.Define('W1_vect','hardware::TLvector(Trijet_pt[1], Trijet_eta[1], Trijet_phi[1], Trijet_msoftdrop[1])')   # W1
+    selection.a.Define('W2_vect','hardware::TLvector(Trijet_pt[2], Trijet_eta[2], Trijet_phi[2], Trijet_msoftdrop[2])')   # W2
     selection.a.Define('Ws_vect','W1_vect + W2_vect')	# vector sum of two W vectors 
     # resonance masses
     selection.a.Define('Y','hardware::InvariantMass({W1_vect + W2_vect})')
@@ -39,20 +39,20 @@ def XHYbbWW_studies(args):
     selection.a.Define('pt1','Trijet_pt[1]')    # Lead W pT
     selection.a.Define('pt2','Trijet_pt[2]')    # Sublead W pT
     selection.a.Define('HT','pt0+pt1+pt2')	# scalar sum of all three Jet pTs, aka hadronic activity pT (not so useful tho)
-    selection.a.Define('deltaEta','abs(H_vect[1] - Ws_vect[1]')   # difference b/w H vector and sum of W vecs
+    selection.a.Define('deltaEta','abs(H_vect[1] - Ws_vect[1])')   # difference b/w H vector and sum of W vecs
     selection.a.Define('deltaPhi','hardware::DeltaPhi(H_vect[2], Ws_vect[2])')
     # get final node to branch off of
     kinOnly = selection.a.Define('deltaY','abs(H_vect.Rapidity() - Ws_vect.Rapidity())')
     
     # kinematic plots
     kinPlots = HistGroup('kinPlots')
-    kinPlots.Add('pt0',selection.a.DataFrame.Histo1D(('pt0','Higgs jet pt',100,350,2350),'pt0','weight__nominal')
-    kinPlots.Add('pt1',selection.a.DataFrame.Histo1D(('pt1','Lead W jet pt',100,350,2350),'pt1','weight__nominal')
-    kinPlots.Add('pt2',selection.a.DataFrame.Histo1D(('pt2','Sublead W jet pt',100,350,2350),'pt2','weight__nominal')
-    kinPlots.Add('HT',selection.a.DataFrame.Histo1D(('HT','Scalar sum of pt of HWW jets',150,700,3700),'HT','weight__nominal')
-    kinPlots.Add('deltaEta',selection.a.DataFrame.Histo1D(('deltaEta','| #Delta #eta |',48,0,4.8),'deltaEta','weight__nominal')
-    kinPlots.Add('deltaPhi',selection.a.DataFrame.Histo1D(('deltaPhi','| #Delta #phi |',32,1,3.14),'deltaPhi','weight__nominal')
-    kinPlots.Add('deltaY',selection.a.DataFrame.Histo1D(('deltaY','| #Delta y |',60,0,3),'deltaY','weight__nominal')
+    kinPlots.Add('pt0',selection.a.DataFrame.Histo1D(('pt0','Higgs jet pt',100,350,2350),'pt0','weight__nominal'))
+    kinPlots.Add('pt1',selection.a.DataFrame.Histo1D(('pt1','Lead W jet pt',100,350,2350),'pt1','weight__nominal'))
+    kinPlots.Add('pt2',selection.a.DataFrame.Histo1D(('pt2','Sublead W jet pt',100,350,2350),'pt2','weight__nominal'))
+    kinPlots.Add('HT',selection.a.DataFrame.Histo1D(('HT','Scalar sum of pt of HWW jets',150,700,3700),'HT','weight__nominal'))
+    kinPlots.Add('deltaEta',selection.a.DataFrame.Histo1D(('deltaEta','| #Delta #eta |',48,0,4.8),'deltaEta','weight__nominal'))
+    kinPlots.Add('deltaPhi',selection.a.DataFrame.Histo1D(('deltaPhi','| #Delta #phi |',32,1,3.14),'deltaPhi','weight__nominal'))
+    kinPlots.Add('deltaY',selection.a.DataFrame.Histo1D(('deltaY','| #Delta y |',60,0,3),'deltaY','weight__nominal'))
     
     # do N-1 setup, but don't worry about splitting into DAK8 and PN, just use PN
     selection.a.SetActiveNode(kinOnly)   # branch off the kinematic-only node
@@ -93,7 +93,7 @@ def XHYbbWW_studies(args):
 		    var = 'LeadHiggs{}'.format(higgs_tagger)
 		elif n.endswith('W1_cut'):
 		    var = 'LeadW{}'.format(w_tagger)
-		else	# we're looking at sublead W
+		else:	# we're looking at sublead W
 		    var = 'SubleadW{}'.format(w_tagger)
 	    print('N-1: Plotting {} for node {}'.format(var, n))
 	    kinPlots.Add(n+'_nminus1',nminusNodes[n].DataFrame.Histo1D((n+'_nminus1',n+'nminus1',bins[0],bins[1],bins[2]),var,'weight__nominal'))
@@ -116,4 +116,5 @@ if __name__ == '__main__':
                         action='store', default='None',
                         help='JES_up, JES_down, JMR_up,...')
 
+    args = parser.parse_args()
     XHYbbWW_studies(args)
