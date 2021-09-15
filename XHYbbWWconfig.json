@@ -9,5 +9,11 @@
         "QCDHT1000":1206,
         "QCDHT1500":120.4,
         "QCDHT2000":25.25
-    }
+    },
+    "CUTS" : {
+	"eta":2.4, 
+	"mh":[100,140],
+	"mw":[65,105],
+	"particleNet_HbbvsQCD":0.9,
+	"particleNet_WvsQCD":0.9
 }
