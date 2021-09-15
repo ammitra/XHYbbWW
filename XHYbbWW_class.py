@@ -119,7 +119,7 @@ class XHYbbWW:
 	# inside the studies code, we'll have made SubCollections called LeadHiggs, LeadW, SubleadW
 	# first, cuts based on softdrop mass
 	cutgroup.Add('mH_{}_cut'.format(tagger),'LeadHiggs_msoftdrop > {0} && LeadHiggs_msoftdrop < {1}'.format(*self.cuts['mh']))
-	cutgroup.Add('mW1_{}_cut'.format(tagger),'LeadW_msoftdrop > {0} && LeadW_msoftdrop < {1]'.format(*self.cuts['mw']))
+	cutgroup.Add('mW1_{}_cut'.format(tagger),'LeadW_msoftdrop > {0} && LeadW_msoftdrop < {1}'.format(*self.cuts['mw']))
 	cutgroup.Add('mW2_{}_cut'.format(tagger),'SubleadW_msoftdrop > {0} && SubleadW_msoftdrop < {1}'.format(*self.cuts['mw']))
 	# now, cuts based on particleNet scores (for now, don't use mass-decorrelated)
 	# taggers are: particleNet_HbbvsQCD, particleNet_WvsQCD
