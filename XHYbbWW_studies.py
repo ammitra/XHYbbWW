@@ -39,8 +39,8 @@ def XHYbbWW_studies(args):
     selection.a.Define('pt1','Trijet_pt[1]')    # Lead W pT
     selection.a.Define('pt2','Trijet_pt[2]')    # Sublead W pT
     selection.a.Define('HT','pt0+pt1+pt2')	# scalar sum of all three Jet pTs, aka hadronic activity pT (not so useful tho)
-    selection.a.Define('deltaEta','abs(H_vect[1] - Ws_vect[1])')   # difference b/w H vector and sum of W vecs
-    selection.a.Define('deltaPhi','hardware::DeltaPhi(H_vect[2], Ws_vect[2])')
+    selection.a.Define('deltaEta','abs(H_vect.Eta() - Ws_vect.Eta())')   # difference b/w H vector and sum of W vecs
+    selection.a.Define('deltaPhi','hardware::DeltaPhi(H_vect.Phi(), Ws_vect.Phi())')
     # get final node to branch off of
     kinOnly = selection.a.Define('deltaY','abs(H_vect.Rapidity() - Ws_vect.Rapidity())')
     
@@ -63,7 +63,7 @@ def XHYbbWW_studies(args):
     nminus1Node = selection.a.ObjectFromCollection('SubleadW','Trijet',2)
     
     # now we can begin the N-1 process
-    out = ROOT.TFile.Open('rootfiles/XHYbbWWstudies_{}_{}{}'.format(args.setname,args.era,'_'+args.variation if args.variation != 'None' else ''),'RECREATE')
+    out = ROOT.TFile.Open('rootfiles/XHYbbWWstudies_{}_{}{}.root'.format(args.setname,args.era,'_'+args.variation if args.variation != 'None' else ''),'RECREATE')
     out.cd()
 
     # for now, we are only interested in particleNet. But, let's just keep the for loop in case we want to add more
@@ -90,13 +90,13 @@ def XHYbbWW_studies(args):
 	    else:    	# tagger cut
 		bins = [50,0,1]
 		if n.endswith('H_cut'):
-		    var = 'LeadHiggs{}'.format(higgs_tagger)
+		    var = 'LeadHiggs_{}'.format(higgs_tagger)
 		elif n.endswith('W1_cut'):
-		    var = 'LeadW{}'.format(w_tagger)
+		    var = 'LeadW_{}'.format(w_tagger)
 		else:	# we're looking at sublead W
-		    var = 'SubleadW{}'.format(w_tagger)
+		    var = 'SubleadW_{}'.format(w_tagger)
 	    print('N-1: Plotting {} for node {}'.format(var, n))
-	    kinPlots.Add(n+'_nminus1',nminusNodes[n].DataFrame.Histo1D((n+'_nminus1',n+'nminus1',bins[0],bins[1],bins[2]),var,'weight__nominal'))
+	    kinPlots.Add(n+'_nminus1',nminusNodes[n].DataFrame.Histo1D((n+'_nminus1',n+'_nminus1',bins[0],bins[1],bins[2]),var,'weight__nominal'))
 
     # N-1 loop is over
     kinPlots.Do('Write')
