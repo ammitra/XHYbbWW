@@ -10,3 +10,4 @@ trijet_nano/*.txt
 plots/
 rootfiles/
 raw_nano/*.txt
+*.dot
