@@ -96,12 +96,18 @@ def CombineCommonSets(groupname, doStudies=True):
 def MakeRun2(setname, doStudies=True):
     t = 'studies' if doStudies else 'selection'
     # hadd <ofile> <ifiles>
-    '''
-    if 'MX' in setname:
-        # for now all signal we just assign year 2018
-        ExecuteCmd('cp rootfiles/XHYbbWW{1}_{0}_18.root rootfiles/XHYbbWW{1}_{0}_Run2.root'.format(setname, t))
-    '''
     ExecuteCmd('hadd -f rootfiles/XHYbbWW{1}_{0}_Run2.root rootfiles/XHYbbWW{1}_{0}_16.root rootfiles/XHYbbWW{1}_{0}_17.root rootfiles/XHYbbWW{1}_{0}_18.root'.format(setname,t))
+
+def MakeRun2Signal(doStudies=True):
+    t = 'studies' if doStudies else 'selection'
+    sig = glob('rootfiles/XHYbbWWstudies_MX_*')   # get all signal study files
+    for s in sig:
+	if 'Run2' in s:
+	    return    # we've already done the renaming/copying
+	else:
+	    name = s.split('/')[-1].split('.')[0].split('_')
+	    setname = '{}_{}_{}_{}'.format(name[1],name[2],name[3],name[4])	               # just rename all the MX_MY signal files
+            ExecuteCmd('cp rootfiles/XHYbbWW{1}_{0}_18.root rootfiles/XHYbbWW{1}_{0}_Run2.root'.format(setname, t))
 
 def plot(histname, fancyname):
     files = [f for f in glob('rootfiles/XHYbbWWstudies_*_Run2.root')]
@@ -120,6 +126,7 @@ if __name__ == "__main__":
     CombineCommonSets('ttbar',doStudies=True)
     MakeRun2('QCD',doStudies=True)
     MakeRun2('ttbar',doStudies=True)
+    MakeRun2Signal()
 
     histNames = {
         'pt0':'Higgs jet p_{T} (GeV)',
