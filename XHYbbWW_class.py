@@ -49,6 +49,17 @@ class XHYbbWW:
 		self.a = analyzer(infiles,multiSampleStr=prefix[5])
 		# ensure we're working with the proper YMass
 		self.a.Cut('CorrectMass', 'GenModel_YMass_{} == 1'.format(prefix[5]))
+	    elif inputfile.startswith('trijet_nano'):    # this condition is met when we are running XHYbbWW_studies.py
+		# format is "trijet_nano/setname_era_snapshot.txt"
+		prefix = inputfile.split('/')[-1]   # everything after "trijet_nano"
+		if 'MX' in prefix:    # signal setname is different from other setnames
+		    s = prefix.split('_')
+		    self.setname = ('{}_{}_{}_{}'.format(s[0],s[1],s[2],s[3]))    # MX_XMASS_MY_YMASS
+		    self.a = analyzer(infiles,multiSampleStr=s[3])
+		    #self.a.Cut('CorrectMass', 'GenModel_YMass_{} == 1'.format(s[3]))
+		else:
+		    self.setname = prefix.split('_')[0]
+		    self.a = analyzer(infiles)
 	    else:
 		# format is (raw_nano/setname_era.txt)
 		self.setname = inputfile.split('/')[-1].split('_')[0]

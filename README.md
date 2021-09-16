@@ -76,3 +76,12 @@ Job outputs (snapshots) automatically get moved to EOS space under `/store/user/
 ```
 python trijet_nano/get_all.py
 ```
+
+## 4) Perform studies 
+
+The script `XHYbbWW_studies.py` takes in the setname, year, and (later) variation of the snapshot ROOT files and creates kinematic plots and N-1 plots from them. To utilize this script, run 
+
+```
+python perform_studies.py
+```
+
