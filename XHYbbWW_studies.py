@@ -85,8 +85,25 @@ def XHYbbWW_studies(args):
 		    var = 'SubleadW_msoftdrop'
 		else:	# we're looking at Higgs
 		    var = 'LeadHiggs_msoftdrop'
-	    elif n == 'full':
-		continue
+	    elif n == 'full':   # full cuts, has all N of them
+		    # this key ALWAYS exists in nminusNodes by default. This is the node which has all of the cuts (that we defined in XHYbbWW_class) applied
+            '''
+                        |
+                    [kinOnly]
+                        |
+                        / \
+                    /   \
+                    /     \
+                [cut1]  [cut2]
+                /   \      \
+                            \
+                                \
+                            [cut3] 
+                                \
+                                ['full'] <- this is the node with every cut made
+            '''
+            # this will effectively plot the Y mass (W1+W2) with EVERY other cut that we've defined
+            var = 'Y'
 	    else:    	# tagger cut
 		bins = [50,0,1]
 		if n.endswith('H_cut'):
