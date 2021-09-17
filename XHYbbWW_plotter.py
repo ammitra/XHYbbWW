@@ -117,8 +117,8 @@ def plot(histname, fancyname):
                    bkgs=hists['bkg'],
                    signals=hists['sig'],
                    names={},
-                   colors={'QCD':ROOT.kYellow,'ttbar':ROOT.kRed,'TprimeB-1200':ROOT.kBlack},
-                   scale=False, stackBkg=True, 
+                   colors={'QCD':ROOT.kYellow,'ttbar':ROOT.kRed,'MX_1300_MY_200':ROOT.kBlack,'MX_1500_MY_400':ROOT.kGray,'MX_2000_MY_400':ROOT.kBlue,'MX_2000_MY_800':ROOT.kCyan,'MX_3000_MY_800':ROOT.kGreen},
+                   scale=True, stackBkg=True, 
                    doSoverB=True)
 
 if __name__ == "__main__":

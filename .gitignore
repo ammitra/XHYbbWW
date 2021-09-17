@@ -11,3 +11,4 @@ plots/
 rootfiles/
 raw_nano/*.txt
 *.dot
+*.gz
