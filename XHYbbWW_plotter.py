@@ -10,7 +10,7 @@ def GetAllFiles():
     return [f for f in glob('trijet_nano/*_snapshot.txt') if f != '']
 
 def GetProcYearFromTxt(filename):
-    '''
+    ''' formats:
     DataA_18_snapshot.txt
     MX_1300_MY_200_18_snapshot.txt
     '''
@@ -24,7 +24,7 @@ def GetProcYearFromTxt(filename):
     return proc, year
 
 def GetProcYearFromROOT(filename):
-    '''
+    ''' formats:
     XHYbbWWstudies_QCDHT2000_17.root
     XHYbbWWstudies_MX_2000_MY_400_18.root
     '''
@@ -38,6 +38,7 @@ def GetProcYearFromROOT(filename):
     return proc, year
 
 def GetHistDict(histname, all_files):
+
     all_hists = {
         'bkg':{},'sig':{},'data':None
     }
@@ -58,8 +59,12 @@ def GetHistDict(histname, all_files):
 
 def CombineCommonSets(groupname, doStudies=True):
     '''
-    Which stitch together either QCD or ttbar (ttbar-allhad+ttbar-semilep)
-    @param groupname (str, optional): "QCD" or "ttbar".
+    First stitch together either QCD or ttbar (ttbar-allhad+ttbar-semilep):
+        XHYbbWWstudies_QCD_{year}.root
+        XHYbbWWstudies_ttbar_{year}.root
+    Then uses MakeRun2() to combine all years. Final output:  
+        XHYbbWWstudies_QCD_Run2.root
+        XHYbbWWstudies_ttbar_Run2.root
     '''
     if groupname not in ["QCD","ttbar"]:
         raise ValueError('Can only combine QCD or ttbar')
@@ -69,12 +74,14 @@ def CombineCommonSets(groupname, doStudies=True):
         if groupname == 'ttbar':
             for v in ['']:
                 if v == '':
+                    # this will result in the 16,17,18 ttbar (semilep and hadronic) all being combined 
                     ExecuteCmd('hadd -f %s %s %s'%(
                         baseStr.format('ttbar',y,''),
                         baseStr.format('ttbar-allhad',y,''),
                         baseStr.format('ttbar-semilep',y,''))
                     )
                 else:
+                    # no need to worry about this just yet
                     for v2 in ['up','down']:
                         v3 = '_%s_%s'%(v,v2)
                         ExecuteCmd('hadd -f %s %s %s'%(
@@ -94,11 +101,20 @@ def CombineCommonSets(groupname, doStudies=True):
     MakeRun2(groupname)
 
 def MakeRun2(setname, doStudies=True):
+    '''
+    Gathers all bkg files from 16,17,18 and hadds them to:
+        rootfiles/XHYbbWWstudies_{setname}_Run2.root
+    '''
     t = 'studies' if doStudies else 'selection'
     # hadd <ofile> <ifiles>
     ExecuteCmd('hadd -f rootfiles/XHYbbWW{1}_{0}_Run2.root rootfiles/XHYbbWW{1}_{0}_16.root rootfiles/XHYbbWW{1}_{0}_17.root rootfiles/XHYbbWW{1}_{0}_18.root'.format(setname,t))
 
 def MakeRun2Signal(doStudies=True):
+    '''
+    Since for now we're just arbirtarily attributing the signal to 2018 (so file format works w the other scripts), we just have to add Run2 to the names
+    Will only run if the script hasn't been run before. Output:
+        XHYbbWW_MX_XMASS_MY_YMASS_Run2.root
+    '''
     t = 'studies' if doStudies else 'selection'
     sig = glob('rootfiles/XHYbbWWstudies_MX_*')   # get all signal study files
     for s in sig:
@@ -126,8 +142,10 @@ if __name__ == "__main__":
     CombineCommonSets('ttbar',doStudies=True)
     MakeRun2('QCD',doStudies=True)
     MakeRun2('ttbar',doStudies=True)
-    MakeRun2Signal()
+    MakeRun2Signal()    # will only run once
 
+    # if the keys of this dict already exist as histo names in the selected ROOT file, it'll use these names. 
+    # else, it'll use the histo names
     histNames = {
         'pt0':'Higgs jet p_{T} (GeV)',
         'pt1':'Lead W jet p_{T} (GeV)',
@@ -139,9 +157,9 @@ if __name__ == "__main__":
         'mH_particleNet':'Higgs jet mass (with ParticleNet tag)',
         'mW1_particleNet':'Lead W jet mass (with ParticleNet tag)',
         'mW2_particleNet':'Sublead W jet mass (with ParticleNet tag)',
-	'H_particleNet':'ParticleNet Higgs tag score',
-	'W1_particleNet':'ParticleNet lead W tag score',
-	'W2_particleNet':'ParticleNet sublead W tag score'
+        'H_particleNet':'ParticleNet Higgs tag score',
+        'W1_particleNet':'ParticleNet lead W tag score',
+        'W2_particleNet':'ParticleNet sublead W tag score'
     }
     tempfile = ROOT.TFile.Open('rootfiles/XHYbbWWstudies_MX_1300_MY_200_18.root','READ')
     allValidationHists = [k.GetName() for k in tempfile.GetListOfKeys() if 'Idx' not in k.GetName()]
