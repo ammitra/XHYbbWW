@@ -125,7 +125,12 @@ def MakeRun2Signal(doStudies=True):
 	    setname = '{}_{}_{}_{}'.format(name[1],name[2],name[3],name[4])	               # just rename all the MX_MY signal files
             ExecuteCmd('cp rootfiles/XHYbbWW{1}_{0}_18.root rootfiles/XHYbbWW{1}_{0}_Run2.root'.format(setname, t))
 
-def plot(histname, fancyname):
+def plot(histname, fancyname, scale=True):
+    '''
+    generates plots based on a dictionary of hist names and their LaTeX fancy name
+    hist names are compared against an existing studies file (with N-1 info). If hist name DNE in histo, just use name in histo
+    @param: scale=True by default, but passed as CL argument
+    '''
     files = [f for f in glob('rootfiles/XHYbbWWstudies_*_Run2.root')]
     hists = GetHistDict(histname,files)
 
@@ -134,10 +139,19 @@ def plot(histname, fancyname):
                    signals=hists['sig'],
                    names={},
                    colors={'QCD':ROOT.kYellow,'ttbar':ROOT.kRed,'MX_1300_MY_200':ROOT.kBlack,'MX_1500_MY_400':ROOT.kGray,'MX_2000_MY_400':ROOT.kBlue,'MX_2000_MY_800':ROOT.kCyan,'MX_3000_MY_800':ROOT.kGreen},
-                   scale=True, stackBkg=True, 
+                   scale=scale, stackBkg=True, 
                    doSoverB=True)
 
 if __name__ == "__main__":
+    from argparse import ArgumentParser
+    parser = ArgumentParser()
+
+    # only arg we need for now is the hist scaling (normalization)
+    parser.add_argument('--scale', dest='scale',
+                        action='store_true', default=True,
+                        help='scale histograms to unity')
+    args = parser.parse_args()
+
     CombineCommonSets('QCD',doStudies=True)     # True by default, but just to show it here
     CombineCommonSets('ttbar',doStudies=True)
     MakeRun2('QCD',doStudies=True)
@@ -166,6 +180,6 @@ if __name__ == "__main__":
     for h in allValidationHists:
 	print('Plotting {}'.format(h))
 	if h in histNames.keys():
-	    plot(h,histNames[h])
+	    plot(h,histNames[h],args.scale)
 	else:
-	    plot(h,h)
+	    plot(h,h,args.scale)
