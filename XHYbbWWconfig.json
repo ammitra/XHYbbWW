@@ -19,7 +19,7 @@
 	"eta":2.4, 
 	"mh":[100,140],
 	"mw":[65,105],
-	"particleNet_HbbvsQCD":0.9,
-	"particleNet_WvsQCD":0.9
+	"particleNet_HbbvsQCD":0.8,
+	"particleNet_WvsQCD":0.8
     }
 }
