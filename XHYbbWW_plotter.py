@@ -150,6 +150,9 @@ if __name__ == "__main__":
     parser.add_argument('--scale', dest='scale',
                         action='store_true', default=True,
                         help='scale histograms to unity')
+    parser.add_argument('--noscale', dest='scale',
+                        action='store_false', default=False,
+                        help='do not scale histograms to unity')
     args = parser.parse_args()
 
     CombineCommonSets('QCD',doStudies=True)     # True by default, but just to show it here

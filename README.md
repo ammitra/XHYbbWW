@@ -85,3 +85,18 @@ The script `XHYbbWW_studies.py` takes in the setname, year, and (later) variatio
 python perform_studies.py
 ```
 
+## 5) Plots
+
+Run the command with either the `--scale` or `--noscale` arguments to plot the histograms scaled/not scaled to unity, respectively.
+
+```
+python XHYbbWW_plotter.py [--scale] [--noscale]
+```
+
+**For my own use:** Run 
+
+```
+source get_plots.sh filename
+```
+
+to create and send `filename.tar.gz` containing the outputted plots from `XHYbbWW_plotter.py` to CMS4. From there you can view them. 
