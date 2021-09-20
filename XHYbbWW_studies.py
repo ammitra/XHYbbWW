@@ -89,9 +89,9 @@ def XHYbbWW_studies(args):
 		# this key ALWAYS exists in nminusNodes by default. This is the node which has all of the cuts (that we defined in XHYbbWW_class) applied
                 '''
                         |
-                    [kinOnly]
-                        |
-                       / \
+                    [kinOnly] ---------------------(branch off this for N-2)-----------------
+                        |                                                                   |
+                       / \                                                           (create new 
                       /   \
                      /     \
                  [cut1]  [cut2]
@@ -103,6 +103,7 @@ def XHYbbWW_studies(args):
                                 ['full'] <- this is the node with every cut made
                 '''
                 # this will effectively plot the Y mass (W1+W2) with EVERY other cut that we've defined
+		#	- mH, mW1, mW2, H_tag, W1_tag, W2_tag
                 var = 'Y'
 	    else:    	# tagger cut
 		bins = [50,0,1]
@@ -115,7 +116,34 @@ def XHYbbWW_studies(args):
 	    print('N-1: Plotting {} for node {}'.format(var, n))
 	    kinPlots.Add(n+'_nminus1',nminusNodes[n].DataFrame.Histo1D((n+'_nminus1',n+'_nminus1',bins[0],bins[1],bins[2]),var,'weight__nominal'))
 
-    # N-1 loop is over
+    '''
+    EXPERIMENTAL: N-2 plot of Higgs tag cut with everything except the Higgs mass cut
+    '''
+    selection.a.SetActiveNode(kinOnly)   # branch off the kinematic-only node again (from before N-1 process)
+    #selection.a.ObjectFromCollection('LeadHiggs','Trijet',0)
+    #selection.a.ObjectFromCollection('LeadW','Trijet',1)
+    #nminus2Node = selection.a.ObjectFromCollection('SubleadW','Trijet',2)
+    nminus2Node = nminus1Node    # just return to where N-1 node began 
+    taggers = ['particleNet']
+    for t in taggers:
+	higgs_tagger = '{}_HbbvsQCD'.format(t)
+	w_tagger = '{}_WvsQCD'.format(t)
+	# get the dict of nodes with XHYbbWW.GetNminus2Group()
+	selection.a.SetActiveNode(nminus2Node)		# again get the node returned just after kinematics
+	nminus2Group = selection.GetNminus2Group(t)	# returns dict of nodes
+	nminus2Nodes = selection.a.Nminus1(nminus2Group)
+	# now we want to grab ONLY the key ending with 'H_cut'
+	# this key will have all cuts made except the Higgs tagger cut and Higgs mass cut, since we never specified to do the Higgs mass cut in the GetNminus2Group() function
+	bins = [50,0,1]
+	for n in nminus2Nodes.keys():
+	    if n.endswith('H_cut'):
+		var = 'LeadHiggs_{}'.format(higgs_tagger)
+		print('N-2: Plotting {} for node {} WITHOUT Higgs mass cut'.format(var, n))
+		kinPlots.Add(n+'_nminus2',nminus2Nodes[n].DataFrame.Histo1D((n+'_nminus2',n+'_nminus2',bins[0],bins[1],bins[2]),var,'weight__nominal'))
+	    else:
+		continue
+	
+    # N-1 loop and N-2 loop are over
     kinPlots.Do('Write')
     selection.a.PrintNodeTree('NodeTree.pdf',verbose=True)
     print('{} sec'.format(time.time() - start))

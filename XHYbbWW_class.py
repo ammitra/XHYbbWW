@@ -140,3 +140,16 @@ class XHYbbWW:
 	cutgroup.Add('{}_W1_cut'.format(tagger),'LeadW_{0}_WvsQCD > {1}'.format(tagger, self.cuts[tagger+'_WvsQCD']))
 	cutgroup.Add('{}_W2_cut'.format(tagger),'SubleadW_{0}_WvsQCD > {1}'.format(tagger, self.cuts[tagger+'_WvsQCD']))
 	return cutgroup
+
+    # N-2 group - in this case we want to plot the Higgs tag cut after *all* cuts are made EXCEPT for the Higgs mass cut
+    def GetNminus2Group(self,tagger):
+	cutgroup = CutGroup('taggingVars')
+	# we want to add every cut EXCEPT for higgs mass cut. Starting with mass cuts:
+	cutgroup.Add('mW1_{}_cut'.format(tagger),'LeadW_msoftdrop > {0} && LeadW_msoftdrop < {1}'.format(*self.cuts['mw']))
+        cutgroup.Add('mW2_{}_cut'.format(tagger),'SubleadW_msoftdrop > {0} && SubleadW_msoftdrop < {1}'.format(*self.cuts['mw']))
+	# now we want to make cuts on particleNet scores (including Higgs tagger score)
+	# after we call this function, we will grab the key that ends with 'H_cut'
+        cutgroup.Add('{}_H_cut'.format(tagger),'LeadHiggs_{0}_HbbvsQCD > {1}'.format(tagger, self.cuts[tagger+'_HbbvsQCD']))
+        cutgroup.Add('{}_W1_cut'.format(tagger),'LeadW_{0}_WvsQCD > {1}'.format(tagger, self.cuts[tagger+'_WvsQCD']))
+        cutgroup.Add('{}_W2_cut'.format(tagger),'SubleadW_{0}_WvsQCD > {1}'.format(tagger, self.cuts[tagger+'_WvsQCD']))
+	return cutgroup
