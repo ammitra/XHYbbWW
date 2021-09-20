@@ -86,6 +86,8 @@ def XHYbbWW_studies(args):
 		else:	# we're looking at Higgs
 		    var = 'LeadHiggs_msoftdrop'
 	    elif n == 'full':   # full cuts, has all N of them
+		# Possible YMasses are 200, 400, 800
+		bins = [100,50,900]
 		# this key ALWAYS exists in nminusNodes by default. This is the node which has all of the cuts (that we defined in XHYbbWW_class) applied
                 '''
                         |
@@ -114,7 +116,10 @@ def XHYbbWW_studies(args):
 		else:	# we're looking at sublead W
 		    var = 'SubleadW_{}'.format(w_tagger)
 	    print('N-1: Plotting {} for node {}'.format(var, n))
-	    kinPlots.Add(n+'_nminus1',nminusNodes[n].DataFrame.Histo1D((n+'_nminus1',n+'_nminus1',bins[0],bins[1],bins[2]),var,'weight__nominal'))
+	    if (var == 'Y'):
+		kinPlots.Add('YMass_allCuts',nminusNodes[n].DataFrame.Histo1D(('YMass_allCuts','YMass_allCuts',bins[0],bins[1],bins[2]),var,'weight__nominal'))
+	    else:
+	        kinPlots.Add(n+'_nminus1',nminusNodes[n].DataFrame.Histo1D((n+'_nminus1',n+'_nminus1',bins[0],bins[1],bins[2]),var,'weight__nominal'))
 
     '''
     EXPERIMENTAL: N-2 plot of Higgs tag cut with everything except the Higgs mass cut
