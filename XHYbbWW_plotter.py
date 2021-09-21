@@ -5,6 +5,7 @@ from TIMBER.Tools.Common import DictStructureCopy, CompileCpp, ExecuteCmd, OpenJ
 from TIMBER.Tools.Plot import CompareShapes
 from TIMBER.Analyzer import Correction
 import ROOT
+from collections import OrderedDict
 
 def GetAllFiles():
     return [f for f in glob('trijet_nano/*_snapshot.txt') if f != '']
@@ -38,10 +39,12 @@ def GetProcYearFromROOT(filename):
     return proc, year
 
 def GetHistDict(histname, all_files):
-
+    # we want to ensure that the signals stay in the proper order for the S/sqrt(B) significance pane, so we use an OrderedDict for the 'sig' key
     all_hists = {
-        'bkg':{},'sig':{},'data':None
+        'bkg':{},'sig':OrderedDict([]),'data':None
     }
+    # gather all signal histograms in a (proc,hist) tuple to form the OrderedDict
+    sigHists = []
     for f in all_files:
         proc, year = GetProcYearFromROOT(f)
         tfile = ROOT.TFile.Open(f)
@@ -50,11 +53,29 @@ def GetHistDict(histname, all_files):
             raise ValueError('Histogram {} does not exist in {}.'.format(histname,f))
         hist.SetDirectory(0)
         if 'MX' in proc:
-            all_hists['sig'][proc] = hist
+            print('PROC = {}'.format(proc))
+	    sigHists.append((proc,hist))    # OrderedDict requires (k,v)
         elif 'Data' in proc:
             all_hists['data'] = hist
         else:
             all_hists['bkg'][proc] = hist
+    # we've finished all the data and bkg dicts, now lets do signal
+    # first, find MX=2000, MY=800    
+    MX2000MY800_element = 0
+    for i in range(len(sigHists)):
+	if ('MX_2000' in sigHists[i][0]) and ('MY_800' in sigHists[i][0]):
+	    MX2000MY800_element = i
+	    print(sigHists[i][0])
+    # now add that as the first element in all_hists['sig']
+    all_hists['sig'][sigHists[MX2000MY800_element][0]] = sigHists[MX2000MY800_element][1]
+    for i in range(len(sigHists)):
+	if (i == MX2000MY800_element):
+	    continue
+	else:
+	    all_hists['sig'][sigHists[i][0]] = sigHists[i][1]    # equivalent to all_hists['sig'][proc] = hist
+    # at this point, this should be good to go. 
+    # This method just ensures that the "first" signal in the all_hists['sig'] dict belongs to a mass w relatively high signal, thus ensuring that the S/sqrt(B) pane chooses a signal which mostly passes selection (unlike a lower mass one - say MX=1300)
+    print(all_hists['sig'])
     return all_hists
 
 def CombineCommonSets(groupname, doStudies=True):
@@ -134,7 +155,22 @@ def plot(histname, fancyname, scale=True):
     files = [f for f in glob('rootfiles/XHYbbWWstudies_*_Run2.root')]
     hists = GetHistDict(histname,files)
 
-    CompareShapes('plots/%s_Run2.pdf'%histname,1,fancyname,
+    # we want to ensure that the plots show the signals in the same order, so we used OrderedDict in the GetHistDict() function
+    # so, when hists['sig'] is called, the first element should ALWAYS be the histograms from the MX_2000_MY_800 signal, and this is the signal whose S/sqrt(B) will be displayed 
+    
+    # we also want to remove the S/sqrt(B) significance pane for kinematic plots.
+    if 'particleNet' not in histname:
+	# we are plotting kinematics
+        CompareShapes('plots/%s_Run2.pdf'%histname,1,fancyname,
+                   bkgs=hists['bkg'],
+                   signals=hists['sig'],
+                   names={},
+                   colors={'QCD':ROOT.kYellow,'ttbar':ROOT.kRed,'MX_1300_MY_200':ROOT.kBlack,'MX_1500_MY_400':ROOT.kGray,'MX_2000_MY_400':ROOT.kBlue,'MX_2000_MY_800':ROOT.kCyan,'MX_3000_MY_800':ROOT.kGreen},
+                   scale=scale, stackBkg=True,
+                   doSoverB=False) 
+    else:
+	# we are plotting N-1 or something else, show significance
+        CompareShapes('plots/%s_Run2.pdf'%histname,1,fancyname,
                    bkgs=hists['bkg'],
                    signals=hists['sig'],
                    names={},
