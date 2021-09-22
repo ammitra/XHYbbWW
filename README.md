@@ -105,6 +105,6 @@ One should use the script `GroupImgToPDF` (thanks, Lucas!) to concatenate multip
 
 ```
 python GroupImgToPDF.py -o [output_file] -F [files...]
-``` 
+```
 
 where wildcards for filenames are acceptable
