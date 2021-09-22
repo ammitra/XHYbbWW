@@ -70,12 +70,14 @@ def GetHistDict(histname, all_files):
     all_hists['sig'][sigHists[MX2000MY800_element][0]] = sigHists[MX2000MY800_element][1]
     for i in range(len(sigHists)):
 	if (i == MX2000MY800_element):
+	    # we've already added (2000,800) as the first key in the OrderedDict
 	    continue
 	else:
+	    # we need to add the rest of the signal processes to the OrderedDict
 	    all_hists['sig'][sigHists[i][0]] = sigHists[i][1]    # equivalent to all_hists['sig'][proc] = hist
     # at this point, this should be good to go. 
     # This method just ensures that the "first" signal in the all_hists['sig'] dict belongs to a mass w relatively high signal, thus ensuring that the S/sqrt(B) pane chooses a signal which mostly passes selection (unlike a lower mass one - say MX=1300)
-    print(all_hists['sig'])
+    #print(all_hists['sig'])
     return all_hists
 
 def CombineCommonSets(groupname, doStudies=True):
