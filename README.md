@@ -99,4 +99,12 @@ python XHYbbWW_plotter.py [--scale] [--noscale]
 source get_plots.sh filename
 ```
 
-to create and send `filename.tar.gz` containing the outputted plots from `XHYbbWW_plotter.py` to CMS4. From there you can view them. 
+to create and send `filename.tar.gz` containing the outputted plots from `XHYbbWW_plotter.py` to CMS4. From there you can view them.
+
+One should use the script `GroupImgToPDF` (thanks, Lucas!) to concatenate multiple images into one PDF for quick viewing. To use it, run 
+
+```
+python GroupImgToPDF.py -o [output_file] -F [files...]
+``` 
+
+where wildcards for filenames are acceptable
