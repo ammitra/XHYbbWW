@@ -65,7 +65,7 @@ def GetHistDict(histname, all_files):
     for i in range(len(sigHists)):
 	if ('MX_2000' in sigHists[i][0]) and ('MY_800' in sigHists[i][0]):
 	    MX2000MY800_element = i
-	    print(sigHists[i][0])
+	    #print(sigHists[i][0])
     # now add that as the first element in all_hists['sig']
     all_hists['sig'][sigHists[MX2000MY800_element][0]] = sigHists[MX2000MY800_element][1]
     for i in range(len(sigHists)):
@@ -167,16 +167,36 @@ def plot(histname, fancyname, scale=True):
                    bkgs=hists['bkg'],
                    signals=hists['sig'],
                    names={},
-                   colors={'QCD':ROOT.kYellow,'ttbar':ROOT.kRed,'MX_1300_MY_200':ROOT.kBlack,'MX_1500_MY_400':ROOT.kGray,'MX_2000_MY_400':ROOT.kBlue,'MX_2000_MY_800':ROOT.kCyan,'MX_3000_MY_800':ROOT.kGreen},
+                   colors={'QCD':ROOT.kOrange,'ttbar':ROOT.kRed,'MX_1300_MY_200':ROOT.kBlack,'MX_1500_MY_400':ROOT.kGray,'MX_2000_MY_400':ROOT.kBlue,'MX_2000_MY_800':ROOT.kCyan,'MX_3000_MY_800':ROOT.kGreen},
                    scale=scale, stackBkg=True,
                    doSoverB=False) 
+
+    elif ('H_cut' in histname) or ('W1_cut' in histname) or ('W2_cut' in histname):
+	# we are plotting a tagger cut
+	# plot with log scale
+        CompareShapes('plots/%s_LOGSCALE_Run2.pdf'%histname,1,fancyname,
+                   bkgs=hists['bkg'],
+                   signals=hists['sig'],
+                   names={},
+                   colors={'QCD':ROOT.kOrange,'ttbar':ROOT.kRed,'MX_1300_MY_200':ROOT.kBlack,'MX_1500_MY_400':ROOT.kGray,'MX_2000_MY_400':ROOT.kBlue,'MX_2000_MY_800':ROOT.kCyan,'MX_3000_MY_800':ROOT.kGreen},
+                   scale=scale, stackBkg=True,
+                   doSoverB=True,
+		   logy=True)
+	# plot without log scale (just so we can compare all N-1 and see which looks better)
+        CompareShapes('plots/%s_Run2.pdf'%histname,1,fancyname,
+                   bkgs=hists['bkg'],
+                   signals=hists['sig'],
+                   names={},
+                   colors={'QCD':ROOT.kOrange,'ttbar':ROOT.kRed,'MX_1300_MY_200':ROOT.kBlack,'MX_1500_MY_400':ROOT.kGray,'MX_2000_MY_400':ROOT.kBlue,'MX_2000_MY_800':ROOT.kCyan,'MX_3000_MY_800':ROOT.kGreen},
+                   scale=scale, stackBkg=True,
+                   doSoverB=True)
     else:
 	# we are plotting N-1 or something else, show significance
         CompareShapes('plots/%s_Run2.pdf'%histname,1,fancyname,
                    bkgs=hists['bkg'],
                    signals=hists['sig'],
                    names={},
-                   colors={'QCD':ROOT.kYellow,'ttbar':ROOT.kRed,'MX_1300_MY_200':ROOT.kBlack,'MX_1500_MY_400':ROOT.kGray,'MX_2000_MY_400':ROOT.kBlue,'MX_2000_MY_800':ROOT.kCyan,'MX_3000_MY_800':ROOT.kGreen},
+                   colors={'QCD':ROOT.kOrange,'ttbar':ROOT.kRed,'MX_1300_MY_200':ROOT.kBlack,'MX_1500_MY_400':ROOT.kGray,'MX_2000_MY_400':ROOT.kBlue,'MX_2000_MY_800':ROOT.kCyan,'MX_3000_MY_800':ROOT.kGreen},
                    scale=scale, stackBkg=True, 
                    doSoverB=True)
 
