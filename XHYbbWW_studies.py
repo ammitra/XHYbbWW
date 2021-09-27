@@ -125,9 +125,6 @@ def XHYbbWW_studies(args):
     EXPERIMENTAL: N-2 plot of Higgs tag cut with everything except the Higgs mass cut
     '''
     selection.a.SetActiveNode(kinOnly)   # branch off the kinematic-only node again (from before N-1 process)
-    #selection.a.ObjectFromCollection('LeadHiggs','Trijet',0)
-    #selection.a.ObjectFromCollection('LeadW','Trijet',1)
-    #nminus2Node = selection.a.ObjectFromCollection('SubleadW','Trijet',2)
     nminus2Node = nminus1Node    # just return to where N-1 node began 
     taggers = ['particleNet']
     for t in taggers:
@@ -147,9 +144,35 @@ def XHYbbWW_studies(args):
 		kinPlots.Add(n+'_nminus2',nminus2Nodes[n].DataFrame.Histo1D((n+'_nminus2',n+'_nminus2',bins[0],bins[1],bins[2]),var,'weight__nominal'))
 	    else:
 		continue
-	
+
+    # now we want to plot mX vs mY for QCD, ttbar, and signal
+    MXvsMYPlots = HistGroup('MXvsMYPlots')
+    taggers = ['particleNet']
+    for t in taggers:
+	Hbb = [0.8, 0.98]
+	W = [0.8]
+	print('MX vs MY: Plotting for regions Hbb < {0}, {0} < Hbb < {1}, Hbb > {1}'.format(Hbb[0],Hbb[1]))
+        regions = selection.MXvsMY(t, Hbb, W)    # vary Hbb score, keep WvsWCD>0.8
+	bins = [60,0,3500]
+	# now that we have the three regions, perform each one 
+	for region in range(3):
+	    print('Plotting MX vs MY in Region {}'.format(region+1))
+	    # start at the kinOnly node
+            selection.a.SetActiveNode(nminus1Node)    # so that Trijet subcollection is defined 
+	    selection.a.Apply(regions[region])	# apply the cutgroup for this region, on the active node (kinOnly)
+	    # now we are going to redefine our X and Y for this region
+	    selection.a.Define('Region{}_H'.format(region+1),'hardware::TLvector(Trijet_pt[0], Trijet_eta[0], Trijet_phi[0], Trijet_msoftdrop[0])')   # our new H jet in this region
+	    selection.a.Define('Region{}_W1'.format(region+1),'hardware::TLvector(Trijet_pt[1], Trijet_eta[1], Trijet_phi[1], Trijet_msoftdrop[1])')  # our new lead W jet in this region
+	    selection.a.Define('Region{}_W2'.format(region+1),'hardware::TLvector(Trijet_pt[2], Trijet_eta[2], Trijet_phi[2], Trijet_msoftdrop[2])')  # our new sublead W jet in this region
+	    selection.a.Define('Region{}_X'.format(region+1),'hardware::InvariantMass({Region%s_H + Region%s_W1 + Region%s_W2})'%(region+1,region+1,region+1))   # X mass for this region
+	    selection.a.Define('Region{}_Y'.format(region+1),'hardware::InvariantMass({Region%s_W1 + Region%s_W2})'%(region+1,region+1))	# Y mass for this region
+	    # now we can add the mX vs mY plot to the histgroup
+	    MXvsMYPlots.Add('region{}_MXvsMY'.format(region+1),selection.a.DataFrame.Histo2D(('Region{}_MXvsMY'.format(region+1),'X vs Y Invariant Mass (Region{})'.format(region+1),bins[0],bins[1],bins[2],bins[0],bins[1],bins[2]),'Region{}_X'.format(region+1), 'Region{}_Y'.format(region+1)))
+
+    print('{} {} Finished'.format(args.setname, args.era))	
     # N-1 loop and N-2 loop are over
     kinPlots.Do('Write')
+    MXvsMYPlots.Do('Write')
     selection.a.PrintNodeTree('NodeTree.pdf',verbose=True)
     print('{} sec'.format(time.time() - start))
 
