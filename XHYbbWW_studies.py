@@ -167,8 +167,12 @@ def XHYbbWW_studies(args):
 	    selection.a.Define('Region{}_X'.format(region+1),'hardware::InvariantMass({Region%s_H + Region%s_W1 + Region%s_W2})'%(region+1,region+1,region+1))   # X mass for this region
 	    selection.a.Define('Region{}_Y'.format(region+1),'hardware::InvariantMass({Region%s_W1 + Region%s_W2})'%(region+1,region+1))	# Y mass for this region
 	    # now we can add the mX vs mY plot to the histgroup
-	    MXvsMYPlots.Add('region{}_MXvsMY'.format(region+1),selection.a.DataFrame.Histo2D(('Region{}_MXvsMY'.format(region+1),'X vs Y Invariant Mass (Region{})'.format(region+1),bins[0],bins[1],bins[2],bins[0],bins[1],bins[2]),'Region{}_X'.format(region+1), 'Region{}_Y'.format(region+1)))
-
+	    if (region==0):
+	        MXvsMYPlots.Add('region{}_MXvsMY'.format(region+1),selection.a.DataFrame.Histo2D(('Region{}_MXvsMY'.format(region+1),'X vs Y Invariant Mass (Hbb < {})'.format(Hbb[0]),bins[0],bins[1],bins[2],bins[0],bins[1],bins[2]),'Region{}_X'.format(region+1), 'Region{}_Y'.format(region+1)))
+	    elif (region==1):
+                MXvsMYPlots.Add('region{}_MXvsMY'.format(region+1),selection.a.DataFrame.Histo2D(('Region{}_MXvsMY'.format(region+1),'X vs Y Invariant Mass ({0} < Hbb < {1})'.format(*Hbb),bins[0],bins[1],bins[2],bins[0],bins[1],bins[2]),'Region{}_X'.format(region+1), 'Region{}_Y'.format(region+1)))
+	    else:
+                MXvsMYPlots.Add('region{}_MXvsMY'.format(region+1),selection.a.DataFrame.Histo2D(('Region{}_MXvsMY'.format(region+1),'X vs Y Invariant Mass (Hbb > {})'.format(Hbb[1]),bins[0],bins[1],bins[2],bins[0],bins[1],bins[2]),'Region{}_X'.format(region+1), 'Region{}_Y'.format(region+1)))
     print('{} {} Finished'.format(args.setname, args.era))	
     # N-1 loop and N-2 loop are over
     kinPlots.Do('Write')
