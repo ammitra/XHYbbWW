@@ -85,6 +85,8 @@ The script `XHYbbWW_studies.py` takes in the setname, year, and (later) variatio
 python perform_studies.py
 ```
 
+**UPDATE: (9/27/21)** The `XHYbbWW_studies.py` script now also creates `mX` vs `mY` plots for all QCD, ttbar, and signal files. To achieve this, the WvsQCD score is kept constant along with all kinematic and softdrop mass cuts, and the HbbvsQCD score is varied to encompass the three regions `Hbb < 0.8`, `0.8 < Hbb < 0.98` and `Hbb > 0.98`. The backgrounds are then stitched together in the `XHYbbWW_MXvsMY_plotter.py` scripts and all their combined 2DHistos concatenated. 
+
 ## 5) Plots
 
 Run the command with either the `--scale` or `--noscale` arguments to plot the histograms scaled/not scaled to unity, respectively.
@@ -92,6 +94,14 @@ Run the command with either the `--scale` or `--noscale` arguments to plot the h
 ```
 python XHYbbWW_plotter.py [--scale] [--noscale]
 ```
+
+**UDPATE: (9/27/21)** To get the 2D histograms of `mX` vs `mY` for the QCD, ttbar, and signal - run:
+
+```
+python XHYbbWW_MXvsMY_plotter.py
+```
+
+after having run `python perform_studies.py`. This script requires only that the "studies" files have been created and are in the `rootfiles/` directory
 
 **For my own use:** Run 
 
