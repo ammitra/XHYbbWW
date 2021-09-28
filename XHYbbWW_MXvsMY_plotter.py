@@ -134,6 +134,12 @@ def plot(histname, fancyname):
 	    # output PDF name will be of the form Region{}_MXvsMY_QCD.pdf, etc
 	    EasyPlots('plots/{}_{}.pdf'.format(histname,proc), [histo], xtitle='m_{X} (GeV)', ytitle='m_{Y} (GeV)')
 
+	    # now do the same, but for Y-projection
+	    twoDhists = [histo]
+	    for h in twoDhists:
+		p = h.ProjectionY()
+		EasyPlots('plots/{}_ProjY_{}.pdf'.format(histname,proc), [p], xtitle='m_{Y} (GeV)')
+
 if __name__ == "__main__":
     CombineCommonSets('QCD',doStudies=True)
     CombineCommonSets('ttbar',doStudies=True)
