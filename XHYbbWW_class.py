@@ -161,27 +161,27 @@ class XHYbbWW:
         Therefore we want to perform all kinematic cuts, all W&H mass cuts, and one of the scores constant while varying the other
 	    ex: Keep WvsQCD constant at > 0.8, look in regions Hbb<0.8, 0.8<Hbb<0.98, Hbb>0.98
         We are looking at three regions, so let's return three cutgroups
-        '''
-        # first check that we are only varying one tagger
-        if (len(Hbb) > 1) and (len(W) > 1):
-	    raise ValueError('You can only vary one tagger score at a time')    
 
+
+	Let's also consider the second case where we're loosening our W cuts, say: 0.3 < W < 0.8
+	We are keeping these cuts constant across all the varying H regions 
+        '''
         # every cut, but 0 < Hbb < Hbb[0]
         region1 = CutGroup('region1')
 	# mass cuts
         region1.Add('MXvsMY_mH_{}_cut'.format(tagger),'LeadHiggs_msoftdrop > {0} && LeadHiggs_msoftdrop < {1}'.format(*self.cuts['mh']))
         region1.Add('MXvsMY_mW1_{}_cut'.format(tagger),'LeadW_msoftdrop > {0} && LeadW_msoftdrop < {1}'.format(*self.cuts['mw']))
         region1.Add('MXvsMY_mW2_{}_cut'.format(tagger),'SubleadW_msoftdrop > {0} && SubleadW_msoftdrop < {1}'.format(*self.cuts['mw']))
-	if (len(Hbb) > len(W)):    # we are keeping W score constant
+	if (len(Hbb) > len(W)):    # we are using tight W cut 
             # W score cuts 
             region1.Add('MXvsMY_{}_W1_cut'.format(tagger),'LeadW_{0}_WvsQCD > {1}'.format(tagger, W[0])) 
             region1.Add('MXvsMY_{}_W2_cut'.format(tagger),'SubleadW_{0}_WvsQCD > {1}'.format(tagger, W[0]))
 	    # H score in the specified region
 	    region1.Add('MXvsMY_{}_H_cut'.format(tagger),'LeadHiggs_{0}_HbbvsQCD < {1}'.format(tagger, Hbb[0])) 
-        else:		# we are keeping H score constant
-            region1.Add('MXvsMY_{}_W1_cut'.format(tagger),'LeadW_{0}_WvsQCD < {1}'.format(tagger, W[0]))
-            region1.Add('MXvsMY_{}_W2_cut'.format(tagger),'SubleadW_{0}_WvsQCD < {1}'.format(tagger, W[0]))
-            region1.Add('MXvsMY_{}_H_cut'.format(tagger),'LeadHiggs_{0}_HbbvsQCD > {1}'.format(tagger, Hbb[0]))
+        else:		# we are using loose W cut, in a region W[0] < WvsQCD < W[1]
+            region1.Add('MXvsMY_{}_W1_cut'.format(tagger),'LeadW_{0}_WvsQCD > {1} && LeadW_{0}_WvsQCD < {2}'.format(tagger, W[0], W[1]))
+            region1.Add('MXvsMY_{}_W2_cut'.format(tagger),'SubleadW_{0}_WvsQCD > {1} && SubleadW_{0}_WvsQCD < {2}'.format(tagger, W[0], W[1]))
+            region1.Add('MXvsMY_{}_H_cut'.format(tagger),'LeadHiggs_{0}_HbbvsQCD < {1}'.format(tagger, Hbb[0]))
 
 	# every cut, but Hbb[0] < Hbb < Hbb[1]
 	region2 = CutGroup('region2')
@@ -194,8 +194,8 @@ class XHYbbWW:
             region2.Add('MXvsMY_{}_H_cut'.format(tagger),'LeadHiggs_{0}_HbbvsQCD > {1} && LeadHiggs_{0}_HbbvsQCD < {2}'.format(tagger, Hbb[0], Hbb[1]))
 	else:
             region2.Add('MXvsMY_{}_W1_cut'.format(tagger),'LeadW_{0}_WvsQCD > {1} && LeadW_{0}_WvsQCD < {2}'.format(tagger, W[0], W[1]))
-            region2.Add('MXvsMY_{}_W2_cut'.format(tagger),'SubleadW_{0}_WvsQCD < {1}'.format(tagger, W[0]))
-            region2.Add('MXvsMY_{}_H_cut'.format(tagger),'LeadHiggs_{0}_HbbvsQCD > {1}'.format(tagger, Hbb[0]))
+            region2.Add('MXvsMY_{}_W2_cut'.format(tagger),'SubleadW_{0}_WvsQCD > {1} && SubleadW_{0}_WvsQCD < {2}'.format(tagger, W[0], W[1]))
+            region2.Add('MXvsMY_{}_H_cut'.format(tagger),'LeadHiggs_{0}_HbbvsQCD > {1} && LeadHiggs_{0}_HbbvsQCD < {2}'.format(tagger, Hbb[0], Hbb[1]))
 
 	# every cut but Hbb > Hbb[1]
 	region3 = CutGroup('region3')
@@ -207,9 +207,9 @@ class XHYbbWW:
 	    region3.Add('MXvsMY_{}_W2_cut'.format(tagger),'SubleadW_{0}_WvsQCD > {1}'.format(tagger, W[0]))
 	    region3.Add('MXvsMY_{}_H_cut'.format(tagger),'LeadHiggs_{0}_HbbvsQCD > {1}'.format(tagger, Hbb[1]))
 	else:
-	    region3.Add('MXvsMY_{}_W1_cut'.format(tagger),'LeadW_{0}_WvsQCD > {1}'.format(tagger, W[1]))
-	    region3.Add('MXvsMY_{}_W2_cut'.format(tagger),'SubleadW_{0}_WvsQCD > {1}'.format(tagger, W[1]))
-	    region3.Add('MXvsMY_{}_H_cut'.format(tagger),'LeadHiggs_{0}_HbbvsQCD > {1}'.format(tagger, Hbb[0]))
+	    region3.Add('MXvsMY_{}_W1_cut'.format(tagger),'LeadW_{0}_WvsQCD > {1} && LeadW_{0}_WvsQCD < {2}'.format(tagger, W[0], W[1]))
+	    region3.Add('MXvsMY_{}_W2_cut'.format(tagger),'SubleadW_{0}_WvsQCD > {1} && SubleadW_{0}_WvsQCD < {2}'.format(tagger, W[0], W[1]))
+	    region3.Add('MXvsMY_{}_H_cut'.format(tagger),'LeadHiggs_{0}_HbbvsQCD > {1}'.format(tagger, Hbb[1]))
 	
 	# return list (fixed order) of the three cutgroups, for use in XHYbbWW_studies.py
 	return [region1, region2, region3]
