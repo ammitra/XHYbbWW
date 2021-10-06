@@ -118,3 +118,17 @@ python GroupImgToPDF.py -o [output_file] -F [files...]
 ```
 
 where wildcards for filenames are acceptable
+
+## 6) Selection & 2DAlphabet
+
+The signal region is given by keeping the WvsQCD score greater than 0.8, the control region keeps the WvsQCD score in between 0.3 and 0.8. These regions are defined in the `XHYbbWW_selection.py` script, and both regions are looped over while varying the Hbb score, creating pass, loose, and fail regions for both the SR and CR. 
+
+The script generates the template histograms of the X and Y masses in the SR and CR, for a given variation. 
+
+To generate the histograms for 2DAlphabet, run 
+
+```
+python perform_selection.py [-v variation]
+```
+
+Where the variation flag `-v` may be omitted if there is no desired variation to be made
