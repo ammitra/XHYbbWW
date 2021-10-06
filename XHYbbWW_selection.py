@@ -23,7 +23,7 @@ def XHYbbWW_selection(args):
     selection.a.ObjectFromCollection('LeadHiggs','Trijet',0)
     selection.a.ObjectFromCollection('LeadW','Trijet',1)
     selection.a.ObjectFromCollection('SubleadW','Trijet',2)
-    kinOnly = selection.a.MakeWeightCols(extraNominal='' if selection.a.isData else 'genWeight*%s'%selection.GetXSecScale())
+    kinOnly = selection.a.MakeWeightCols(extraNominal='' if selection.a.isData else 'genWeight*%s'%selection.GetXsecScale())
 
     # write the SR, CR hists to file
     out = ROOT.Tfile.Open('rootfiles/XHYbbWWselection_{}_{}{}.root'.format(args.setname,args.era,'_'+args.variation if args.variation != 'None' else ''), 'RECREATE')
