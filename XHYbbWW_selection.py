@@ -32,8 +32,6 @@ def XHYbbWW_selection(args):
     for t in ['particleNet']:
 	w_tagger = '{}_WvsQCD'.format(t)
 	higgs_tagger = '{}_HbbvsQCD'.format(t)
-	bins = [60, 0, 3500]	
-
 	# gather our nodes in dicts for later use
 	SR = {}
 	CR = {}
@@ -70,8 +68,8 @@ def XHYbbWW_selection(args):
 			CR['pass'] = flp
 
 	# now we have two dicts containing the Fail, Loose, Pass nodes for both SR and CR
-	binsX = [60,0,3500]	# nbins, low, high
-	binsY = [60,0,3500]
+	binsX = [20,0,3500]	# nbins, low, high
+	binsY = [20,0,3500]
 	for region, rdict in {"SR":SR, "CR":CR}.items():     # region, dict of region's f/l/p
 	    for flp, node in rdict.items():		     # f/l/p, corresponding node
 		mod_name = "{}_{}_{}".format(t, region, flp) # tagger_region_f/l/p
