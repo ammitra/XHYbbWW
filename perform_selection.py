@@ -32,7 +32,6 @@ for f in trijet_files:
 	    setname_era[setname] = [era]
 
 if __name__ == "__main__":
-    '''
     parser = ArgumentParser()
     parser.add_argument('-v', type=str, dest='variation',
 			action='store', default='None',
@@ -55,7 +54,6 @@ if __name__ == "__main__":
 
     for arg in a:
 	subprocess.call('python XHYbbWW_selection.py {}'.format(arg), shell=True)
-    '''
 
     # after this has created all of the selection files, concatenate the data:
     selection_files = glob.glob('rootfiles/XHYbbWWselection_Data*')
