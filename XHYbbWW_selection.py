@@ -26,7 +26,7 @@ def XHYbbWW_selection(args):
     kinOnly = selection.a.MakeWeightCols(extraNominal='' if selection.a.isData else 'genWeight*%s'%selection.GetXsecScale())
 
     # write the SR, CR hists to file
-    out = ROOT.Tfile.Open('rootfiles/XHYbbWWselection_{}_{}{}.root'.format(args.setname,args.era,'_'+args.variation if args.variation != 'None' else ''), 'RECREATE')
+    out = ROOT.TFile.Open('rootfiles/XHYbbWWselection_{}_{}{}.root'.format(args.setname,args.era,'_'+args.variation if args.variation != 'None' else ''), 'RECREATE')
     out.cd()
 
     for t in ['particleNet']:
@@ -77,6 +77,7 @@ def XHYbbWW_selection(args):
 		mod_name = "{}_{}_{}".format(t, region, flp) # tagger_region_f/l/p
 		mod_title = "{} {}".format(region, flp)	     # region f/l/p
 		selection.a.SetActiveNode(node)		     # use X,Y as found in this node
+		print('Evaluating {}'.format(mod_title))
 		templates = selection.a.MakeTemplateHistos(ROOT.TH2F('MXvMY_%s'%mod_name, 'MXvMY %s with %s'%(mod_title,t),binsX[0],binsX[1],binsX[2],binsY[0],binsY[1],binsY[2]),['X','Y'])	# ROOT TH2F, then variables to be plotted ([x,y'])
 		templates.Do('Write')
 
