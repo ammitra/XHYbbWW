@@ -1,7 +1,7 @@
 import ROOT
 from TIMBER.Analyzer import CutGroup, analyzer
 from TIMBER.Tools.Common import CompileCpp, OpenJSON
-
+from TIMBER.Tools.AutoPU import ApplyPU
 from JMEvalsOnly import JMEvalsOnly
 
 # Helper file for dealing with .txt files containing NanoAOD file locs
