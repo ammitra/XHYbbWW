@@ -2,6 +2,8 @@ import ROOT
 from TIMBER.Analyzer import CutGroup, analyzer
 from TIMBER.Tools.Common import CompileCpp, OpenJSON
 
+from JMEvalsOnly import JMEvalsOnly
+
 # Helper file for dealing with .txt files containing NanoAOD file locs
 def SplitUp(filename,npieces,nFiles=False):
     '''Take in a txt file name where the contents are root
@@ -93,7 +95,41 @@ class XHYbbWW:
 	# we specify that the Trijet indices are given by the TrijetIdxs vector above
 	self.a.SubCollection('Trijet','FatJet','TrijetIdxs',useTake=True)
         return self.a.GetActiveNode()
-        
+       
+    # corrections - used in both snapshots and selection
+    def ApplyStandardCorrections(self, snapshot=False):
+	# first apply corrections for snapshot phase
+	if snapshot:
+	    if self.a.isData:
+		# instantiate ModuleWorker to handle the C++ code via clang
+		lumiFilter = ModuleWorker('LumiFilter','TIMBER/Framework/include/LumiFilter.h',[self.year])    # defaults to perform "eval" method 
+		self.a.Cut('lumiFilter',lumiFilter.GetCall(evalArgs={"lumi":"luminosityBlock"}))	       # replace lumi with luminosityBlock
+		if self.year == 18:
+		    HEM_worker = ModuleWorker('HEM_drop','TIMBER/Framework/include/HEM_drop.h',[self.setname])
+		    self.a.Cut('HEM','%s[0] > 0'%(HEM_worker.GetCall(evalArgs={"FatJet_eta":"Trijet_eta","FatJet_phi":"Trijet_phi"})))
+	    else:
+		# XHYbbWWpileup.root must be created before running snapshot - run XHYbbWWpileup.py (figure out how to make that run)
+		self.a = ApplyPU(self.a,'20%sUL'%self.year, 'XHYbbWWpileup.root', '%s_%s'%(self.setname,self.year))
+		self.a.AddCorrection(Correction('HEM_drop','TIMBER/Framework/include/HEM_drop.h',[self.setname],corrtype='corr'))
+		if self.year == 16 or self.year == 17:
+		    self.a.AddCorrection(Correction("Prefire","TIMBER/Framework/include/Prefire_weight.h",[self.year],corrtype='weight'))
+		elif self.year == 18:
+		    self.a.AddCorrection(Correction('HEM_drop','TIMBER/Framework/include/HEM_drop.h',[self.setname],corrtype='corr'))
+	    self.a.JMEvalsOnly(self.a, 'Dijet', str(2000+self.year), self.setname)
+	    self.a.MakeWeightCols(extraNominal='genWeight' if not self.a.isData else '')
+	# now for selection
+	else:
+	    if not self.a.isData:
+		self.a.AddCorrection(Correction('Pileup',corrtype='weight'))
+		self.a.AddCorrection(Correction('Pdfweight',corrtype='uncert'))
+                if self.year == 16 or self.year == 17:
+                    self.a.AddCorrection(Correction('Prefire',corrtype='weight'))
+                elif self.year == 18:
+                    self.a.AddCorrection(Correction('HEM_drop',corrtype='corr'))
+                #if 'ttbar' in self.setname:
+                    #self.a.AddCorrection(Correction('TptReweight',corrtype='weight'))
+	return self.a.GetActiveNode()
+
     # for creating snapshots
     def Snapshot(self, node=None):
         startNode = self.a.GetActiveNode()
