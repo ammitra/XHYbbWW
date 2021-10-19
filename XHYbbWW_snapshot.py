@@ -31,7 +31,10 @@ else:
 selection = XHYbbWW(filename, int(args.era), args.ijob, args.njobs)
 
 # apply kinematic cuts
-out = selection.kinematic_cuts()
+selection.kinematic_cuts()
+
+# apply corrections 
+out = selection.ApplyStandardCorrections(snapshot=True)
 
 # feed outfile to class' Snapshot function
 selection.Snapshot(out)
