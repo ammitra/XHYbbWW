@@ -20,6 +20,25 @@ to grab all the massPts from Lucas' directories. These files have a specific XMa
 
 The Signal files have one XMass corresponding to multiple YMasses (sometimes just one YMass). `get_massPts.py` looks up the signal ROOT files on the EOS and searches each of them for the `GenModel_YMass_*` branch under `Events` to determine whether or not the signal sample contains that YMass. All signal files corresponding to the appropriate `<XMASS, YMASS>` pair are then appended to the corresponding `_loc.txt` file. 
 
+## 1.5) Create pileup distributions for pileup weights
+This step is handled by XHYbbWWpileup.py
+
+```
+python XHYbbWWpileup.py -s <setname> -y <year>
+```
+
+Or, more appropriately, run with condor via
+
+```
+python CondorHelper.py -r condor/run_pileup.sh -a condor/pileup_args.txt -i "XHYbbWWpileup.py raw_nano/"
+```
+
+Then, collect the outputs to one local file called `XHybbWWpileup.root` using 
+
+```
+scripts/get_pileup_file.sh
+```
+
 ## 2) Perform snapshot on `raw_nano/` files
 To perform a snapshot on a single .txt file holding either data or simulation, run
 
