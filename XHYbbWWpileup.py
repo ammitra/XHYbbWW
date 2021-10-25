@@ -20,7 +20,12 @@ if __name__ == "__main__":
 
     fullname = '%s_%s'%(args.setname,args.era)
     out = ROOT.TFile.Open('XHYbbWW_{}.root'.format(fullname), 'RECREATE')
-    a = analyzer('raw_nano/%s.txt'%(fullname))
+
+    # if signal files, format is raw_nano/XYH_WWbb_MX_XMASS_MY_YMASS_loc.txt
+    if 'MX' in fullname:
+	a = analyzer('raw_nano/XYH_WWbb_{}_loc.txt'%(args.setname))
+    else:
+        a = analyzer('raw_nano/%s.txt'%(fullname))
     h = MakePU(a, '20%sUL'%args.era, fullname+'.root')
     out.cd()
     h.Write()
