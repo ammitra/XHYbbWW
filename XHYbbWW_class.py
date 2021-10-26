@@ -130,6 +130,22 @@ class XHYbbWW:
                     #self.a.AddCorrection(Correction('TptReweight',corrtype='weight'))
 	return self.a.GetActiveNode()
 
+    # for selection purposes - used for making templates for 2DAlphabet
+    def OpenForSelection(self, variation):
+	#self.a.Define('Trijet_particleNet_HbbvsQCD','Trijet_particleNet_Xbb/(Trijet_particleNet_Xbb+Trijet_particleNet_QCD')
+	self.ApplyStandardCorrections(snapshot=False)
+	# JME variations - we only do this for signal (think about how)
+	if not self.a.isData:
+	    # since H, W close enough in mass, we can treat them the same. 
+	    # Higgs, W will have same pt and mass calibrations
+	    pt_calibs, mass_calibs = JMEvariationStr('Higgs',variation)
+	    self.a.Define('Trijet_pt_corr','hardware::MultiHadamardProduct(Trijet_pt,{})'.format(pt_calibs))
+	    self.a.Define('Trijet_msoftdrop_corr','hardware::MultiHadamardProduct(Trijet_msoftdrop,{})'.format(mass_calibs))
+	else:
+	    self.a.Define('Trijet_pt_corr','hardware::MultiHadamardProduct(Trijet_pt,{Trijet_JES_nom})')
+	    self.a.Define('Trijet_msoftdrop_corr','hardware::MultiHadamardProduct(Trijet_msoftdrop,{Trijet_JES_nom})')
+	return self.a.GetActiveNode()
+	    
     # for creating snapshots
     def Snapshot(self, node=None):
         startNode = self.a.GetActiveNode()
@@ -148,8 +164,18 @@ class XHYbbWW:
         # append to columns list if not Data
         if not self.a.isData:
             columns.extend(['GenPart_.*', 'nGenPart','genWeight'])
+	    columns.extend(['Trijet_JES_up','Trijet_JES_down',
+			    'Trijet_JER_nom','Trijet_JER_up','Trijet_JER_down',
+			    'Trijet_JMS_nom','Trijet_JMS_up','Trijet_JMS_down',
+			    'Trijet_JMR_nom','Trijet_JMR_up','Trijet_JMR_down'])
+	    columns.extend(['Pileup__nom','Pileup__up','Pileup__down','Pdfweight__nom','Pdfweight__up','Pdfweight__down'])
+	    if self.year == 16 or self.year == 16:
+		columns.extend(['Prefire__nom','Prefire__up','Prefire__down'])
+	    elif self.year == 18:
+		columns.append('HEM_drop__nom')
             
         # get ready to send out snapshot
+        #self.a.SetActiveNode(node)
         self.a.Snapshot(columns, 'HWWsnapshot_{}_{}_{}of{}.root'.format(self.setname,self.year,self.ijob,self.njobs),'Events', openOption='RECREATE')
         self.a.SetActiveNode(startNode)
         
@@ -249,3 +275,23 @@ class XHYbbWW:
 	
 	# return list (fixed order) of the three cutgroups, for use in XHYbbWW_studies.py
 	return [region1, region2, region3]
+
+
+# for use in selection - essentially just creates combinations of all the JME variations
+def JMEvariationStr(p, variation):
+    base_calibs = ['Trijet_JES_nom','Trijet_JER_nom','Trijet_JMS_nom','Trijet_JMR_nom']
+    variation_type = variation.split('_')[0]
+    pt_calib_vect = '{'
+    mass_calib_vect = '{'
+    for c in base_calibs:
+	if 'JM' in c and p != 'Top':	# 'Top' will never be in p, but just leave this
+	    mass_calib_vect += '%s,'%('Trijet_'+variation if variationType in c else c)
+	elif 'JE' in c:
+	    pt_calib_vect += '%s,'%('Trijet_'+variation if variationType in c else c)
+	    mass_calib_vect += '%s,'%('Trijet_'+variation if variationType in c else c)
+    pt_calib_vect = pt_calib_vect[:-1]+'}'
+    mass_calib_vect = mass_calib_vect[:-1]+'}'
+    return pt_calib_vect, mass_calib_vect
+
+
+
