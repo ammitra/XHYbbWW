@@ -1,5 +1,5 @@
 import ROOT
-from TIMBER.Analyzer import CutGroup, analyzer
+from TIMBER.Analyzer import CutGroup, ModuleWorker, analyzer
 from TIMBER.Tools.Common import CompileCpp, OpenJSON
 from TIMBER.Tools.AutoPU import ApplyPU
 from JMEvalsOnly import JMEvalsOnly
