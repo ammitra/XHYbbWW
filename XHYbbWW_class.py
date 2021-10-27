@@ -115,7 +115,7 @@ class XHYbbWW:
 		    self.a.AddCorrection(Correction("Prefire","TIMBER/Framework/include/Prefire_weight.h",[self.year],corrtype='weight'))
 		elif self.year == 18:
 		    self.a.AddCorrection(Correction('HEM_drop','TIMBER/Framework/include/HEM_drop.h',[self.setname],corrtype='corr'))
-	    self.a.JMEvalsOnly(self.a, 'Dijet', str(2000+self.year), self.setname)
+	    self.a.JMEvalsOnly(self.a, 'Trijet', str(2000+self.year), self.setname)
 	    self.a.MakeWeightCols(extraNominal='genWeight' if not self.a.isData else '')
 	# now for selection
 	else:
