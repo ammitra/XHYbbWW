@@ -18,6 +18,8 @@ if __name__ == "__main__":
                         help='Year of set (16, 17, 18).')
     args = parser.parse_args()
 
+    # setname: 
+    #	DataX		MX_XMASS_MY_YMASS
     fullname = '%s_%s'%(args.setname,args.era)
     out = ROOT.TFile.Open('XHYbbWW_{}.root'.format(fullname), 'RECREATE')
 
