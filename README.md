@@ -159,3 +159,7 @@ python perform_selection.py [-v variation]
 ```
 
 Where the variation flag `-v` may be omitted if there is no desired variation to be made
+
+## **NOTES**
+
+* When running over raw signal files (located in `raw_nano/XYH_WWBB_MX_XMASS_MY_YMASS_loc.txt`) with an analyzer module, then you have to specify the parameter `multiSampleStr` in the analyzer constructor, where the `multiSampleStr` is the desired Y mass associated with the X mass of the file. This is because there are multiple Y masses associated with the X mass, so this ensures that the proper `genEventWeight_Sum` branch is captured by the analyzer.
