@@ -21,7 +21,7 @@ to grab all the massPts from Lucas' directories. These files have a specific XMa
 The Signal files have one XMass corresponding to multiple YMasses (sometimes just one YMass). `get_massPts.py` looks up the signal ROOT files on the EOS and searches each of them for the `GenModel_YMass_*` branch under `Events` to determine whether or not the signal sample contains that YMass. All signal files corresponding to the appropriate `<XMASS, YMASS>` pair are then appended to the corresponding `_loc.txt` file. 
 
 ## 1.5) Create pileup distributions for pileup weights
-This step is handled by XHYbbWWpileup.py
+This step is handled by `XHYbbWWpileup.py`. To run on individual files:
 
 ```
 python XHYbbWWpileup.py -s <setname> -y <year>
@@ -32,6 +32,8 @@ Or, more appropriately, run with condor via
 ```
 python CondorHelper.py -r condor/run_pileup.sh -a condor/pileup_args.txt -i "XHYbbWWpileup.py raw_nano/"
 ```
+
+after having run `python condor/pileup_args.py` to generate the arguments txt file.
 
 Then, collect the outputs to one local file called `XHybbWWpileup.root` using 
 
@@ -138,7 +140,13 @@ python GroupImgToPDF.py -o [output_file] -F [files...]
 
 where wildcards for filenames are acceptable
 
-## 6) Selection & 2DAlphabet
+## 6) Making trigger efficiencies
+
+First, run `source scripts/hadd_data.sh` to gather all of the snapshots of Data on the EOS locally, in a directory one above this (`../trijet_nano_files`).
+
+Then, run `python XHYbbWWtrigger.py` to make the trigger efficiencies. 
+
+## 7) Selection & 2DAlphabet
 
 The signal region is given by keeping the WvsQCD score greater than 0.8, the control region keeps the WvsQCD score in between 0.3 and 0.8. These regions are defined in the `XHYbbWW_selection.py` script, and both regions are looped over while varying the Hbb score, creating pass, loose, and fail regions for both the SR and CR. 
 
