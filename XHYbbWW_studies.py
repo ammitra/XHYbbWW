@@ -20,7 +20,7 @@ def XHYbbWW_studies(args):
 
     # files are under trijet_nano/setname_era_snapshot.txt
     selection = XHYbbWW('trijet_nano/{}_{}_snapshot.txt'.format(args.setname,args.era),int(args.era),1,1)  # 1/1 jobs
-    #selection.OpenForSelection('None')    # I'll do this later
+    selection.OpenForSelection('None')
     selection.a.Define('Trijet_vect','hardware::TLvector(Trijet_pt, Trijet_eta, Trijet_phi, Trijet_msoftdrop)')
     selection.a.Define('mhww','hardware::InvariantMass(Trijet_vect)')
     selection.a.Define('m_avg','(Trijet_msoftdrop[0]+Trijet_msoftdrop[1]+Trijet_msoftdrop[2])/3')    # is this necessary?
