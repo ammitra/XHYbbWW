@@ -21,7 +21,7 @@ if __name__ == "__main__":
     # setname: 
     #	DataX		MX_XMASS_MY_YMASS
     fullname = '%s_%s'%(args.setname,args.era)
-    out = ROOT.TFile.Open('XHYbbWW_{}.root'.format(fullname), 'RECREATE')
+    out = ROOT.TFile.Open('XHYbbWWpileup_{}.root'.format(fullname), 'RECREATE')
 
     # if signal files, format is raw_nano/XYH_WWbb_MX_XMASS_MY_YMASS_loc.txt
     if 'MX' in fullname:
