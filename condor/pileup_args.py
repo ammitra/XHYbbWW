@@ -10,6 +10,8 @@ for f in glob.glob('raw_nano/*.txt'):
         # need to put the setname into something that the class can parse
         setname = (name[2] + '_' + name[3] + '_' + name[4] + '_' + name[5])     # MX_XMASS_MY_YMASS
         year = '18'     # might have to change later
+    elif 'Data' in filename:
+	continue
     else:
         setname = filename.split('_')[0]
         year = filename.split('_')[1]
