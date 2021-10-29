@@ -1,5 +1,5 @@
 import ROOT
-from TIMBER.Analyzer import CutGroup, ModuleWorker, analyzer
+from TIMBER.Analyzer import Correction, CutGroup, ModuleWorker, analyzer
 from TIMBER.Tools.Common import CompileCpp, OpenJSON
 from TIMBER.Tools.AutoPU import ApplyPU
 from JMEvalsOnly import JMEvalsOnly
@@ -108,14 +108,14 @@ class XHYbbWW:
 		    HEM_worker = ModuleWorker('HEM_drop','TIMBER/Framework/include/HEM_drop.h',[self.setname])
 		    self.a.Cut('HEM','%s[0] > 0'%(HEM_worker.GetCall(evalArgs={"FatJet_eta":"Trijet_eta","FatJet_phi":"Trijet_phi"})))
 	    else:
-		# XHYbbWWpileup.root must be created before running snapshot - run XHYbbWWpileup.py (figure out how to make that run)
+		# XHYbbWWpileup.root must be created before running snapshot - run XHYbbWWpileup.py
 		self.a = ApplyPU(self.a,'20%sUL'%self.year, 'XHYbbWWpileup.root', '%s_%s'%(self.setname,self.year))
 		self.a.AddCorrection(Correction('HEM_drop','TIMBER/Framework/include/HEM_drop.h',[self.setname],corrtype='corr'))
 		if self.year == 16 or self.year == 17:
 		    self.a.AddCorrection(Correction("Prefire","TIMBER/Framework/include/Prefire_weight.h",[self.year],corrtype='weight'))
 		elif self.year == 18:
 		    self.a.AddCorrection(Correction('HEM_drop','TIMBER/Framework/include/HEM_drop.h',[self.setname],corrtype='corr'))
-	    self.a.JMEvalsOnly(self.a, 'Trijet', str(2000+self.year), self.setname)
+	    JMEvalsOnly(self.a, 'Trijet', str(2000+self.year), self.setname)
 	    self.a.MakeWeightCols(extraNominal='genWeight' if not self.a.isData else '')
 	# now for selection
 	else:

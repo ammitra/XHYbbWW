@@ -30,7 +30,9 @@ if __name__ == "__main__":
 	a = analyzer('raw_nano/XYH_WWbb_{}_loc.txt'.format(args.setname),multiSampleStr=ymass)
     else:
         a = analyzer('raw_nano/%s.txt'%(fullname))
-    h = MakePU(a, '20%sUL'%args.era, fullname+'.root')
-    out.cd()
-    h.Write()
+
+    # get pointer to histogram
+    hptr = MakePU(a, '20%sUL'%args.era, fullname+'.root')
+    hout = hptr.Clone()
+    out.WriteTObject(hout, fullname)
     out.Close()
