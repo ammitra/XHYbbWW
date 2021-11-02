@@ -110,7 +110,7 @@ class XHYbbWW:
 	    else:
 		# XHYbbWWpileup.root must be created before running snapshot - run XHYbbWWpileup.py
 		self.a = ApplyPU(self.a,'20%sUL'%self.year, 'XHYbbWWpileup.root', '%s_%s'%(self.setname,self.year))
-		self.a.AddCorrection(Correction('HEM_drop','TIMBER/Framework/include/HEM_drop.h',[self.setname],corrtype='corr'))
+		#self.a.AddCorrection(Correction('HEM_drop','TIMBER/Framework/include/HEM_drop.h',[self.setname],corrtype='corr'))
 		if self.year == 16 or self.year == 17:
 		    self.a.AddCorrection(Correction("Prefire","TIMBER/Framework/include/Prefire_weight.h",[self.year],corrtype='weight'))
 		elif self.year == 18:
