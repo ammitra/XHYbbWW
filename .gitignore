@@ -10,3 +10,5 @@ trijet_nano/*.txt
 raw_nano/*.txt
 *.dot
 *.gz
+plots/*
+rootfiles/*
