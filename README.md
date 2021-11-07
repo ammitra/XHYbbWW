@@ -159,10 +159,10 @@ The script generates the template histograms of the X and Y masses in the SR and
 To generate the histograms for 2DAlphabet, run 
 
 ```
-python perform_selection.py -s [setname] -y [year] [-v variation]
+python perform_selection.py [-v variation]
 ```
 
-Where the variation flag `-v` may be omitted if there is no desired variation to be made
+Where the variation flag `-v` may be omitted if there is no desired variation to be made. Until I figure out how best to offload this to Condor to be done in parallel, if you want to perform the selection with all variations (including none), just run `python all_variations.py`
 
 **WORK IN PROGRESS**
 
