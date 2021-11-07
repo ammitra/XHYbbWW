@@ -164,6 +164,8 @@ python perform_selection.py -s [setname] -y [year] [-v variation]
 
 Where the variation flag `-v` may be omitted if there is no desired variation to be made
 
+**WORK IN PROGRESS**
+
 Since there are many setnames, years, and variations, this is best done in parallel using Condor. To aid in this, the script `condor/selection_args.py` generates a .txt file with all possible setname, year, and variation combinations. Then run 
 
 ```
