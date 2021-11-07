@@ -114,6 +114,8 @@ The script `XHYbbWW_studies.py` takes in the setname, year, and (later) variatio
 python perform_studies.py
 ```
 
+If you want to generate MXvsMY plots in the SR (`WvsQCD > 0.8`), you must define `W = [0.8]` on line 161 of `XHYbbWW_studies.py`. If you want to generate these plots in the CR, you must instead define `W = [0.3, 0.8]`, where the list elements denote the W score range.
+
 **UPDATE: (9/27/21)** The `XHYbbWW_studies.py` script now also creates `mX` vs `mY` plots for all QCD, ttbar, and signal files. To achieve this, the WvsQCD score is kept constant along with all kinematic and softdrop mass cuts, and the HbbvsQCD score is varied to encompass the three regions `Hbb < 0.8`, `0.8 < Hbb < 0.98` and `Hbb > 0.98`. The backgrounds are then stitched together in the `XHYbbWW_MXvsMY_plotter.py` scripts and all their combined 2DHistos concatenated. 
 
 ## 7) Plots
