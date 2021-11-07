@@ -55,7 +55,7 @@ def MakeEfficiency(year):
         "Pretag": ROOT.TEfficiency(hists['preTagNumerator'], hists['preTagDenominator'])
     }
 
-    out = ROOT.TFile.Open('THtrigger_%s.root'%year,'RECREATE')
+    out = ROOT.TFile.Open('HWWtrigger_%s.root'%year,'RECREATE')
     out.cd()
     for name,eff in effs.items():
         f = ROOT.TF1("eff_func","-[0]/10*exp([1]*x/1000)+1",800,2600)
@@ -80,9 +80,9 @@ if __name__ == '__main__':
         MakeEfficiency(y)
 
     files = {
-        16: ROOT.TFile.Open('THtrigger_16.root'),
-        17: ROOT.TFile.Open('THtrigger_17.root'),
-        18: ROOT.TFile.Open('THtrigger_18.root')
+        16: ROOT.TFile.Open('HWWtrigger_16.root'),
+        17: ROOT.TFile.Open('HWWtrigger_17.root'),
+        18: ROOT.TFile.Open('HWWtrigger_18.root')
     }
 
     hists = {hname.GetName():[files[y].Get(hname.GetName()) for y in [16,17,18]] for hname in files[16].GetListOfKeys() if '_graph' in hname.GetName()}
