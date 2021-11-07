@@ -14,6 +14,7 @@ def XHYbbWW_selection(args):
     # gather all snapshots
     selection = XHYbbWW('trijet_nano/{}_{}_snapshot.txt'.format(args.setname,args.era),int(args.era),1,1)
     selection.OpenForSelection(args.variation)
+    selection.ApplyTrigs(args.trigEff)
     selection.a.Define('Trijet_vect','hardware::TLvector(Trijet_pt, Trijet_eta, Trijet_phi, Trijet_msoftdrop)')
     selection.a.Define('H_vect','hardware::TLvector(Trijet_pt[0], Trijet_eta[0], Trijet_phi[0], Trijet_msoftdrop[0])')
     selection.a.Define('W1_vect','hardware::TLvector(Trijet_pt[1], Trijet_eta[1], Trijet_phi[1], Trijet_msoftdrop[1])')
@@ -95,5 +96,6 @@ if __name__ == '__main__':
                         help='JES_up, JES_down, JMR_up,...')
 
     args = parser.parse_args()
+    args.trigEff = Correction("TriggerEff"+args.era,'TIMBER/Framework/include/EffLoader.h',['HWWtrigger2D_%s.root'%args.era,'Pretag'], corrtype='weight')
     XHYbbWW_selection(args)
 

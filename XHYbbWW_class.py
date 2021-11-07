@@ -241,8 +241,9 @@ class XHYbbWW:
         Therefore we want to perform all kinematic cuts, all W&H mass cuts, and one of the scores constant while varying the other
 	    ex: Keep WvsQCD constant at > 0.8, look in regions Hbb<0.8, 0.8<Hbb<0.98, Hbb>0.98
         We are looking at three regions, so let's return three cutgroups
-
-
+		- fail:		Hbb < 0.8
+		- loose: 	0.8 < Hbb < 0.98
+		- tight: 	Hbb > 0.98
 	Let's also consider the second case where we're loosening our W cuts, say: 0.3 < W < 0.8
 	We are keeping these cuts constant across all the varying H regions 
         '''
