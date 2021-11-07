@@ -152,7 +152,11 @@ where wildcards for filenames are acceptable
 
 ## 8) Selection & 2DAlphabet
 
-The signal region is given by keeping the WvsQCD score greater than 0.8, the control region keeps the WvsQCD score in between 0.3 and 0.8. These regions are defined in the `XHYbbWW_selection.py` script, and both regions are looped over while varying the Hbb score, creating pass, loose, and fail regions for both the SR and CR. 
+The signal region is given by keeping the WvsQCD score greater than 0.8, the control region keeps the WvsQCD score in between 0.3 and 0.8. These regions are defined in the `XHYbbWW_selection.py` script, and both regions are looped over while varying the Hbb score, creating fail, loose, and tight regions for both the SR and CR. 
+
+* **fail:**    `Hbb < 0.8`
+* **loose:**   `0.8 < Hbb < 0.98`
+* **tight:**   `Hbb > 0.98`
 
 The script generates the template histograms of the X and Y masses in the SR and CR, for a given variation. 
 
