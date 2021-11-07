@@ -298,7 +298,7 @@ class XHYbbWW:
 # for use in selection - essentially just creates combinations of all the JME variations
 def JMEvariationStr(p, variation):
     base_calibs = ['Trijet_JES_nom','Trijet_JER_nom','Trijet_JMS_nom','Trijet_JMR_nom']
-    variation_type = variation.split('_')[0]
+    variationType = variation.split('_')[0]
     pt_calib_vect = '{'
     mass_calib_vect = '{'
     for c in base_calibs:
