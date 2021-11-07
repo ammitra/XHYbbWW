@@ -13,6 +13,9 @@ for f in glob.glob('raw_nano/*.txt'):
 	setname = filename.split('_')[0]
 	year = filename.split('_')[1]
 
+    if 'Data' in setname:
+	continue
+
     # now create the variations 
     for var in ['JES','JMS','JER','JMR']:
 	for ud in ['up','down']:

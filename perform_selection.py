@@ -21,8 +21,8 @@ for f in trijet_files:
 	else:
 	    # create key and list of values
 	    setname_era[setname] = [era]
-    #elif 'Data' in name:
-	#continue
+    elif 'Data' in name:
+	continue
     else:
 	setname = split_name[0]
 	era = split_name[1]
