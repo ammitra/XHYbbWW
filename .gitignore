@@ -7,8 +7,6 @@ docker_stderror
 condor/*.txt
 CondorHelper.py
 trijet_nano/*.txt
-plots/
-rootfiles/
 raw_nano/*.txt
 *.dot
 *.gz
