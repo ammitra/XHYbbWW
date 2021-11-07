@@ -141,18 +141,23 @@ def plot(histname, fancyname):
 		EasyPlots('plots/{}_ProjY_{}.pdf'.format(histname,proc), [p], xtitle='m_{Y} (GeV)')
 
 if __name__ == "__main__":
+    # Since XHYbbWW_plotter.py directly calls this script now, these steps will already have been done - just skip
+    '''
     CombineCommonSets('QCD',doStudies=True)
     CombineCommonSets('ttbar',doStudies=True)
     MakeRun2('QCD',doStudies=True)
     MakeRun2('ttbar',doStudies=True)
     MakeRun2Signal()
-
+    '''
     # the files will have a 2D plot called Region{}_MXvsMY - {1,2,3}
     # we are only plotting the mX vs mY, we can just ignore the rest of the histos in there
     hist_names = {
-	'Region1_MXvsMY':'mX vs mY for HbbvsQCD < 0.8',
-	'Region2_MXvsMY':'mX vs mY for 0.8 < HbbvsQCD < 0.98',
-	'Region3_MXvsMY':'mX vs mY for HbbvsQCD > 0.98'
+	'MXvsMY_CR_fail':'mX vs mY for CR fail',
+	'MXvsMY_CR_loose':'mX vs mY for CR loose',
+	'MXvsMY_CR_tight':'mX vs mY for CR tight',
+	'MXvsMY_SR_fail':'mX vs mY for SR fail',
+	'MXvsMY_SR_loose':'mX vs mY for SR loose',
+	'MXvsMY_SR_tight':'mX vs mY for SR tight'
     }
 
     tempfile = ROOT.TFile.Open('rootfiles/XHYbbWWstudies_MX_1300_MY_200_18.root','READ')

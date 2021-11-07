@@ -190,6 +190,11 @@ def plot(histname, fancyname, scale=True):
                    colors={'QCD':ROOT.kOrange,'ttbar':ROOT.kRed,'MX_1300_MY_200':ROOT.kBlack,'MX_1500_MY_400':ROOT.kGray,'MX_2000_MY_400':ROOT.kBlue,'MX_2000_MY_800':ROOT.kCyan,'MX_3000_MY_800':ROOT.kGreen},
                    scale=scale, stackBkg=True,
                    doSoverB=True)
+
+    elif ('SR' in histname) or ('CR' in histname):
+	# this will be handled in XHYbbWW_MXvsMY_plotter.py, just pass for now
+	pass
+
     else:
 	# we are plotting N-1 or something else, show significance
         CompareShapes('plots/%s_Run2.pdf'%histname,1,fancyname,
@@ -239,8 +244,15 @@ if __name__ == "__main__":
     tempfile = ROOT.TFile.Open('rootfiles/XHYbbWWstudies_MX_1300_MY_200_18.root','READ')
     allValidationHists = [k.GetName() for k in tempfile.GetListOfKeys() if 'Idx' not in k.GetName()]
     for h in allValidationHists:
+        # we want to ignore all histos with CR/SR in the name, since these will be handled by MXvsMY_plotter script
+        if ('SR' in h) or ('CR' in h):
+            continue
 	print('Plotting {}'.format(h))
 	if h in histNames.keys():
 	    plot(h,histNames[h],args.scale)
 	else:
 	    plot(h,h,args.scale)
+
+    # now that the kinematics, N-1 and N-2 are done, just run XHYbbWW_MXvsMY_plotter.py 
+    ExecuteCmd('python XHYbbWW_MXvsMY_plotter.py')
+
