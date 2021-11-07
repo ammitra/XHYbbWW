@@ -78,6 +78,13 @@ class XHYbbWW:
 	self.config = OpenJSON('XHYbbWWconfig.json')
 	self.cuts = self.config['CUTS']
 
+	# triggers for various years
+        self.trigs = {
+            16:['HLT_PFHT800','HLT_PFHT900'],
+            17:['HLT_PFHT1050','HLT_AK8PFJet500'],
+            18:['HLT_AK8PFJet400_TrimMass30','HLT_AK8PFHT850_TrimMass50','HLT_PFHT1050']
+        }
+
         # check if data or sim
         if 'Data' in inputfile:
             self.a.isData = True
@@ -132,8 +139,11 @@ class XHYbbWW:
 
     # for selection purposes - used for making templates for 2DAlphabet
     def OpenForSelection(self, variation):
-	#self.a.Define('Trijet_particleNet_HbbvsQCD','Trijet_particleNet_Xbb/(Trijet_particleNet_Xbb+Trijet_particleNet_QCD')
 	self.ApplyStandardCorrections(snapshot=False)
+	# for trigger effs
+	self.a.Define('Trijet_vect_trig','hardware::TLvector(Trijet_pt, Trijet_eta, Trijet_phi, Trijet_msoftdrop)')
+	self.a.Define('mhww_trig','hardware::InvariantMass(Trijet_vect_trig)')
+	self.a.Define('m_javg','(Trijet_msoftdrop[0]+Trijet_msoftdrop[1]+Trijet_msoftdrop[2])/3')
 	# JME variations - we only do this for signal (think about how)
 	if not self.a.isData:
 	    # since H, W close enough in mass, we can treat them the same. 
@@ -145,7 +155,15 @@ class XHYbbWW:
 	    self.a.Define('Trijet_pt_corr','hardware::MultiHadamardProduct(Trijet_pt,{Trijet_JES_nom})')
 	    self.a.Define('Trijet_msoftdrop_corr','hardware::MultiHadamardProduct(Trijet_msoftdrop,{Trijet_JES_nom})')
 	return self.a.GetActiveNode()
-	    
+
+    # for trigger effs
+    def ApplyTrigs(self, corr=None):
+	if self.a.isData:
+	    self.a.Cut('trigger',self.a.GetTriggerString(self.trigs[self.year]))
+	else:
+	    self.a.AddCorrection(corr, evalArgs={"xval":"m_javg","yval":"mhww_trig"})
+	return self.a.GetActiveNode()
+
     # for creating snapshots
     def Snapshot(self, node=None):
         startNode = self.a.GetActiveNode()

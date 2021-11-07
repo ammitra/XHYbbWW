@@ -20,7 +20,7 @@ to grab all the massPts from Lucas' directories. These files have a specific XMa
 
 The Signal files have one XMass corresponding to multiple YMasses (sometimes just one YMass). `get_massPts.py` looks up the signal ROOT files on the EOS and searches each of them for the `GenModel_YMass_*` branch under `Events` to determine whether or not the signal sample contains that YMass. All signal files corresponding to the appropriate `<XMASS, YMASS>` pair are then appended to the corresponding `_loc.txt` file. 
 
-## 1.5) Create pileup distributions for pileup weights
+## 2) Create pileup distributions for pileup weights
 This step is handled by `XHYbbWWpileup.py`. To run on individual files:
 
 ```
@@ -41,7 +41,7 @@ Then, collect the outputs to one local file called `XHybbWWpileup.root` using
 scripts/get_pileup_file.sh
 ```
 
-## 2) Perform snapshot on `raw_nano/` files
+## 3) Perform snapshot on `raw_nano/` files
 To perform a snapshot on a single .txt file holding either data or simulation, run
 
 ```
@@ -91,14 +91,22 @@ Here, `-i` includes local scripts to the node for use.
 
 **NOTE:** This step assumes that you've created an env tarball as well as a list of jobs to submit in the condor task.
 
-## 3) Collect condor snapshot outputs
+## 4) Collect condor snapshot outputs
 Job outputs (snapshots) automatically get moved to EOS space under `/store/user/ammitra/XHYbbWW/snapshots/`. The information for those snapshots can be collected with 
 
 ```
 python trijet_nano/get_all.py
 ```
 
-## 4) Perform studies 
+## 5) Making trigger efficiencies
+
+First, run `source scripts/get_snapshots.sh` to gather all of the snapshots on the EOS locally, in a directory one above this (`../trijet_nano_files/snapshots`). 
+
+Then, run `python XHYbbWWtrigger.py` to to hadd all of the data snapshots and backfill any empty trigger entries from sub-year eras before making the trigger efficiencies.
+
+**NOTE:** `DataB1` for year 2016 has empty `Events` TTree - it is not included in the hadded 2016 data file.
+
+## 6) Perform studies 
 
 The script `XHYbbWW_studies.py` takes in the setname, year, and (later) variation of the snapshot ROOT files and creates kinematic plots and N-1 plots from them. To utilize this script, run 
 
@@ -108,7 +116,7 @@ python perform_studies.py
 
 **UPDATE: (9/27/21)** The `XHYbbWW_studies.py` script now also creates `mX` vs `mY` plots for all QCD, ttbar, and signal files. To achieve this, the WvsQCD score is kept constant along with all kinematic and softdrop mass cuts, and the HbbvsQCD score is varied to encompass the three regions `Hbb < 0.8`, `0.8 < Hbb < 0.98` and `Hbb > 0.98`. The backgrounds are then stitched together in the `XHYbbWW_MXvsMY_plotter.py` scripts and all their combined 2DHistos concatenated. 
 
-## 5) Plots
+## 7) Plots
 
 Run the command with either the `--scale` or `--noscale` arguments to plot the histograms scaled/not scaled to unity, respectively.
 
@@ -138,15 +146,9 @@ One should use the script `GroupImgToPDF` (thanks, Lucas!) to concatenate multip
 python GroupImgToPDF.py -o [output_file] -F [files...]
 ```
 
-where wildcards for filenames are acceptable
+where wildcards for filenames are acceptable 
 
-## 6) Making trigger efficiencies
-
-First, run `source scripts/hadd_data.sh` to gather all of the snapshots of Data on the EOS locally, in a directory one above this (`../trijet_nano_files`).
-
-Then, run `python XHYbbWWtrigger.py` to make the trigger efficiencies. 
-
-## 7) Selection & 2DAlphabet
+## 8) Selection & 2DAlphabet
 
 The signal region is given by keeping the WvsQCD score greater than 0.8, the control region keeps the WvsQCD score in between 0.3 and 0.8. These regions are defined in the `XHYbbWW_selection.py` script, and both regions are looped over while varying the Hbb score, creating pass, loose, and fail regions for both the SR and CR. 
 
@@ -163,3 +165,5 @@ Where the variation flag `-v` may be omitted if there is no desired variation to
 ## **NOTES**
 
 * When running over raw signal files (located in `raw_nano/XYH_WWBB_MX_XMASS_MY_YMASS_loc.txt`) with an analyzer module, then you have to specify the parameter `multiSampleStr` in the analyzer constructor, where the `multiSampleStr` is the desired Y mass associated with the X mass of the file. This is because there are multiple Y masses associated with the X mass, so this ensures that the proper `genEventWeight_Sum` branch is captured by the analyzer.
+
+* The script `scripts/get_snapshots.sh` populates the directory `trijet_nano_files/` one directory above this on the LPC with the snapshots directory on the EOS. This is then used in the trigger efficiency script 
