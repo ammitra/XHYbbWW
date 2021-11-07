@@ -164,6 +164,14 @@ python perform_selection.py -s [setname] -y [year] [-v variation]
 
 Where the variation flag `-v` may be omitted if there is no desired variation to be made
 
+Since there are many setnames, years, and variations, this is best done in parallel using Condor. To aid in this, the script `condor/selection_args.py` generates a .txt file with all possible setname, year, and variation combinations. Then run 
+
+```
+python CondorHelper.py -r condor/run_selection.sh -a condor/selection_args.txt -i "XHYbbWW_class.py XHYbbWW_selection.py"
+```
+
+The finished files will reside on the EOS, so use `scripts/get_selection.sh` to recover the selection directory, then just move those files to the `rootfiles/` directory
+
 ## **NOTES**
 
 * When running over raw signal files (located in `raw_nano/XYH_WWBB_MX_XMASS_MY_YMASS_loc.txt`) with an analyzer module, then you have to specify the parameter `multiSampleStr` in the analyzer constructor, where the `multiSampleStr` is the desired Y mass associated with the X mass of the file. This is because there are multiple Y masses associated with the X mass, so this ensures that the proper `genEventWeight_Sum` branch is captured by the analyzer.
