@@ -1,4 +1,4 @@
-o "Run script starting"
+echo "Run script starting"
 source /cvmfs/cms.cern.ch/cmsset_default.sh
 xrdcp root://cmseos.fnal.gov//store/user/ammitra/XHYbbWW.tgz ./
 export SCRAM_ARCH=slc7_amd64_gcc820
