@@ -61,7 +61,7 @@ if __name__ == "__main__":
 
     # now that we have all arguments for XHYbbWW_selection.py, let's run it 
     for arg in args:
-	ExecuteCmd('python XHYbbWW_selection {}'.format(arg))
+	ExecuteCmd('python XHYbbWW_selection.py {}'.format(arg))
 
     # after this has created all of the selection files, concatenate the data:
     selection_files = glob.glob('rootfiles/XHYbbWWselection_Data*')
