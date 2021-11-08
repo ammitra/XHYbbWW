@@ -14,12 +14,18 @@ for f in glob.glob('raw_nano/*.txt'):
 	year = filename.split('_')[1]
 
     if 'Data' in setname:
-	continue
+	out.write('-s {} -y {}\n'.format(setname, year))
 
-    # now create the variations 
-    for var in ['JES','JMS','JER','JMR']:
-	for ud in ['up','down']:
-	    v = var + '_' + ud
-	    out.write('-s {} -y {} -v {}\n'.format(setname, year, v))
+    else:
+	# we don't have to worry about these corrections for QCD, since it's just for validation. 
+	if ('QCD' in setname):
+	    out.write('-s {} -y {}\n'.format(setname, year))
+	else:
+            # now create the variations 
+            for var in ['JES','JMS','JER','JMR']:
+	        for ud in ['up','down']:
+	            v = var + '_' + ud
+	            out.write('-s {} -y {} -v {}\n'.format(setname, year, v))
+	    out.write('-s {} -y {}\n'.format(setname, year))
 
 out.close()

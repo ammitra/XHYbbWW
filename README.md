@@ -156,13 +156,18 @@ The signal region is given by keeping the WvsQCD score greater than 0.8, the con
 
 The script generates the template histograms of the X and Y masses in the SR and CR, for a given variation. 
 
-To generate the histograms for 2DAlphabet, run 
+To generate the histograms for 2DAlphabet on a given setname and year, run:
 
 ```
-python perform_selection.py [-v variation]
+python XHYbbWW_selection.py -s [setname] -y [year] [-v variation]
 ```
 
-Where the variation flag `-v` may be omitted if there is no desired variation to be made. Until I figure out how best to offload this to Condor to be done in parallel, if you want to perform the selection with all variations (including none), just run `python all_variations.py`
+Where the variation flag `-v` may be omitted if there is no desired variation to be made. 
+
+Until I figure out how best to offload this to Condor to be done in parallel, if you want to perform the selection with all variations (including none), just run `python perform_selection.py`. This script:
+
+* Performs selection on all data (except DataB1, whose `Events` TTree is broken so it's skipped) and QCD with NO variations. QCD is just used for validation, so there's no need to run any JMS, JMR, JES, JER variations.  
+* Performs selection on all signal and ttbar with all variations (including no variations)
 
 **WORK IN PROGRESS**
 
