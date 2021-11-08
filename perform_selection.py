@@ -81,4 +81,3 @@ if __name__ == "__main__":
 	    haddstr += '{} '.format(f) 
 	#print('hadd -f rootfiles/XHYbbWWselection_Data_{}.root {}'.format(year, haddstr))
 	ExecuteCmd('hadd -f rootfiles/XHYbbWWselection_Data_{}.root {}'.format(year, haddstr))
-    '''
