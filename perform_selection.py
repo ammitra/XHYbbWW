@@ -21,8 +21,9 @@ for f in trijet_files:
 	else:
 	    # create key and list of values
 	    setname_era[setname] = [era]
-    #elif 'Data' in name:
-	#continue
+    # DataB1 Events TTree is broken, just skip
+    elif 'B1' in name:
+	continue
     else:
 	setname = split_name[0]
 	era = split_name[1]
@@ -32,28 +33,35 @@ for f in trijet_files:
 	    setname_era[setname] = [era]
 
 if __name__ == "__main__":
-    parser = ArgumentParser()
-    parser.add_argument('-v', type=str, dest='variation',
-			action='store', default='None',
-			help='JES_up, JES_down, JMR_up,...')
-    args = parser.parse_args()
-
-    a = []
-    for s, ys in setname_era.items():
-	if (len(ys) > 1):
-	    for year in ys:
-		if (args.variation != 'None'):
-		    a.append('-s {} -y {} -v {}'.format(s, year, args.variation))
-		else:
-		    a.append('-s {} -y {}'.format(s, year))
-	else:
-	    if (args.variation != 'None'):
-		a.append('-s {} -y {} -v {}'.format(s, ys[0], args.variation))
+    # this script will just generate everything. If you want to do individual ones, just use XHYbbWW_selection.py
+    args = []
+    for setname, years in setname_era.items():
+	# first, check if we're doing data, QCD, ttbar, or signal    
+	if ('Data' in setname) or ('QCD' in setname):   # NO VARIATIONS - QCD is just for validation so no need for variations
+	    # check if there are multiple years
+	    if len(years) > 1:
+		for year in years:
+		    args.append('-s {} -y {}'.format(setname, year))
 	    else:
-		a.append('-s {} -y {}'.format(s, ys[0]))
+		args.append('-s {} -y {}'.format(setname, years[0]))
+	else:   # we are doing ttbar or signal - perform variations and nominal
+	    for corr in ['JES','JMS','JER','JMR']:
+		for ud in ['up','down']:
+	    	    if len(years) > 1:
+			for year in years:
+			    args.append('-s {} -y {} -v {}_{}'.format(setname, year, corr, ud))
+		    else:
+			args.append('-s {} -y {} -v {}_{}'.format(setname, years[0], corr, ud))
+	    # now add the nominal ones
+	    if len(years) > 1:
+		for year in years:
+		    args.append('-s {} -y {}'.format(setname, year))
+	    else:
+		args.append('-s {} -y {}'.format(setname, years[0]))
 
-    for arg in a:
-	subprocess.call('python XHYbbWW_selection.py {}'.format(arg), shell=True)
+    # now that we have all arguments for XHYbbWW_selection.py, let's run it 
+    for arg in args:
+	ExecuteCmd('python XHYbbWW_selection.py {}'.format(arg))
 
     # after this has created all of the selection files, concatenate the data:
     selection_files = glob.glob('rootfiles/XHYbbWWselection_Data*')
@@ -73,4 +81,3 @@ if __name__ == "__main__":
 	    haddstr += '{} '.format(f) 
 	#print('hadd -f rootfiles/XHYbbWWselection_Data_{}.root {}'.format(year, haddstr))
 	ExecuteCmd('hadd -f rootfiles/XHYbbWWselection_Data_{}.root {}'.format(year, haddstr))
-

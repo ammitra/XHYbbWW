@@ -9,22 +9,25 @@ eos_path = '/store/user/{}/XHYbbWW/snapshots/'.format(os.getenv('USER'))
 print("Running eos {} ls {}".format(redirector, eos_path))
 files = subprocess.check_output('eos {} ls {}'.format(redirector, eos_path), shell=True)
 
+print(files)
+
 org_files = {}
 for f in files.split('\n'):
-    if (f == ''): continue
-    # messed up snapshot creation, didn't want to rerun the snapshots so this is to ensure we only get signal files of the form MX_XMASS_MY_YMASS 
-    # NOT - MX_XMASS_MYYMASS
-    if (('_MX_' in f) and ('_MY_' not in f)): 
-	# sigh
+    if (f == '') or ('pileup' in f):
+	# not sure why XHYbbWWpileup.root ends up in snapshots/ dir, but just skip it 
 	continue
+   
+    # file format: HWWsnapshot_SETNAME_YEAR_XofY.root
     info = f.split('.')[0].split('_')	# get everything before .root, make list split on '_'
     
     # now we need to have separate cases depending on if it's signal files or not 
     # this looks a bit weird - it's bc I messed up when making snapshots once. But it's a good test for if something is signal or not, so just leave it 
-    if '_MX_' and '_MY_' in f:
+    if ('_MX_' in f):
+	# file format is now HWWsnapshot_MX_XMASS_MY_YMASS_YEAR_XofY
 	setname = info[1] + '_' + info[2] + '_' + info[3] + '_' + info[4]  # MX_XMASS_MY_YMASS
 	year = info[5]
     else:
+	# file format is now HWWsnapshot_SETNAME_YEAR_XofY
 	setname = info[1]
 	year = info[2]
    

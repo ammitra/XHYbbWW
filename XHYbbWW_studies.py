@@ -20,7 +20,7 @@ def XHYbbWW_studies(args):
 
     # files are under trijet_nano/setname_era_snapshot.txt
     selection = XHYbbWW('trijet_nano/{}_{}_snapshot.txt'.format(args.setname,args.era),int(args.era),1,1)  # 1/1 jobs
-    #selection.OpenForSelection('None')    # I'll do this later
+    selection.OpenForSelection('None')
     selection.a.Define('Trijet_vect','hardware::TLvector(Trijet_pt, Trijet_eta, Trijet_phi, Trijet_msoftdrop)')
     selection.a.Define('mhww','hardware::InvariantMass(Trijet_vect)')
     selection.a.Define('m_avg','(Trijet_msoftdrop[0]+Trijet_msoftdrop[1]+Trijet_msoftdrop[2])/3')    # is this necessary?
@@ -149,39 +149,41 @@ def XHYbbWW_studies(args):
     MXvsMYPlots = HistGroup('MXvsMYPlots')
     taggers = ['particleNet']
     for t in taggers:
-	# Hbb will contain a list of scores on which to vary Hbb: 
-	#	- Region 1 (fail):	Hbb < Hbb[0]
-	#	- Region 2 (loose):	Hbb[0] < Hbb < Hbb[1]
-	#	- Region 3 (tight):	Hbb > Hbb[1]
-	Hbb = [0.8, 0.98]
+	for W in [[0.3,0.8], [0.8]]:	# plot CR first, then CR
+            # Hbb will contain a list of scores on which to vary Hbb: 
+	    #	- Region 1 (fail):	Hbb < Hbb[0]
+ 	    #	- Region 2 (loose):	Hbb[0] < Hbb < Hbb[1]
+	    #	- Region 3 (tight):	Hbb > Hbb[1]
+	    Hbb = [0.8, 0.98]
 
-	# W will contain a list of either 1 or two values 
-	# if we want to plot varying Hbb against tight W score cut, only use 1 value in this list (the score above which to cut on W)
-	# if we want to plot varying Hbb against a loost W score cut, use two values. This will make the W score cut in each plot go from W[0] < W < W[1]
-	W = [0.3, 0.8]
-	print('MX vs MY: Plotting for regions Hbb < {0}, {0} < Hbb < {1}, Hbb > {1}'.format(Hbb[0],Hbb[1]))
-        regions = selection.MXvsMY(t, Hbb, W)    # vary Hbb score, apply loose/tight WvsQCD score
-	bins = [60,0,3500]
-	selection.a.SetActiveNode(kinOnly)	# branch off kin-only node again
-	# now that we have the three regions, perform each one 
-	for region in range(3):
-	    print('Plotting MX vs MY in Region {}'.format(region+1))
-	    # start at the kinOnly node
-            selection.a.SetActiveNode(nminus1Node)    # so that Trijet subcollection is defined 
-	    selection.a.Apply(regions[region])	      # apply the cutgroup for this region, on the active node (nminus1node)
-	    # now we are going to redefine our X and Y for this region
-	    selection.a.Define('Region{}_H'.format(region+1),'hardware::TLvector(Trijet_pt[0], Trijet_eta[0], Trijet_phi[0], Trijet_msoftdrop[0])')   # our new H jet in this region
-	    selection.a.Define('Region{}_W1'.format(region+1),'hardware::TLvector(Trijet_pt[1], Trijet_eta[1], Trijet_phi[1], Trijet_msoftdrop[1])')  # our new lead W jet in this region
-	    selection.a.Define('Region{}_W2'.format(region+1),'hardware::TLvector(Trijet_pt[2], Trijet_eta[2], Trijet_phi[2], Trijet_msoftdrop[2])')  # our new sublead W jet in this region
-	    selection.a.Define('Region{}_X'.format(region+1),'hardware::InvariantMass({Region%s_H + Region%s_W1 + Region%s_W2})'%(region+1,region+1,region+1))   # X mass for this region
-	    selection.a.Define('Region{}_Y'.format(region+1),'hardware::InvariantMass({Region%s_W1 + Region%s_W2})'%(region+1,region+1))	# Y mass for this region
-	    # now we can add the mX vs mY plot to the histgroup
-	    if (region==0):
-	        MXvsMYPlots.Add('region{}_MXvsMY'.format(region+1),selection.a.DataFrame.Histo2D(('Region{}_MXvsMY'.format(region+1),'X vs Y Invariant Mass (Hbb < {})'.format(Hbb[0]),bins[0],bins[1],bins[2],bins[0],bins[1],bins[2]),'Region{}_X'.format(region+1), 'Region{}_Y'.format(region+1)))
-	    elif (region==1):
-                MXvsMYPlots.Add('region{}_MXvsMY'.format(region+1),selection.a.DataFrame.Histo2D(('Region{}_MXvsMY'.format(region+1),'X vs Y Invariant Mass ({0} < Hbb < {1})'.format(*Hbb),bins[0],bins[1],bins[2],bins[0],bins[1],bins[2]),'Region{}_X'.format(region+1), 'Region{}_Y'.format(region+1)))
-	    else:
-                MXvsMYPlots.Add('region{}_MXvsMY'.format(region+1),selection.a.DataFrame.Histo2D(('Region{}_MXvsMY'.format(region+1),'X vs Y Invariant Mass (Hbb > {})'.format(Hbb[1]),bins[0],bins[1],bins[2],bins[0],bins[1],bins[2]),'Region{}_X'.format(region+1), 'Region{}_Y'.format(region+1)))
+	    # W will contain a list of either 1 or two values 
+	    # W is chosen in the nested for loop above - we first plot MX vs MY in the CR, then SR
+	    print('MX vs MY: Plotting for fail, loose, tight in {}'.format('CR' if len(W)==2 else 'SR'))
+            regions = selection.MXvsMY(t, Hbb, W)    # vary Hbb score, apply loose/tight WvsQCD score
+	    bins = [60,0,3500]
+	    selection.a.SetActiveNode(kinOnly)	# branch off kin-only node again
+	    # now that we have the three regions, perform each one 
+	    d = {'fail':0, 'loose':1, 'tight':2}
+	    for subregion in d.keys():
+	        print('Plotting MX vs MY in {} - {}'.format('CR' if len(W)==2 else 'SR', subregion))
+	        # start at the kinOnly node
+                selection.a.SetActiveNode(nminus1Node)        # so that Trijet subcollection is defined 
+	        selection.a.Apply(regions[d[subregion]])      # apply the cutgroup for this region, on the active node (nminus1node)
+		# invariant masses X&Y are already defined by the Lorentz vectors H,W1,W2 earlier in the code, so we can just grab them 
+
+		# now we can add the mX vs mY plots to the histgroup. The histos will be named in the format: MXvsMY_<region>_<subregion>
+		MXvsMYPlots.Add('MXvsMY_{}_{}'.format('CR' if len(W)==2 else 'SR', subregion), selection.a.DataFrame.Histo2D(('MXvsMY_{}_{}'.format('CR' if len(W)==2 else 'SR',subregion), 'X vs Y Invariant Mass - {} {}'.format('CR' if len(W)==2 else 'SR',subregion), bins[0], bins[1], bins[2], bins[0], bins[1], bins[2]), 'X', 'Y', 'weight__nominal'))
+
+		'''
+                # now we can add the mX vs mY plot to the histgroup
+	        if (region==0):
+	            MXvsMYPlots.Add('MXvsMY_{}_{}'.format(subregion, 'CR' if len(W)==2 else 'SR'),selection.a.DataFrame.Histo2D(('Region{}_MXvsMY'.format(region+1),'X vs Y Invariant Mass (Hbb < {})'.format(Hbb[0]),bins[0],bins[1],bins[2],bins[0],bins[1],bins[2]),'Region{}_X'.format(region+1), 'Region{}_Y'.format(region+1)))
+	        elif (region==1):
+                    MXvsMYPlots.Add('region{}_MXvsMY'.format(region+1),selection.a.DataFrame.Histo2D(('Region{}_MXvsMY'.format(region+1),'X vs Y Invariant Mass ({0} < Hbb < {1})'.format(*Hbb),bins[0],bins[1],bins[2],bins[0],bins[1],bins[2]),'Region{}_X'.format(region+1), 'Region{}_Y'.format(region+1)))
+	        else:
+                    MXvsMYPlots.Add('region{}_MXvsMY'.format(region+1),selection.a.DataFrame.Histo2D(('Region{}_MXvsMY'.format(region+1),'X vs Y Invariant Mass (Hbb > {})'.format(Hbb[1]),bins[0],bins[1],bins[2],bins[0],bins[1],bins[2]),'Region{}_X'.format(region+1), 'Region{}_Y'.format(region+1)))
+		'''
+
     print('{} {} Finished'.format(args.setname, args.era))	
     # N-1 loop and N-2 loop are over
     kinPlots.Do('Write')

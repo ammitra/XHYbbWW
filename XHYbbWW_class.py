@@ -1,6 +1,8 @@
 import ROOT
-from TIMBER.Analyzer import CutGroup, analyzer
+from TIMBER.Analyzer import Correction, CutGroup, ModuleWorker, analyzer
 from TIMBER.Tools.Common import CompileCpp, OpenJSON
+from TIMBER.Tools.AutoPU import ApplyPU
+from JMEvalsOnly import JMEvalsOnly
 
 # Helper file for dealing with .txt files containing NanoAOD file locs
 def SplitUp(filename,npieces,nFiles=False):
@@ -76,6 +78,13 @@ class XHYbbWW:
 	self.config = OpenJSON('XHYbbWWconfig.json')
 	self.cuts = self.config['CUTS']
 
+	# triggers for various years
+        self.trigs = {
+            16:['HLT_PFHT800','HLT_PFHT900'],
+            17:['HLT_PFHT1050','HLT_AK8PFJet500'],
+            18:['HLT_AK8PFJet400_TrimMass30','HLT_AK8PFHT850_TrimMass50','HLT_PFHT1050']
+        }
+
         # check if data or sim
         if 'Data' in inputfile:
             self.a.isData = True
@@ -93,7 +102,68 @@ class XHYbbWW:
 	# we specify that the Trijet indices are given by the TrijetIdxs vector above
 	self.a.SubCollection('Trijet','FatJet','TrijetIdxs',useTake=True)
         return self.a.GetActiveNode()
-        
+       
+    # corrections - used in both snapshots and selection
+    def ApplyStandardCorrections(self, snapshot=False):
+	# first apply corrections for snapshot phase
+	if snapshot:
+	    if self.a.isData:
+		# instantiate ModuleWorker to handle the C++ code via clang
+		lumiFilter = ModuleWorker('LumiFilter','TIMBER/Framework/include/LumiFilter.h',[self.year])    # defaults to perform "eval" method 
+		self.a.Cut('lumiFilter',lumiFilter.GetCall(evalArgs={"lumi":"luminosityBlock"}))	       # replace lumi with luminosityBlock
+		if self.year == 18:
+		    HEM_worker = ModuleWorker('HEM_drop','TIMBER/Framework/include/HEM_drop.h',[self.setname])
+		    self.a.Cut('HEM','%s[0] > 0'%(HEM_worker.GetCall(evalArgs={"FatJet_eta":"Trijet_eta","FatJet_phi":"Trijet_phi"})))
+	    else:
+		# XHYbbWWpileup.root must be created before running snapshot - run XHYbbWWpileup.py
+		self.a = ApplyPU(self.a,'20%sUL'%self.year, 'XHYbbWWpileup.root', '%s_%s'%(self.setname,self.year))
+		#self.a.AddCorrection(Correction('HEM_drop','TIMBER/Framework/include/HEM_drop.h',[self.setname],corrtype='corr'))
+		if self.year == 16 or self.year == 17:
+		    self.a.AddCorrection(Correction("Prefire","TIMBER/Framework/include/Prefire_weight.h",[self.year],corrtype='weight'))
+		elif self.year == 18:
+		    self.a.AddCorrection(Correction('HEM_drop','TIMBER/Framework/include/HEM_drop.h',[self.setname],corrtype='corr'))
+	    JMEvalsOnly(self.a, 'Trijet', str(2000+self.year), self.setname)
+	    self.a.MakeWeightCols(extraNominal='genWeight' if not self.a.isData else '')
+	# now for selection
+	else:
+	    if not self.a.isData:
+		self.a.AddCorrection(Correction('Pileup',corrtype='weight'))
+		self.a.AddCorrection(Correction('Pdfweight',corrtype='uncert'))
+                if self.year == 16 or self.year == 17:
+                    self.a.AddCorrection(Correction('Prefire',corrtype='weight'))
+                elif self.year == 18:
+                    self.a.AddCorrection(Correction('HEM_drop',corrtype='corr'))
+                #if 'ttbar' in self.setname:
+                    #self.a.AddCorrection(Correction('TptReweight',corrtype='weight'))
+	return self.a.GetActiveNode()
+
+    # for selection purposes - used for making templates for 2DAlphabet
+    def OpenForSelection(self, variation):
+	self.ApplyStandardCorrections(snapshot=False)
+	# for trigger effs
+	self.a.Define('Trijet_vect_trig','hardware::TLvector(Trijet_pt, Trijet_eta, Trijet_phi, Trijet_msoftdrop)')
+	self.a.Define('mhww_trig','hardware::InvariantMass(Trijet_vect_trig)')
+	self.a.Define('m_javg','(Trijet_msoftdrop[0]+Trijet_msoftdrop[1]+Trijet_msoftdrop[2])/3')
+	# JME variations - we only do this for signal (think about how)
+	if not self.a.isData:
+	    # since H, W close enough in mass, we can treat them the same. 
+	    # Higgs, W will have same pt and mass calibrations
+	    pt_calibs, mass_calibs = JMEvariationStr('Higgs',variation)
+	    self.a.Define('Trijet_pt_corr','hardware::MultiHadamardProduct(Trijet_pt,{})'.format(pt_calibs))
+	    self.a.Define('Trijet_msoftdrop_corr','hardware::MultiHadamardProduct(Trijet_msoftdrop,{})'.format(mass_calibs))
+	else:
+	    self.a.Define('Trijet_pt_corr','hardware::MultiHadamardProduct(Trijet_pt,{Trijet_JES_nom})')
+	    self.a.Define('Trijet_msoftdrop_corr','hardware::MultiHadamardProduct(Trijet_msoftdrop,{Trijet_JES_nom})')
+	return self.a.GetActiveNode()
+
+    # for trigger effs
+    def ApplyTrigs(self, corr=None):
+	if self.a.isData:
+	    self.a.Cut('trigger',self.a.GetTriggerString(self.trigs[self.year]))
+	else:
+	    self.a.AddCorrection(corr, evalArgs={"xval":"m_javg","yval":"mhww_trig"})
+	return self.a.GetActiveNode()
+
     # for creating snapshots
     def Snapshot(self, node=None):
         startNode = self.a.GetActiveNode()
@@ -112,8 +182,18 @@ class XHYbbWW:
         # append to columns list if not Data
         if not self.a.isData:
             columns.extend(['GenPart_.*', 'nGenPart','genWeight'])
+	    columns.extend(['Trijet_JES_up','Trijet_JES_down',
+			    'Trijet_JER_nom','Trijet_JER_up','Trijet_JER_down',
+			    'Trijet_JMS_nom','Trijet_JMS_up','Trijet_JMS_down',
+			    'Trijet_JMR_nom','Trijet_JMR_up','Trijet_JMR_down'])
+	    columns.extend(['Pileup__nom','Pileup__up','Pileup__down','Pdfweight__nom','Pdfweight__up','Pdfweight__down'])
+	    if self.year == 16 or self.year == 16:
+		columns.extend(['Prefire__nom','Prefire__up','Prefire__down'])
+	    elif self.year == 18:
+		columns.append('HEM_drop__nom')
             
         # get ready to send out snapshot
+        #self.a.SetActiveNode(node)
         self.a.Snapshot(columns, 'HWWsnapshot_{}_{}_{}of{}.root'.format(self.setname,self.year,self.ijob,self.njobs),'Events', openOption='RECREATE')
         self.a.SetActiveNode(startNode)
         
@@ -161,8 +241,9 @@ class XHYbbWW:
         Therefore we want to perform all kinematic cuts, all W&H mass cuts, and one of the scores constant while varying the other
 	    ex: Keep WvsQCD constant at > 0.8, look in regions Hbb<0.8, 0.8<Hbb<0.98, Hbb>0.98
         We are looking at three regions, so let's return three cutgroups
-
-
+		- fail:		Hbb < 0.8
+		- loose: 	0.8 < Hbb < 0.98
+		- tight: 	Hbb > 0.98
 	Let's also consider the second case where we're loosening our W cuts, say: 0.3 < W < 0.8
 	We are keeping these cuts constant across all the varying H regions 
         '''
@@ -213,3 +294,23 @@ class XHYbbWW:
 	
 	# return list (fixed order) of the three cutgroups, for use in XHYbbWW_studies.py
 	return [region1, region2, region3]
+
+
+# for use in selection - essentially just creates combinations of all the JME variations
+def JMEvariationStr(p, variation):
+    base_calibs = ['Trijet_JES_nom','Trijet_JER_nom','Trijet_JMS_nom','Trijet_JMR_nom']
+    variationType = variation.split('_')[0]
+    pt_calib_vect = '{'
+    mass_calib_vect = '{'
+    for c in base_calibs:
+	if 'JM' in c and p != 'Top':	# 'Top' will never be in p, but just leave this
+	    mass_calib_vect += '%s,'%('Trijet_'+variation if variationType in c else c)
+	elif 'JE' in c:
+	    pt_calib_vect += '%s,'%('Trijet_'+variation if variationType in c else c)
+	    mass_calib_vect += '%s,'%('Trijet_'+variation if variationType in c else c)
+    pt_calib_vect = pt_calib_vect[:-1]+'}'
+    mass_calib_vect = mass_calib_vect[:-1]+'}'
+    return pt_calib_vect, mass_calib_vect
+
+
+

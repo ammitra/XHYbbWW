@@ -13,7 +13,8 @@ def XHYbbWW_selection(args):
 
     # gather all snapshots
     selection = XHYbbWW('trijet_nano/{}_{}_snapshot.txt'.format(args.setname,args.era),int(args.era),1,1)
-    #selection.OpenForSelection(args.variation)
+    selection.OpenForSelection(args.variation)
+    selection.ApplyTrigs(args.trigEff)
     selection.a.Define('Trijet_vect','hardware::TLvector(Trijet_pt, Trijet_eta, Trijet_phi, Trijet_msoftdrop)')
     selection.a.Define('H_vect','hardware::TLvector(Trijet_pt[0], Trijet_eta[0], Trijet_phi[0], Trijet_msoftdrop[0])')
     selection.a.Define('W1_vect','hardware::TLvector(Trijet_pt[1], Trijet_eta[1], Trijet_phi[1], Trijet_msoftdrop[1])')
@@ -32,8 +33,6 @@ def XHYbbWW_selection(args):
     for t in ['particleNet']:
 	w_tagger = '{}_WvsQCD'.format(t)
 	higgs_tagger = '{}_HbbvsQCD'.format(t)
-	bins = [60, 0, 3500]	
-
 	# gather our nodes in dicts for later use
 	SR = {}
 	CR = {}
@@ -70,8 +69,8 @@ def XHYbbWW_selection(args):
 			CR['pass'] = flp
 
 	# now we have two dicts containing the Fail, Loose, Pass nodes for both SR and CR
-	binsX = [60,0,3500]	# nbins, low, high
-	binsY = [60,0,3500]
+	binsX = [35,0,3500]	# nbins, low, high
+	binsY = [35,0,3500]
 	for region, rdict in {"SR":SR, "CR":CR}.items():     # region, dict of region's f/l/p
 	    for flp, node in rdict.items():		     # f/l/p, corresponding node
 		mod_name = "{}_{}_{}".format(t, region, flp) # tagger_region_f/l/p
@@ -80,6 +79,12 @@ def XHYbbWW_selection(args):
 		print('Evaluating {}'.format(mod_title))
 		templates = selection.a.MakeTemplateHistos(ROOT.TH2F('MXvMY_%s'%mod_name, 'MXvMY %s with %s'%(mod_title,t),binsX[0],binsX[1],binsX[2],binsY[0],binsY[1],binsY[2]),['X','Y'])	# ROOT TH2F, then variables to be plotted ([x,y'])
 		templates.Do('Write')
+
+    if not selection.a.isData:
+        scale = ROOT.TH1F('scale','xsec*lumi/genEventSumw',1,0,1)
+        scale.SetBinContent(1,selection.GetXsecScale())
+        scale.Write()
+        selection.a.PrintNodeTree('NodeTree_selection.pdf',verbose=True)
 
     print('%s sec'%(time.time()-start))
 
@@ -97,5 +102,6 @@ if __name__ == '__main__':
                         help='JES_up, JES_down, JMR_up,...')
 
     args = parser.parse_args()
+    args.trigEff = Correction("TriggerEff"+args.era,'TIMBER/Framework/include/EffLoader.h',['HWWtrigger2D_%s.root'%args.era,'Pretag'], corrtype='weight')
     XHYbbWW_selection(args)
 
