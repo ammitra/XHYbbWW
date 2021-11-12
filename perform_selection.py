@@ -81,3 +81,17 @@ if __name__ == "__main__":
 	    haddstr += '{} '.format(f) 
 	#print('hadd -f rootfiles/XHYbbWWselection_Data_{}.root {}'.format(year, haddstr))
 	ExecuteCmd('hadd -f rootfiles/XHYbbWWselection_Data_{}.root {}'.format(year, haddstr))
+
+    # grab all data as Run 2
+    ExecuteCmd('hadd -f rootfiles/XHYbbWWselection_Data_Run2.root rootfiles/XHYbbWWselection_Data_*.root')
+
+    # now concatenate the semileptonic and all-hadronic ttbar by year and variation 
+    for y in ['16','17','18']:
+	for v in ['JMS','JMR','JES','JER']:
+	    for ud in ['up','down']:
+		ExecuteCmd('hadd -f rootfiles/XHYbbWWselection_ttbar_{0}_{1}_{2}.root rootfiles/XHYbbWWselection_ttbar*_{0}_{1}_{2}.root'.format(y,v,ud))
+
+    # now just do the ones wihtout variations
+    ExecuteCmd('hadd -f rootfiles/XHYbbWWselection_ttbar_16.root rootfiles/XHYbbWWselection_ttbar*_16.root')
+    ExecuteCmd('hadd -f rootfiles/XHYbbWWselection_ttbar_17.root rootfiles/XHYbbWWselection_ttbar*_17.root')
+    ExecuteCmd('hadd -f rootfiles/XHYbbWWselection_ttbar_18.root rootfiles/XHYbbWWselection_ttbar*_18.root')
