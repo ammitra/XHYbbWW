@@ -1,0 +1,130 @@
+{
+  "NAME": "HWW",
+  "PROCESSES": {
+    "data_obs": {
+      "SYSTEMATICS":[],
+      "SCALE": 1.0,
+      "COLOR": 1,
+      "TYPE": "DATA",
+      "comment": "for now, we are just using 2018 samples & bkg sim, so just use Data_18 - not Data_Run2",
+      "ALIAS": "Data_18",
+      "TITLE": "Data",
+      "LOC": "path/FILE:HIST"
+    },
+    "SIGNAME": {
+      "SYSTEMATICS":["lumi","TriggerEff18","Pileup18","jer18","jes18","jmr18","jms18"],
+      "SCALE": 1.0,
+      "COLOR": 1,
+      "TYPE": "SIGNAL",
+      "TITLE": "m_{X} = 2000, m_{Y} = 800 (GeV)",
+      "LOC":"path/FILE:HIST"
+    },
+    "ttbar_18": {
+      "SYSTEMATICS":["ttbar_xsec","lumi","TriggerEff18","Pileup18","jer18","jes18","jmr18","jms18"],
+      "SCALE": 1.0,
+      "COLOR": 2,
+      "TYPE": "BKG",
+      "TITLE": "t#bar{t}",
+      "LOC":"path/FILE:HIST"
+    }
+  },
+
+  "REGIONS": {
+    "CR_fail": {
+      "PROCESSES": ["SIGNAME","ttbar_18"],
+      "BINNING": "default"
+    },
+    "CR_loose": {
+      "PROCESSES": ["SIGNAME","ttbar_18"],
+      "BINNING": "default"
+    },
+    "CR_pass": {
+      "PROCESSES": ["SIGNAME","ttbar_18"],
+      "BINNING": "default"
+    }
+  },
+
+  "GLOBAL": {
+    "FILE": "XHYbbWWselection_$process.root",
+    "FILE_UP": "XHYbbWWselection_$process_$syst_up.root",
+    "FILE_DOWN": "XHYbbWWselection_$process_$syst_down.root",
+    "HIST": "MXvMY_particleNet_$region__nominal",
+    "HIST_UP": "MXvMY_particleNet_$region__$syst_up",
+    "HIST_DOWN": "MXvMY_particleNet_$region__$syst_down",
+    "path": "/uscms_data/d3/ammitra/XHYbbWW_analysis/CMSSW_11_1_4/src/XHYbbWW/rootfiles",
+    "SIGNAME": ["MX_2000_MY_800_18","MX_1300_MY_200_18","MX_1500_MY_400_18","MX_2000_MY_400_18","MX_3000_MY_800_18"]
+  },
+
+  "BINNING": {
+    "default": {
+      "X": {
+        "NAME": "hww",
+        "TITLE": "m_{X} (GeV)",
+	"comment": "this BINS param just replaces MIN, MAX, NBINS",
+	"BINS": [700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1800, 2100, 2400, 2700, 3000, 3500],
+        "SIGSTART": 1400,
+        "SIGEND": 2400
+      },
+      "Y": {
+        "NAME": "ww",
+        "TITLE": "m_{Y} (GeV)",
+	"BINS": [100, 200, 300, 400, 500, 600, 700, 1000, 1300, 1600, 2000, 2400, 2800]
+      }
+    }
+  },
+
+  "SYSTEMATICS": {
+    "ttbar_xsec": {
+      "CODE": 0,
+      "VAL": 1.019
+    },
+    "lumi": {
+      "CODE": 0,
+      "VAL": 1.016
+    },
+    "Pileup18": {
+      "ALIAS": "Pileup",
+      "UP": "path/FILE:HIST_UP",
+      "DOWN": "path/FILE:HIST_DOWN",
+      "SIGMA": 1.0
+    },
+    "TriggerEff18": {
+      "UP": "path/FILE:HIST_UP",
+      "DOWN": "path/FILE:HIST_DOWN",
+      "SIGMA": 1.0
+    },
+    "jmr18": {
+      "ALIAS": "JMR",
+      "UP": "path/FILE_UP:HIST",
+      "DOWN": "path/FILE_DOWN:HIST",
+      "SIGMA": 1.0
+    },
+    "jms18": {
+      "ALIAS": "JMS",
+      "UP": "path/FILE_UP:HIST",
+      "DOWN": "path/FILE_DOWN:HIST",
+      "SIGMA": 1.0
+    },
+    "jes18": {
+      "ALIAS": "JES",
+      "UP": "path/FILE_UP:HIST",
+      "DOWN": "path/FILE_DOWN:HIST",
+      "SIGMA": 1.0
+    },
+    "jer18": {
+      "ALIAS": "JER",
+      "UP": "path/FILE_UP:HIST",
+      "DOWN": "path/FILE_DOWN:HIST",
+      "SIGMA": 1.0
+    }
+  },
+
+  "OPTIONS": {
+    "plotPrefitSigInFitB": true,
+    "plotUncerts": false,
+    "plotTitles": false,
+    "year": 1,
+    "comment": "the plotEvtsPerUnit option is due to the fact that our binning changes for both X and Y, so this rescales bins that are wider to account for this fact. I.e. If binning goes [100,200,300,500,1000], then the bins are of width 100, 100, 200, 500 GeV and the wider bins will contain more events. So to account for this, considering the selection histos were binned at 100GeV, this scales the wider bins to display them with the proper count as if they were only 100GeV wide",
+    "plotEvtsPerUnit": true
+  }
+}

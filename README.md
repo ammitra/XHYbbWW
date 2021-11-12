@@ -169,7 +169,7 @@ Until I figure out how best to offload this to Condor to be done in parallel, if
 * Performs selection on all data (except DataB1, whose `Events` TTree is broken so it's skipped) and QCD with NO variations. QCD is just used for validation, so there's no need to run any JMS, JMR, JES, JER variations.  
 * Performs selection on all signal and ttbar with all variations (including no variations)
 
-**WORK IN PROGRESS**
+**----------------- WORK IN PROGRESS -----------------**
 
 Since there are many setnames, years, and variations, this is best done in parallel using Condor. To aid in this, the script `condor/selection_args.py` generates a .txt file with all possible setname, year, and variation combinations. Then run 
 
@@ -178,6 +178,10 @@ python CondorHelper.py -r condor/run_selection.sh -a condor/selection_args.txt -
 ```
 
 The finished files will reside on the EOS, so use `scripts/get_selection.sh` to recover the selection directory, then just move those files to the `rootfiles/` directory
+
+**----------------- WORK IN PROGRESS -----------------**
+
+There is an additional directory `twoD_fits` which holds the JSON config file and python script for use with 2DAlphabat to perform the background estimation. These files are not for use with this repository, but the background estimation depends on the selection files generated in step 8.  
 
 ## **NOTES**
 
