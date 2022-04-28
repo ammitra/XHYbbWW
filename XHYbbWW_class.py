@@ -3,6 +3,9 @@ from TIMBER.Analyzer import Correction, CutGroup, ModuleWorker, analyzer
 from TIMBER.Tools.Common import CompileCpp, OpenJSON
 from TIMBER.Tools.AutoPU import ApplyPU
 from JMEvalsOnly import JMEvalsOnly
+import TIMBER.Tools.AutoJME as AutoJME
+
+AutoJME.AK8Collection = 'Trijet'
 
 # Helper file for dealing with .txt files containing NanoAOD file locs
 def SplitUp(filename,npieces,nFiles=False):
@@ -123,7 +126,9 @@ class XHYbbWW:
 		elif self.year == 18:
 		    self.a.AddCorrection(Correction('HEM_drop','TIMBER/Framework/include/HEM_drop.h',[self.setname],corrtype='corr'))
 	    JMEvalsOnly(self.a, 'Trijet', str(2000+self.year), self.setname)
+	    self.a = AutoJME.AutoJME(self.a, 'Trijet', self.year, self.setname)
 	    self.a.MakeWeightCols(extraNominal='genWeight' if not self.a.isData else '')
+
 	# now for selection
 	else:
 	    if not self.a.isData:
