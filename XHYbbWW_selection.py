@@ -40,7 +40,9 @@ def XHYbbWW_selection(args):
 	# signal region - vary Hbb, keep W>0.8
 	Hbb = [0.8, 0.98]
 	W_SR = [0.8]
-	W_CR = [0.3, 0.8]
+	#W_CR = [0.3, 0.8]	# old CR
+	W_CR = [0.05, 0.8]      # new CR for more statistics
+
 	for region in ['SR', 'CR']:
 	    if (region == 'SR'):
                 regions = selection.MXvsMY(t, Hbb, W_SR)
