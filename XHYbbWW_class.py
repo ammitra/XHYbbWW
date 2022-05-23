@@ -3,6 +3,9 @@ from TIMBER.Analyzer import Correction, CutGroup, ModuleWorker, analyzer
 from TIMBER.Tools.Common import CompileCpp, OpenJSON
 from TIMBER.Tools.AutoPU import ApplyPU
 from JMEvalsOnly import JMEvalsOnly
+import TIMBER.Tools.AutoJME as AutoJME
+
+AutoJME.AK8collection = 'Trijet'
 
 # Helper file for dealing with .txt files containing NanoAOD file locs
 def SplitUp(filename,npieces,nFiles=False):
@@ -115,15 +118,23 @@ class XHYbbWW:
 		    HEM_worker = ModuleWorker('HEM_drop','TIMBER/Framework/include/HEM_drop.h',[self.setname])
 		    self.a.Cut('HEM','%s[0] > 0'%(HEM_worker.GetCall(evalArgs={"FatJet_eta":"Trijet_eta","FatJet_phi":"Trijet_phi"})))
 	    else:
+		# OLD - Pre-NanoAODv9 Rules
 		# XHYbbWWpileup.root must be created before running snapshot - run XHYbbWWpileup.py
-		self.a = ApplyPU(self.a,'20%sUL'%self.year, 'XHYbbWWpileup.root', '%s_%s'%(self.setname,self.year))
+		#self.a = ApplyPU(self.a,'20{}UL'.format(self.year), 'XHYbbWWpileup.root', '{}_{}'.format(self.setname,self.year))
+	
+		# updated to latest version of TIMBER
+		# ApplyPU(a, filename, year, ULflag=True, histname='autoPU')    -  filename: name of pileup file created from XHYbbWWpileup.py
+		self.a = ApplyPU(self.a, 'XHYbbWWpileup.root', self.year, ULflag=True, histname='{}_{}'.format(self.setname,self.year))
+
 		#self.a.AddCorrection(Correction('HEM_drop','TIMBER/Framework/include/HEM_drop.h',[self.setname],corrtype='corr'))
 		if self.year == 16 or self.year == 17:
 		    self.a.AddCorrection(Correction("Prefire","TIMBER/Framework/include/Prefire_weight.h",[self.year],corrtype='weight'))
 		elif self.year == 18:
 		    self.a.AddCorrection(Correction('HEM_drop','TIMBER/Framework/include/HEM_drop.h',[self.setname],corrtype='corr'))
-	    JMEvalsOnly(self.a, 'Trijet', str(2000+self.year), self.setname)
+	    #JMEvalsOnly(self.a, 'Trijet', str(2000+self.year), self.setname)
+	    self.a = AutoJME.AutoJME(self.a, 'Trijet', self.year, self.setname)
 	    self.a.MakeWeightCols(extraNominal='genWeight' if not self.a.isData else '')
+
 	# now for selection
 	else:
 	    if not self.a.isData:
@@ -194,7 +205,7 @@ class XHYbbWW:
             
         # get ready to send out snapshot
         #self.a.SetActiveNode(node)
-        self.a.Snapshot(columns, 'HWWsnapshot_{}_{}_{}of{}.root'.format(self.setname,self.year,self.ijob,self.njobs),'Events', openOption='RECREATE')
+        self.a.Snapshot(columns, 'HWWsnapshot_{}_{}_{}of{}.root'.format(self.setname,self.year,self.ijob,self.njobs),'Events', openOption='RECREATE',saveRunChain=True)
         self.a.SetActiveNode(startNode)
         
     # xsecs from JSON config file
