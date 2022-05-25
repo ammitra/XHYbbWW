@@ -32,7 +32,8 @@ if __name__ == "__main__":
         a = analyzer('raw_nano/%s.txt'%(fullname))
 
     # get pointer to histogram
-    hptr = MakePU(a, '20%sUL'%args.era, fullname+'.root')
+    #hptr = MakePU(a, '20%sUL'%args.era, fullname+'.root')
+    hptr = MakePU(a, args.era, ULflag=True, filename=fullname+'.root')	# update to latest TIMBER version
     hout = hptr.Clone()
     out.WriteTObject(hout, fullname)
     out.Close()

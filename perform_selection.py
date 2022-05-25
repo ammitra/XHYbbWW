@@ -60,8 +60,14 @@ if __name__ == "__main__":
 		args.append('-s {} -y {}'.format(setname, years[0]))
 
     # now that we have all arguments for XHYbbWW_selection.py, let's run it 
+    print('------------------------------------------------------------------')
+    print('total selection jobs: {}'.format(len(args)))
+    print('------------------------------------------------------------------')
+    count = 1
     for arg in args:
+	print('Selection {} of {}'.format(count, len(args)))
 	ExecuteCmd('python XHYbbWW_selection.py {}'.format(arg))
+	count += 1
 
     # after this has created all of the selection files, concatenate the data:
     selection_files = glob.glob('rootfiles/XHYbbWWselection_Data*')
