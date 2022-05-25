@@ -94,11 +94,7 @@ if __name__ == '__main__':
         for i,h in enumerate(hists[hname]):
             h.SetLineColor(colors[i])
             h.SetTitle('')
-<<<<<<< HEAD
-            h.GetXaxis().SetTitle('m_{jj}')
-=======
-            h.GetXaxis().SetTitle('m_{HWW}')
->>>>>>> ae17b90b4c06965f48dd3eb4dc863183f82eb216
+            h.GetXaxis().SetTitle('m_{jjj}')
             h.GetYaxis().SetTitle('Efficiency')
             if i == 0:
                 h.Draw('AP')
