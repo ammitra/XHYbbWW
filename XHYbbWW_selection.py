@@ -24,8 +24,50 @@ def XHYbbWW_selection(args):
     selection.a.ObjectFromCollection('LeadHiggs','Trijet',0)
     selection.a.ObjectFromCollection('LeadW','Trijet',1)
     selection.a.ObjectFromCollection('SubleadW','Trijet',2)
-    kinOnly = selection.a.MakeWeightCols(extraNominal='' if selection.a.isData else 'genWeight*%s'%selection.GetXsecScale())
+    selection.a.MakeWeightCols(extraNominal='' if selection.a.isData else 'genWeight*%s'%selection.GetXsecScale())
+    # final cut on jet masses before moving on to 
+    kinOnly = selection.ApplyMassCuts()
 
+    out = ROOT.TFile.Open('rootfiles/XHYbbWWselection_{}_{}{}.root'.format(args.setname, args.era, '_'+args.variatoon if args.variation != 'None' else ''), 'RECREATE')
+    out.cd()
+
+    for t in ['particleNet']:
+	w_tagger = '{}_WvsQCD'.format(t)
+	h_tagger = '{}_HbbvsQCD'.format(t)
+
+	# control region
+	print('---------- CONTROL REGION ----------')
+	selection.a.SetActiveNode(kinOnly)
+	selection.ApplyWTag('CR', w_tagger)	
+	FLP_CR = selection.ApplyHiggsTag('CR', h_tagger)
+
+	# signal region
+	print('---------- SIGNAL REGION ----------')
+	selection.a.SetActiveNode(kinOnly)
+	selection.ApplyWTag('SR', w_tagger)
+	FLP_SR = selection.ApplyHiggstag('SR', h_tagger)
+
+    binsX = [35,0,3500]	# nbins, low, high
+    binsY = [35,0,3500]
+    for region, rdict in {"SR":FLP_SR,"CR":FLP_CR}.items():
+	for flp, node in rdict.items():
+            mod_name = "{}_{}_{}".format(t,region,flp)
+            mod_title = "{} {}".format(region,flp)
+            selection.a.SetActiveNode(node)
+	    print('Evaluating {}'.format(mod_title))
+	    templates = selection.a.MakeTemplateHistos(ROOT.TH2F('MXvMY_%s'%mod_name, 'MXvMY %s with %s'%(mod_title,t),binsX[0],binsX[1],binsX[2],binsY[0],binsY[1],binsY[2]),['X','Y'])
+	    templates.Do('Write')
+
+    if not selection.a.isData:
+        scale = ROOT.TH1F('scale','xsec*lumi/genEventSumw',1,0,1)
+        scale.SetBinContent(1,selection.GetXsecScale())
+        scale.Write()
+        selection.a.PrintNodeTree('NodeTree_selection.pdf',verbose=True)
+
+    print('%s sec'%(time.time()-start))
+
+# Deprecated
+'''
     # write the SR, CR hists to file
     out = ROOT.TFile.Open('rootfiles/XHYbbWWselection_{}_{}{}.root'.format(args.setname,args.era,'_'+args.variation if args.variation != 'None' else ''), 'RECREATE')
     out.cd()
@@ -89,6 +131,8 @@ def XHYbbWW_selection(args):
         selection.a.PrintNodeTree('NodeTree_selection.pdf',verbose=True)
 
     print('%s sec'%(time.time()-start))
+'''
+
 
 if __name__ == '__main__':
     from argparse import ArgumentParser
