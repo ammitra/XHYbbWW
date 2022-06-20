@@ -24,5 +24,5 @@ echo python XHYbbWW_selection.py $*
 python XHYbbWW_selection.py $*
 
 # move all selection histos to the EOS
-xrdcp -f *.root root://cmseos.fnal.gov//store/user/ammitra/XHYbbWW/selection/
+xrdcp -f rootfiles/*.root root://cmseos.fnal.gov//store/user/ammitra/XHYbbWW/selection/
 

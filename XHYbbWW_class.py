@@ -141,7 +141,7 @@ class XHYbbWW:
 	if snapshot:
 	    if self.a.isData:
 		# instantiate ModuleWorker to handle the C++ code via clang
-		lumiFilter = ModuleWorker('LumiFilter','TIMBER/Framework/include/LumiFilter.h',[self.year])    # defaults to perform "eval" method 
+		lumiFilter = ModuleWorker('LumiFilter','TIMBER/Framework/include/LumiFilter.h',[int(self.year) if 'APV' not in self.year else 16])    # defaults to perform "eval" method 
 		self.a.Cut('lumiFilter',lumiFilter.GetCall(evalArgs={"lumi":"luminosityBlock"}))	       # replace lumi with luminosityBlock
 		if self.year == 18:
 		    HEM_worker = ModuleWorker('HEM_drop','TIMBER/Framework/include/HEM_drop.h',[self.setname])
@@ -199,7 +199,7 @@ class XHYbbWW:
     # for trigger effs
     def ApplyTrigs(self, corr=None):
 	if self.a.isData:
-	    self.a.Cut('trigger',self.a.GetTriggerString(self.trigs[self.year]))
+	    self.a.Cut('trigger',self.a.GetTriggerString(self.trigs[int(self.year) if 'APV' not in self.year else 16]))
 	else:
 	    self.a.AddCorrection(corr, evalArgs={"xval":"m_javg","yval":"mhww_trig"})
 	return self.a.GetActiveNode()
@@ -240,7 +240,7 @@ class XHYbbWW:
         
     # xsecs from JSON config file
     def GetXsecScale(self):	
-	lumi = self.config['lumi{}'.format(self.year)]
+	lumi = self.config['lumi{}'.format(self.year if 'APV' not in self.year else 16)]
 	xsec = self.config['XSECS'][self.setname]
 	if self.a.genEventSumw == 0:
 	    raise ValueError('{} {}: genEventSumw is 0'.format(self.setname, self.year))
