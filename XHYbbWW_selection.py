@@ -1,6 +1,7 @@
 import ROOT, time
 from TIMBER.Analyzer import HistGroup, Correction
 from TIMBER.Tools.Common import CompileCpp
+from collections import OrderedDict
 
 ROOT.gROOT.SetBatch(True)
 
@@ -58,71 +59,28 @@ def XHYbbWW_selection(args):
 	    templates = selection.a.MakeTemplateHistos(ROOT.TH2F('MXvMY_%s'%mod_name, 'MXvMY %s with %s'%(mod_title,t),binsX[0],binsX[1],binsX[2],binsY[0],binsY[1],binsY[2]),['X','Y'])
 	    templates.Do('Write')
 
-    if not selection.a.isData:
-        scale = ROOT.TH1F('scale','xsec*lumi/genEventSumw',1,0,1)
-        scale.SetBinContent(1,selection.GetXsecScale())
-        scale.Write()
-        selection.a.PrintNodeTree('NodeTree_selection.pdf',verbose=True)
+    cutflowInfo = OrderedDict([
+	('nHiggsMassCut',selection.nHiggsMassCut),
+	('nW1MassCut',selection.nW1MassCut),
+	('nW2MassCut',selection.nW2MassCut),
+	('nWTag_CR',selection.nWTag_CR),
+        ('higgsF_CR',selection.higgsF_CR),
+        ('higgsL_CR',selection.higgsL_CR),
+        ('higgsP_CR',selection.higgsP_CR),
+        ('nWTag_SR',selection.nWTag_SR),
+        ('higgsF_SR',selection.higgsF_SR),
+        ('higgsL_SR',selection.higgsL_SR),
+        ('higgsP_SR',selection.higgsP_SR)
+    ])
 
-    print('%s sec'%(time.time()-start))
-
-# Deprecated
-'''
-    # write the SR, CR hists to file
-    out = ROOT.TFile.Open('rootfiles/XHYbbWWselection_{}_{}{}.root'.format(args.setname,args.era,'_'+args.variation if args.variation != 'None' else ''), 'RECREATE')
-    out.cd()
-
-    for t in ['particleNet']:
-	w_tagger = '{}_WvsQCD'.format(t)
-	higgs_tagger = '{}_HbbvsQCD'.format(t)
-	# gather our nodes in dicts for later use
-	SR = {}
-	CR = {}
-
-	# signal region - vary Hbb, keep W>0.8
-	Hbb = [0.8, 0.98]
-	W_SR = [0.8]
-	#W_CR = [0.3, 0.8]	# old CR
-	W_CR = [0.05, 0.8]      # new CR for more statistics
-
-	for region in ['SR', 'CR']:
-	    if (region == 'SR'):
-                regions = selection.MXvsMY(t, Hbb, W_SR)
-	    else:
-		regions = selection.MXvsMY(t, Hbb, W_CR)
-	    selection.a.SetActiveNode(kinOnly)
-	    # the X, Y invariant masses are already defined above, just use them. 
-	    for r in range(3):
-	        selection.a.SetActiveNode(kinOnly)
-	        flp = selection.a.Apply(regions[r])	# fail, loose, pass
-	        # store the nodes in their respective dict key
-	        if (r == 0):
-		    if (region == 'SR'):
-		        SR['fail'] = flp
-		    else:
-			CR['fail'] = flp
-	        elif (r == 1):
-		    if (region == 'SR'):
-		        SR['loose'] = flp
-		    else:
-			CR['loose'] = flp
-	        else:
-		    if (region == 'SR'):
-	                SR['pass'] = flp
-		    else:
-			CR['pass'] = flp
-
-	# now we have two dicts containing the Fail, Loose, Pass nodes for both SR and CR
-	binsX = [35,0,3500]	# nbins, low, high
-	binsY = [35,0,3500]
-	for region, rdict in {"SR":SR, "CR":CR}.items():     # region, dict of region's f/l/p
-	    for flp, node in rdict.items():		     # f/l/p, corresponding node
-		mod_name = "{}_{}_{}".format(t, region, flp) # tagger_region_f/l/p
-		mod_title = "{} {}".format(region, flp)	     # region f/l/p
-		selection.a.SetActiveNode(node)		     # use X,Y as found in this node
-		print('Evaluating {}'.format(mod_title))
-		templates = selection.a.MakeTemplateHistos(ROOT.TH2F('MXvMY_%s'%mod_name, 'MXvMY %s with %s'%(mod_title,t),binsX[0],binsX[1],binsX[2],binsY[0],binsY[1],binsY[2]),['X','Y'])	# ROOT TH2F, then variables to be plotted ([x,y'])
-		templates.Do('Write')
+    nLabels = len(cutflowInfo)
+    hCutflow = ROOT.TH1F('cutflow', 'Number of events after each cut', nLabels, 0.5, nLabels+0.5)
+    nBin = 1
+    for label, value in cutflowInfo.items():
+	hCutflow.GetXaxis().SetBinLabel(nBin, label)
+	hCutflow.AddBinContent(nBin, value)
+	nBin += 1
+    hCutflow.Write()
 
     if not selection.a.isData:
         scale = ROOT.TH1F('scale','xsec*lumi/genEventSumw',1,0,1)
@@ -131,8 +89,6 @@ def XHYbbWW_selection(args):
         selection.a.PrintNodeTree('NodeTree_selection.pdf',verbose=True)
 
     print('%s sec'%(time.time()-start))
-'''
-
 
 if __name__ == '__main__':
     from argparse import ArgumentParser
@@ -148,6 +104,6 @@ if __name__ == '__main__':
                         help='JES_up, JES_down, JMR_up,...')
 
     args = parser.parse_args()
-    args.trigEff = Correction("TriggerEff"+args.era,'TIMBER/Framework/include/EffLoader.h',['HWWtrigger2D_%s.root'%args.era,'Pretag'], corrtype='weight')
+    args.trigEff = Correction("TriggerEff"+args.era,'TIMBER/Framework/include/EffLoader.h',['HWWtrigger2D_{}.root'.format(args.era if 'APV' not in args.era else 16),'Pretag'], corrtype='weight')
     XHYbbWW_selection(args)
 

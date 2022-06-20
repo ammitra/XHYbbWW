@@ -28,7 +28,7 @@ else:
     filename = 'raw_nano/{}_{}.txt'.format(args.setname, args.era)
 
 # then pass the appropriate file to the class constructor
-selection = XHYbbWW(filename, int(args.era), args.ijob, args.njobs)
+selection = XHYbbWW(filename, args.era, args.ijob, args.njobs)
 
 # apply kinematic cuts
 selection.kinematic_cuts()
