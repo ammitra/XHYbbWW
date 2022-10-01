@@ -22,9 +22,9 @@ def XHYbbWW_selection(args):
     selection.a.Define('W2_vect','hardware::TLvector(Trijet_pt[2], Trijet_eta[2], Trijet_phi[2], Trijet_msoftdrop[2])')
     selection.a.Define('Y','hardware::InvariantMass({W1_vect + W2_vect})')
     selection.a.Define('X','hardware::InvariantMass({H_vect + W1_vect + W2_vect})')
-    selection.a.ObjectFromCollection('LeadHiggs','Trijet',0)
-    selection.a.ObjectFromCollection('LeadW','Trijet',1)
-    selection.a.ObjectFromCollection('SubleadW','Trijet',2)
+    selection.a.ObjectFromCollection('Higgs','Trijet',0)
+    selection.a.ObjectFromCollection('W1','Trijet',1)
+    selection.a.ObjectFromCollection('W2','Trijet',2)
     selection.a.MakeWeightCols(extraNominal='' if selection.a.isData else 'genWeight*%s'%selection.GetXsecScale())
     # final cut on jet masses before moving on to 
     kinOnly = selection.ApplyMassCuts()

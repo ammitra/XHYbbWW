@@ -57,10 +57,10 @@ def XHYbbWW_studies(args):
     # do N-1 setup, but don't worry about splitting into DAK8 and PN, just use PN
     selection.a.SetActiveNode(kinOnly)   # branch off the kinematic-only node
     # ObjectFromCollection makes a new collection from a derivative collection - specify index
-    selection.a.ObjectFromCollection('LeadHiggs','Trijet',0)
-    selection.a.ObjectFromCollection('LeadW','Trijet',1)
+    selection.a.ObjectFromCollection('Higgs','Trijet',0)
+    selection.a.ObjectFromCollection('W1','Trijet',1)
     # now this will be the node we branch off for the N-1 
-    nminus1Node = selection.a.ObjectFromCollection('SubleadW','Trijet',2)
+    nminus1Node = selection.a.ObjectFromCollection('W2','Trijet',2)
     
     # now we can begin the N-1 process
     out = ROOT.TFile.Open('rootfiles/XHYbbWWstudies_{}_{}{}.root'.format(args.setname,args.era,'_'+args.variation if args.variation != 'None' else ''),'RECREATE')
@@ -80,11 +80,11 @@ def XHYbbWW_studies(args):
 	    if n.startswith('m'):    # mass cut
 		bins = [25,50,300]
 		if n.startswith('mW1'):
-		    var = 'LeadW_msoftdrop'
+		    var = 'W1_msoftdrop'
 		elif n.startswith('mW2'):
-		    var = 'SubleadW_msoftdrop'
+		    var = 'W2_msoftdrop'
 		else:	# we're looking at Higgs
-		    var = 'LeadHiggs_msoftdrop'
+		    var = 'Higgs_msoftdrop'
 	    elif n == 'full':   # full cuts, has all N of them
 		# this key ALWAYS exists in nminusNodes by default. This is the node which has all of the cuts (that we defined in XHYbbWW_class) applied
                 '''
@@ -110,11 +110,11 @@ def XHYbbWW_studies(args):
 	    else:    	# tagger cut
 		bins = [50,0,1]
 		if n.endswith('H_cut'):
-		    var = 'LeadHiggs_{}'.format(higgs_tagger)
+		    var = 'Higgs_{}'.format(higgs_tagger)
 		elif n.endswith('W1_cut'):
-		    var = 'LeadW_{}'.format(w_tagger)
+		    var = 'W1_{}'.format(w_tagger)
 		else:	# we're looking at sublead W
-		    var = 'SubleadW_{}'.format(w_tagger)
+		    var = 'W2_{}'.format(w_tagger)
 	    print('N-1: Plotting {} for node {}'.format(var, n))
 	    if (var == 'Y'):
 		kinPlots.Add('YMass_allCuts',nminusNodes[n].DataFrame.Histo1D(('YMass_allCuts','YMass_allCuts',bins[0],bins[1],bins[2]),var,'weight__nominal'))
@@ -139,7 +139,7 @@ def XHYbbWW_studies(args):
 	bins = [50,0,1]
 	for n in nminus2Nodes.keys():
 	    if n.endswith('H_cut'):
-		var = 'LeadHiggs_{}'.format(higgs_tagger)
+		var = 'Higgs_{}'.format(higgs_tagger)
 		print('N-2: Plotting {} for node {} WITHOUT Higgs mass cut'.format(var, n))
 		kinPlots.Add(n+'_nminus2',nminus2Nodes[n].DataFrame.Histo1D((n+'_nminus2',n+'_nminus2',bins[0],bins[1],bins[2]),var,'weight__nominal'))
 	    else:

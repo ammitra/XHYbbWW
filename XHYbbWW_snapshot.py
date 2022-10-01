@@ -1,6 +1,7 @@
 import ROOT, time
 ROOT.gROOT.SetBatch(True)
 from argparse import ArgumentParser
+from TIMBER.Tools.Common import CompileCpp
 from XHYbbWW_class import XHYbbWW
 
 parser = ArgumentParser()
@@ -27,16 +28,10 @@ if 'MX' in args.setname:
 else:
     filename = 'raw_nano/{}_{}.txt'.format(args.setname, args.era)
 
-# then pass the appropriate file to the class constructor
+CompileCpp('HWWmodules.cc')
 selection = XHYbbWW(filename, args.era, args.ijob, args.njobs)
-
-# apply kinematic cuts
-selection.kinematic_cuts()
-
-# apply corrections 
+selection.ApplyKinematicsSnap()
 out = selection.ApplyStandardCorrections(snapshot=True)
-
-# feed outfile to class' Snapshot function
 selection.Snapshot(out)
 
 print('%s sec'%(time.time()-start))
