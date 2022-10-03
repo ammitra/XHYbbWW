@@ -171,7 +171,7 @@ class XHYbbWW:
 		lumiFilter = ModuleWorker('LumiFilter','TIMBER/Framework/include/LumiFilter.h',[int(self.year) if 'APV' not in self.year else 16])    # defaults to perform "eval" method 
 		self.a.Cut('lumiFilter',lumiFilter.GetCall(evalArgs={"lumi":"luminosityBlock"}))	       # replace lumi with luminosityBlock
 		if self.year == '18':
-		    HEM_worker = ModuleWorker('HEM_drop','TIMBER/Framework/include/HEM_drop.h',[self.setname])
+		    HEM_worker = ModuleWorker('HEM_drop','TIMBER/Framework/include/HEM_drop.h',[self.setname if 'Muon' not in self.setname else self.setname[10:]])
 		    self.a.Cut('HEM','%s[0] > 0'%(HEM_worker.GetCall(evalArgs={"FatJet_eta":"Trijet_eta","FatJet_phi":"Trijet_phi"})))
 	    else:
 		self.a = ApplyPU(self.a, 'XHYbbWWpileup.root', '20{}'.format(self.year), ULflag=True, histname='{}_{}'.format(self.setname,self.year))
@@ -182,7 +182,7 @@ class XHYbbWW:
 		elif self.year == '18':
 		    self.a.AddCorrection(Correction('HEM_drop','TIMBER/Framework/include/HEM_drop.h',[self.setname],corrtype='corr'))
 	    #JMEvalsOnly(self.a, 'Trijet', str(2000+self.year), self.setname)
-	    self.a = AutoJME.AutoJME(self.a, 'Trijet', '20{}'.format(self.year), self.setname)
+	    self.a = AutoJME.AutoJME(self.a, 'Trijet', '20{}'.format(self.year), self.setname if 'Muon' not in self.setname else self.setname[10:])
 	    self.a.MakeWeightCols(extraNominal='genWeight' if not self.a.isData else '')
 
 	# now for selection
@@ -192,6 +192,8 @@ class XHYbbWW:
 		self.a.AddCorrection(Correction('Pdfweight',corrtype='uncert'))
                 if self.year == '16' or self.year == '17' or 'APV' in self.year:
                     #self.a.AddCorrection(Correction('Prefire',corrtype='weight'))
+		# instantiate ModuleWorker to handle the C++ code via clang
+		    # NEED TO CHECK IF THIS WILL WORK ON SIGNAL MONTE CARLO
 		    self.a.AddCorrection(Correction('L1PreFiringWeight',corrtype='weight'))
                 elif self.year == '18':
                     self.a.AddCorrection(Correction('HEM_drop',corrtype='corr'))
