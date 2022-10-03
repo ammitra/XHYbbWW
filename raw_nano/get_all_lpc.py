@@ -83,15 +83,8 @@ def GetFiles(das_name,setname,year):
 latex_lines = {"16":[],"16APV":[],"17":[],"18":[]}
 for year in das.keys():
     for setname in das[year].keys():
-        if 'Tprime' in setname:
-            for mass in range(800,1900,100):
-                das_name = das[year][setname].replace('MASS',str(mass))
-                setname_mod = setname + '-' + str(mass)
-                GetFiles(das_name,setname_mod,year)
-                latex_lines[year].append('| %s | %s |'%(setname_mod.replace('-', ' ')+' GeV',das_name))
-        else:
-            GetFiles(das[year][setname],setname,year)
-            latex_lines[year].append('| %s | %s |'%(setname,das[year][setname]))
+        GetFiles(das[year][setname],setname,year)
+        latex_lines[year].append('| %s | %s |'%(setname,das[year][setname]))
             
 for y in sorted(latex_lines.keys()):
     print ('\n20%s'%y)
