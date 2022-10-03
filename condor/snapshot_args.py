@@ -17,7 +17,7 @@ for f in glob.glob('raw_nano/*.txt'):
 
     # now write to file
     njobs = int(nfiles/2)
-    if njobs = 0: 	# this occurs when nfiles = 1
+    if njobs == 0: 	# this occurs when nfiles = 1
 	njobs += 1
     for i in range(1, njobs+1):
 	out.write('-s {} -y {} -j {} -n {}\n'.format(setname, year, i, njobs))
