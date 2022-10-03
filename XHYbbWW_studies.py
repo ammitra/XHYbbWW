@@ -26,12 +26,12 @@ def XHYbbWW_studies(args):
     selection.a.Define('m_avg','(Trijet_msoftdrop[0]+Trijet_msoftdrop[1]+Trijet_msoftdrop[2])/3')    # is this necessary?
     # make Lorentz vectors for each of the three jets
     selection.a.Define('H_vect','hardware::TLvector(Trijet_pt[0], Trijet_eta[0], Trijet_phi[0], Trijet_msoftdrop[0])')    # Higgs
-    selection.a.Define('W1_vect','hardware::TLvector(Trijet_pt[1], Trijet_eta[1], Trijet_phi[1], Trijet_msoftdrop[1])')   # W1
-    selection.a.Define('W2_vect','hardware::TLvector(Trijet_pt[2], Trijet_eta[2], Trijet_phi[2], Trijet_msoftdrop[2])')   # W2
-    selection.a.Define('Ws_vect','W1_vect + W2_vect')	# vector sum of two W vectors 
+    selection.a.Define('LeadW_vect','hardware::TLvector(Trijet_pt[1], Trijet_eta[1], Trijet_phi[1], Trijet_msoftdrop[1])')   # W1
+    selection.a.Define('SubleadW_vect','hardware::TLvector(Trijet_pt[2], Trijet_eta[2], Trijet_phi[2], Trijet_msoftdrop[2])')   # W2
+    selection.a.Define('Ws_vect','LeadW_vect + SubleadW_vect')	# vector sum of two W vectors 
     # resonance masses
-    selection.a.Define('Y','hardware::InvariantMass({W1_vect + W2_vect})')
-    selection.a.Define('X','hardware::InvariantMass({H_vect + W1_vect + W2_vect})')
+    selection.a.Define('Y','hardware::InvariantMass({LeadW_vect + SubleadW_vect})')
+    selection.a.Define('X','hardware::InvariantMass({H_vect + LeadW_vect + SubleadW_vect})')
     selection.a.MakeWeightCols(extraNominal='' if selection.a.isData else 'genWeight*{}'.format(selection.GetXsecScale())) # weight
     
     # kinematic definitions
@@ -75,6 +75,7 @@ def XHYbbWW_studies(args):
 	# N-1 - essentially set up mechanics with XHYbbWW.GetNminus1Group() to automate the process via TIMBER -> a.Nminus1()
 	selection.a.SetActiveNode(nminus1Node)		# begin at the node returned just before for loop
 	nminusGroup = selection.GetNminus1Group(t)	# dictionary of nodes
+	print("DEBUG: nminusGroup = {}".format(nminusGroup))
         nminusNodes = selection.a.Nminus1(nminusGroup)	# TIMBER can now be fed the dict and automatically do N-1
 	for n in nminusNodes.keys():
 	    if n.startswith('m'):    # mass cut
