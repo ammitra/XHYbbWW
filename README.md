@@ -117,6 +117,13 @@ If you want to generate MXvsMY plots in the SR (`WvsQCD > 0.8`), you must define
 
 **UPDATE: (9/27/21)** The `XHYbbWW_studies.py` script now also creates `mX` vs `mY` plots for all QCD, ttbar, and signal files. To achieve this, the WvsQCD score is kept constant along with all kinematic and softdrop mass cuts, and the HbbvsQCD score is varied to encompass the three regions `Hbb < 0.8`, `0.8 < Hbb < 0.98` and `Hbb > 0.98`. The backgrounds are then stitched together in the `XHYbbWW_MXvsMY_plotter.py` scripts and all their combined 2DHistos concatenated. 
 
+**UPDATE: (10/7/22)** You can now offload studies to condor. First create a condor directory `/store/user/ammitra/XHYbbWW/studies/`, then run 
+
+```
+python CondorHelper.py -r condor/run_studies.sh -a condor/studies_args.txt -i "XHYbbWW_class.py XHYbbWW_studies.py"
+```
+Then, get the studies plots with `python rootfiles/get_studies.py`
+
 ## 7) Plots
 
 Run the command with either the `--scale` or `--noscale` arguments to plot the histograms scaled/not scaled to unity, respectively.

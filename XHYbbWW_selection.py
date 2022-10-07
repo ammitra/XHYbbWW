@@ -25,9 +25,9 @@ def XHYbbWW_selection(args):
     selection.a.ObjectFromCollection('Higgs','Trijet',0)
     selection.a.ObjectFromCollection('W1','Trijet',1)
     selection.a.ObjectFromCollection('W2','Trijet',2)
-    selection.a.MakeWeightCols(extraNominal='' if selection.a.isData else 'genWeight*%s'%selection.GetXsecScale())
+    kinOnly = selection.a.MakeWeightCols(extraNominal='' if selection.a.isData else 'genWeight*%s'%selection.GetXsecScale())
     # final cut on jet masses before moving on to 
-    kinOnly = selection.ApplyMassCuts()
+    #kinOnly = selection.ApplyMassCuts()
 
     out = ROOT.TFile.Open('rootfiles/XHYbbWWselection_{}_{}{}.root'.format(args.setname, args.era, '_'+args.variatoon if args.variation != 'None' else ''), 'RECREATE')
     out.cd()

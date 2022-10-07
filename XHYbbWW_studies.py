@@ -19,7 +19,7 @@ def XHYbbWW_studies(args):
     ##############
 
     # files are under trijet_nano/setname_era_snapshot.txt
-    selection = XHYbbWW('trijet_nano/{}_{}_snapshot.txt'.format(args.setname,args.era),int(args.era),1,1)  # 1/1 jobs
+    selection = XHYbbWW('trijet_nano/{}_{}_snapshot.txt'.format(args.setname,args.era),int(args.era) if 'APV' not in args.era else 16,1,1)  # 1/1 jobs
     selection.OpenForSelection('None')
     selection.a.Define('Trijet_vect','hardware::TLvector(Trijet_pt, Trijet_eta, Trijet_phi, Trijet_msoftdrop)')
     selection.a.Define('mhww','hardware::InvariantMass(Trijet_vect)')
@@ -33,6 +33,9 @@ def XHYbbWW_studies(args):
     selection.a.Define('Y','hardware::InvariantMass({LeadW_vect + SubleadW_vect})')
     selection.a.Define('X','hardware::InvariantMass({H_vect + LeadW_vect + SubleadW_vect})')
     selection.a.MakeWeightCols(extraNominal='' if selection.a.isData else 'genWeight*{}'.format(selection.GetXsecScale())) # weight
+
+    # tagger definitions
+
     
     # kinematic definitions
     selection.a.Define('pt0','Trijet_pt[0]')	# Higgs pT
@@ -57,6 +60,7 @@ def XHYbbWW_studies(args):
     # do N-1 setup, but don't worry about splitting into DAK8 and PN, just use PN
     selection.a.SetActiveNode(kinOnly)   # branch off the kinematic-only node
     # ObjectFromCollection makes a new collection from a derivative collection - specify index
+    # at this point, it's important to note that we're just assuming that the Higgs is the leading jet and the two Ws are subleading. 
     selection.a.ObjectFromCollection('Higgs','Trijet',0)
     selection.a.ObjectFromCollection('W1','Trijet',1)
     # now this will be the node we branch off for the N-1 
