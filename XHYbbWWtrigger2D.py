@@ -7,11 +7,21 @@ from TIMBER.Tools.Common import CompileCpp
 from XHYbbWW_class import XHYbbWW
 
 def MakeEfficiency(year):
-    selection = XHYbbWW('../trijet_nano_files/XHYbbWWsnapshot_Data_{}.root'.format(year),year,1,1)
+    '''
+        year (str) : 16, 17, 17B, 17All, 18
+    '''
+    if year == '17B':
+        fName = 'trijet_nano/SingleMuonDataB_17_snapshot.txt'
+    elif year == '17All':
+        fName = 'trijet_nano/SingleMuonDataWithB_17_snapshot.txt'
+    else:
+        fName = 'trijet_nano/SingleMuonData_{}_snapshot.txt'.format(year)
+
+    selection = XHYbbWW(fName,year if year.isdigit() else '17',1,1)
     selection.OpenForSelection('None')
     hists = HistGroup('out')
 
-    noTag = selection.a.Cut('pretrig','HLT_PFJet320==1')
+    noTag = selection.a.Cut('pretrig','HLT_Mu50==1')
 
     # Baseline - no tagging
     hists.Add('preTagDenominator',selection.a.DataFrame.Histo2D(('preTagDenominator','',20,60,260,22,800,3000),'m_javg','mhww_trig'))
@@ -54,16 +64,18 @@ if __name__ == '__main__':
     start = time.time()
     #CompileCpp('THmodules.cc')
     if not args.recycle:
-        for y in [16,17,18]:
+        for y in ['16','17','18']:
             MakeEfficiency(y)
 
     files = {
-        16: ROOT.TFile.Open('HWWtrigger2D_16.root'),
-        17: ROOT.TFile.Open('HWWtrigger2D_17.root'),
-        18: ROOT.TFile.Open('HWWtrigger2D_18.root')
+        '16': ROOT.TFile.Open('HWWtrigger2D_16.root'),
+        '17': ROOT.TFile.Open('HWWtrigger2D_17.root'),
+        '18': ROOT.TFile.Open('HWWtrigger2D_18.root'),
+	'17B': ROOT.TFile.Open('HWWtrigger2D_17B.root'),
+	'17All': ROOT.TFile.Open('HWWtrigger2D_17All.root')
     }
 
-    hists = {hname.GetName():[files[y].Get(hname.GetName()) for y in [16,17,18]] for hname in files[16].GetListOfKeys() if '_hist' in hname.GetName()}
+    hists = {hname.GetName():[files[y].Get(hname.GetName()) for y in ['16','17','18']] for hname in files['16'].GetListOfKeys() if '_hist' in hname.GetName()}
     colors = [ROOT.kBlack, ROOT.kGreen+1, ROOT.kOrange-3]
     legendNames = ['2016','2017','2018']
     for hname in hists.keys():

@@ -6,44 +6,28 @@ from TIMBER.Tools.Common import CompileCpp, ExecuteCmd
 
 from XHYbbWW_class import XHYbbWW
 
-def HaddData(year):
-    '''
-    hadd all of the data snapshots and backfill any empty trigger entries from sub-year eras.
-    '''
-    files = subprocess.check_output('ls ../trijet_nano_files/',shell=True)
-    # check if the hadd-ed XHYbbWWsnapshot_Data_YEAR exists yet. If not, create it
-    exists = False
-    for f in files.split('\n'):
-	if str(year) in f:
-	    exists = True
-    if not exists:
-	# for now, just move the offending files from the snapshots directory. The only problematic ones are DataB (2016)
-	'''
-	# DataB1 is broken for 2016, skip them 
-	if year == 16:
-	    subyears = ['B','B2','C','D','E','F','G','H']
-	    haddstr = ''
-	    for sy in subyears:
-	        haddstr += '../trijet_nano_files/snapshots/HWWsnapshot_Data{}_{}_*.root '.format(sy, year)
-	    ExecuteCmd('hadd -f ../trijet_nano_files/XHYbbWWsnapshot_Data_{}.root {}'.format(year,haddstr))
-	else:
-	    ExecuteCmd('hadd -f ../trijet_nano_files/XHYbbWWsnapshot_Data_{0}.root ../trijet_nano_files/snapshots/HWWsnapshot_Data*_{0}_*.root'.format(year))
-	'''
-	ExecuteCmd('hadd -f ../trijet_nano_files/XHYbbWWsnapshot_Data_{0}.root ../trijet_nano_files/snapshots/HWWsnapshot_Data*_{0}_*.root'.format(year))
-    else:
-	print('../trijet_nano_files/XHYbbWWsnapshot_Data_{0}.root exists already, skipping...'.format(year))
-
-
 def MakeEfficiency(year):
-    selection = XHYbbWW('../trijet_nano_files/XHYbbWWsnapshot_Data_{}.root'.format(year),year,1,1)
+    '''
+	year (str) : 16, 17, 17B, 17All, 18
 
-    # debugging 
-    #selection = XHYbbWW('../trijet_nano_files/snapshots/HWWsnapshot_DataH_16_44of50.root',year,1,1)
+	For measuring trigger efficiencies, we use the data from the orthogonal SingleMuon dataset.
+    '''
+
+    # 2017 might have to be split up due to 2017B not having certain jet substructure triggers
+    if year == '17B':
+	fName = 'trijet_nano/SingleMuonDataB_17_snapshot.txt'
+    elif year == '17All':
+	fName = 'trijet_nano/SingleMuonDataWithB_17_snapshot.txt'
+    else:
+	fName = 'trijet_nano/SingleMuonData_{}_snapshot.txt'.format(year)
+
+    selection = XHYbbWW(fName,year if year.isdigit() else '17',1,1)
+
 
     selection.OpenForSelection('None')
     hists = HistGroup('out')
 
-    noTag = selection.a.Cut('pretrig','HLT_PFJet320==1')
+    noTag = selection.a.Cut('pretrig','HLT_Mu50==1')
 
     # Baseline - no tagging
     hists.Add('preTagDenominator',selection.a.DataFrame.Histo1D(('preTagDenominator','',22,800,3000),'mhww_trig'))
@@ -75,17 +59,18 @@ def MakeEfficiency(year):
 if __name__ == '__main__':
     start = time.time()
     #CompileCpp('THmodules.cc')
-    for y in [16,17,18]:
-	HaddData(y)
+    for y in ['16','17','17B','17All','18']:
         MakeEfficiency(y)
 
     files = {
-        16: ROOT.TFile.Open('HWWtrigger_16.root'),
-        17: ROOT.TFile.Open('HWWtrigger_17.root'),
-        18: ROOT.TFile.Open('HWWtrigger_18.root')
+        '16': ROOT.TFile.Open('HWWtrigger_16.root'),
+        '17': ROOT.TFile.Open('HWWtrigger_17.root'),		# contains 2017 C,D,E,F
+        '18': ROOT.TFile.Open('HWWtrigger_18.root'),
+	'17B': ROOT.TFile.Open('HWWtrigger_17B.root'),		# contains 2017 B
+	'17All': ROOT.TFile.Open('HWWtrigger_17All.root')	# contains 2017 B,C,D,E,F
     }
 
-    hists = {hname.GetName():[files[y].Get(hname.GetName()) for y in [16,17,18]] for hname in files[16].GetListOfKeys() if '_graph' in hname.GetName()}
+    hists = {hname.GetName():[files[y].Get(hname.GetName()) for y in ['16','17','18']] for hname in files['16'].GetListOfKeys() if '_graph' in hname.GetName()}
     colors = [ROOT.kBlack, ROOT.kGreen+1, ROOT.kOrange-3]
     legendNames = ['2016','2017','2018']
     for hname in hists.keys():
@@ -105,6 +90,30 @@ if __name__ == '__main__':
 
         leg.Draw()
         c.Print('plots/Trigger_%s.pdf'%hname,'pdf')
+
+    c.Clear()
+    # Now compare just 2017 total (B,C,D,E,F) and 2017 later (C,D,E,F)
+    leg2 = ROOT.TLegend(0.7,0.5,0.88,0.7)
+    # total 2017 minus 2017B
+    h17 = files['17'].Get('Pretag_graph')
+    h17.SetLineColor(ROOT.kGreen)
+    h17.SetTitle('')
+    h17.GetXaxis().SetTitle('m_{jj}')
+    h17.GetYaxis().SetTitle('Efficiency')
+    h17.Draw('AP')
+    leg2.AddEntry(h17, 'later 2017', 'pe')
+
+    # only 2017B
+    h17B = files['17B'].Get('Pretag_graph')
+    h17B.SetLineColor(ROOT.kBlack)
+    h17B.SetTitle('')
+    h17B.GetXaxis().SetTitle('m_{jj}')
+    h17B.GetYaxis().SetTitle('Efficiency')
+    h17B.Draw('same P')
+    leg2.AddEntry(h17B, 'full 2017', 'pe')
+
+    leg2.Draw()
+    c.Print('plots/Trigger_2017Full_vs_2017Later_pretag.pdf')
 
     print ('%s sec'%(time.time()-start))
 

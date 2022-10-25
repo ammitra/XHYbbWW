@@ -99,12 +99,25 @@ python trijet_nano/get_all.py
 ```
 
 ## 5) Making trigger efficiencies
+The trigger efficiency is measured in the SingleMuon dataset separately for the three years, using the `HLT_Mu50` trigger as a reference. It was discovered that, during run 2017B certain substructure- and grooming-based triggers were not available. Therefore, including run 2017B into the total 2017 dataset caused the efficiency of the entire year to drop dramatically. Therefore, the efficiency is measured separately for 2017B, but this run is dropped from the total 2017 dataset when measuring the efficiency for the whole year. Run 2017B accounts for ~12% of the total 2017 JetHT dataset and ~8% of the total SingleMuon dataset, after preselection/snapshotting (see `scripts/check2017fraction.py`). Therefore, we apply the 2017B efficiency to 12% of the 2017MC to account for this difference in efficiency (see the main function in `XHYbbWW_selection.py`).
 
+The triggers used in this analysis are as follows:
+| Dataset  | Triggers |
+| -------- | -------- |
+| 2016  | `HLT_PFHT800`, `HLT_PFHT900`  |
+| 2017B | `HLT_PFHT1050`, `HLT_AK8PFJet500` |
+| 2017  | `HLT_PFHT1050`, `HLT_AK8PFJet500`, `HLT_AK8PFHT750_TrimMass50`, `HLT_AK8PFHT800_TrimMass50`, `HLT_AK8PFJet400_TrimMass30` |
+| 2018  | `HLT_PFHT1050`, `HLT_AK8PFJet400_TrimMass30`, `HLT_AK8PFHT850_TrimMass50` |
+
+<details>
+<summary>Old trigger efficiency info (pre Oct. 25, 2022)</summary>
+<br>
 First, run `source scripts/get_snapshots.sh` to gather all of the snapshots on the EOS locally, in a directory one above this (`../trijet_nano_files/snapshots`). 
 
 Then, run `python XHYbbWWtrigger.py` to to hadd all of the data snapshots and backfill any empty trigger entries from sub-year eras before making the trigger efficiencies.
 
 **NOTE:** `DataB1` for year 2016 has empty `Events` TTree - it is not included in the hadded 2016 data file.
+</details>
 
 ## 6) Perform studies 
 

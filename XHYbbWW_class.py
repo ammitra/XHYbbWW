@@ -83,9 +83,12 @@ class XHYbbWW:
 
 	# triggers for various years
         self.trigs = {
-            '16':['HLT_PFHT800','HLT_PFHT900'],
-            '17':['HLT_PFHT1050','HLT_AK8PFJet500'],
-            '18':['HLT_AK8PFJet400_TrimMass30','HLT_AK8PFHT850_TrimMass50','HLT_PFHT1050']
+            #'16':['HLT_PFHT800','HLT_PFHT900'],
+            #'17':['HLT_PFHT1050','HLT_AK8PFJet500'],
+            #'18':['HLT_AK8PFJet400_TrimMass30','HLT_AK8PFHT850_TrimMass50','HLT_PFHT1050']
+	    16:['HLT_PFHT800','HLT_PFHT900'],
+	    17:["HLT_PFHT1050","HLT_AK8PFJet500","HLT_AK8PFHT750_TrimMass50","HLT_AK8PFHT800_TrimMass50","HLT_AK8PFJet400_TrimMass30"],
+	    18:['HLT_AK8PFJet400_TrimMass30','HLT_AK8PFHT850_TrimMass50','HLT_PFHT1050']
         }
 
         # check if data or sim
@@ -227,7 +230,7 @@ class XHYbbWW:
     # for trigger effs
     def ApplyTrigs(self, corr=None):
 	if self.a.isData:
-	    self.a.Cut('trigger',self.a.GetTriggerString(self.trigs[self.year if 'APV' not in self.year else '16']))
+	    self.a.Cut('trigger',self.a.GetTriggerString(self.trigs[int(self.year) if 'APV' not in self.year else 16]))
 	else:
 	    self.a.AddCorrection(corr, evalArgs={"xval":"m_javg","yval":"mhww_trig"})
 	return self.a.GetActiveNode()

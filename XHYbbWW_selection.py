@@ -104,6 +104,22 @@ if __name__ == '__main__':
                         help='JES_up, JES_down, JMR_up,...')
 
     args = parser.parse_args()
-    args.trigEff = Correction("TriggerEff"+args.era,'TIMBER/Framework/include/EffLoader.h',['HWWtrigger2D_{}.root'.format(args.era if 'APV' not in args.era else 16),'Pretag'], corrtype='weight')
+    args.threads = 4
+
+    # We must apply the 2017B triffer efficiency to ~12% of the 2017 MC
+    # This trigEff correction is passed to ApplyTrigs() in the XHYbbWW_selection() function
+    if ('Data' not in args.setname) and (args.era == '17'): # we are dealing with MC from 2017
+	cutoff = 0.11531 # fraction of total JetHT data belonging to 2017B
+	TRand = ROOT.TRandom()
+	rand = TRand.Uniform(0.0, 1.0)
+	if rand < cutoff:
+	    print('Applying 2017B trigger efficiency')
+	    args.trigEff = Correction("TriggerEff17",'TIMBER/Framework/include/EffLoader.h',['HWWtrigger2D_17B.root','Pretag'],corrtype='weight')
+	else:
+	    args.trigEff = Correction("TriggerEff17",'TIMBER/Framework/include/EffLoader.h',['HWWtrigger2D_17.root','Pretag'],corrtype='weight')
+    else:
+	args.trigEff = Correction("TriggerEff"+args.era,'TIMBER/Framework/include/EffLoader.h',['HWWtrigger2D_{}.root'.format(args.era if 'APV' not in args.era else 16),'Pretag'], corrtype='weight')
+
+    CompileCpp('HWWmodules.cc')
     XHYbbWW_selection(args)
 
