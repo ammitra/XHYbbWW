@@ -5,7 +5,9 @@ from TIMBER.Tools.AutoPU import ApplyPU
 from JMEvalsOnly import JMEvalsOnly
 import TIMBER.Tools.AutoJME as AutoJME
 
-AutoJME.AK8collection = 'Trijet'
+#AutoJME.AK8collection = 'Trijet'
+AutoJME.AK8collection = 'FatJet'
+
 
 # Helper file for dealing with .txt files containing NanoAOD file locs
 def SplitUp(filename,npieces,nFiles=False):
@@ -42,36 +44,8 @@ class XHYbbWW:
         else:
             infiles = inputfile
 
-        #self.a = analyzer(infiles)
-
-        if inputfile.endswith('.txt'):
-	    # we're looking at signal
-            if 'XYH_WWbb' in inputfile:
-		# format is (raw_nano/XYH_WWbb_MX_<XMASS>_MY_<YMASS>_loc.txt
-		prefix = inputfile.split('/')[-1].split('_')   # [XYH, WWbb, MX, <XMASS>, MY, <YMASS>, loc.txt]
-		self.setname = (prefix[2] + '_' + prefix[3] + '_' + prefix[4] + '_' + prefix[5])  # MX_XMASS_MY_YMASS
-	        # create an analyzer module with the proper multiSampleStr argument
-		self.a = analyzer(infiles,multiSampleStr=prefix[5])
-		# ensure we're working with the proper YMass
-		self.a.Cut('CorrectMass', 'GenModel_YMass_{} == 1'.format(prefix[5]))
-	    elif inputfile.startswith('trijet_nano'):    # this condition is met when we are running XHYbbWW_studies.py
-		# format is "trijet_nano/setname_era_snapshot.txt"
-		prefix = inputfile.split('/')[-1]   # everything after "trijet_nano"
-		if 'MX' in prefix:    # signal setname is different from other setnames
-		    s = prefix.split('_')
-		    self.setname = ('{}_{}_{}_{}'.format(s[0],s[1],s[2],s[3]))    # MX_XMASS_MY_YMASS
-		    self.a = analyzer(infiles,multiSampleStr=s[3])
-		    #self.a.Cut('CorrectMass', 'GenModel_YMass_{} == 1'.format(s[3]))
-		else:
-		    self.setname = prefix.split('_')[0]
-		    self.a = analyzer(infiles)
-	    else:
-		# format is (raw_nano/setname_era.txt)
-		self.setname = inputfile.split('/')[-1].split('_')[0]
-		self.a = analyzer(infiles)
-        else:	# not likely to encounter this for this analysis
-            self.setname = inputfile.split('/')[-1].split('_')[1]
-	    self.a = analyzer(infiles)
+	self.setname = inputfile.split('/')[-1].split('_')[0]
+        self.a = analyzer(infiles)
         
         self.year = str(year)
         self.ijob = ijob
@@ -156,6 +130,9 @@ class XHYbbWW:
 	self.a.SubCollection('Trijet','FatJet','TrijetIdxs',useTake=True)
 	'''
 
+	# Performing the trijet check kills too many events -> lowers trigger efficiency
+	# Instead, call PickTrijets() before selection. 
+	'''
 	self.a.Define('TrijetIdxs','PickTrijets(FatJet_pt, FatJet_eta, FatJet_phi, FatJet_msoftdrop)')
 	self.a.Cut('trijetsExist','TrijetIdxs[0] > -1 && TrijetIdxs[1] > -1 && TrijetIdxs[2] > -1')
 	self.NTRIJETS = self.getNweighted()
@@ -164,7 +141,9 @@ class XHYbbWW:
 	self.a.SubCollection('Trijet','FatJet','TrijetIdxs',useTake=True)
 	self.a.Define('Trijet_vect','hardware::TLvector(Trijet_pt, Trijet_eta, Trijet_phi, Trijet_msoftdrop)')
         return self.a.GetActiveNode()
-       
+       	'''
+	return self.a.GetActiveNode()
+
     # corrections - used in both snapshots and selection
     def ApplyStandardCorrections(self, snapshot=False):
 	# first apply corrections for snapshot phase
@@ -184,8 +163,11 @@ class XHYbbWW:
 		    self.a.AddCorrection(L1PreFiringWeight, evalArgs={'val':'L1PreFiringWeight_Nom','valUp':'L1PreFiringWeight_Up','valDown':'L1PreFiringWeight_Dn'})
 		elif self.year == '18':
 		    self.a.AddCorrection(Correction('HEM_drop','TIMBER/Framework/include/HEM_drop.h',[self.setname],corrtype='corr'))
-	    #JMEvalsOnly(self.a, 'Trijet', str(2000+self.year), self.setname)
-	    self.a = AutoJME.AutoJME(self.a, 'Trijet', '20{}'.format(self.year), self.setname if 'Muon' not in self.setname else self.setname[10:])
+
+	    # Instead of creating the Trijet collection during snapshotting, do it afterwards. For now, see if it works on the FatJet collection
+	    #self.a = AutoJME.AutoJME(self.a, 'Trijet', '20{}'.format(self.year), self.setname if 'Muon' not in self.setname else self.setname[10:])
+	    #self.a.MakeWeightCols(extraNominal='genWeight' if not self.a.isData else '')
+	    self.a = AutoJME.AutoJME(self.a, 'FatJet', '20{}'.format(self.year), self.setname if 'Muon' not in self.setname else self.setname[10:])
 	    self.a.MakeWeightCols(extraNominal='genWeight' if not self.a.isData else '')
 
 	# now for selection
@@ -242,19 +224,20 @@ class XHYbbWW:
             node = self.a.GetActiveNode()
         
         columns = [
-        'Trijet_eta','Trijet_msoftdrop','Trijet_pt','Trijet_phi',
-        'Trijet_deepTagMD_HbbvsQCD', 'Trijet_deepTagMD_ZHbbvsQCD',
-        'Trijet_deepTagMD_WvsQCD', 'Trijet_deepTag_TvsQCD', 'Trijet_particleNet_HbbvsQCD',
-        'Trijet_particleNet_TvsQCD', 'Trijet_particleNetMD.*', 'Trijet_rawFactor', 'Trijet_tau*',
-        'Trijet_jetId', 'nTrijet', 'Trijet_JES_nom','Trijet_particleNetMD_Xqq',
-	'Trijet_particleNetMD_Xcc', 'Trijet_particleNet_QCD',
-        'Trijet_particleNet_WvsQCD','HLT_PFHT.*', 'HLT_PFJet.*', 'HLT_AK8.*', 'HLT_Mu50',
+	'FatJet_J*',	# this will collect all the JME variations created during snapshotting and used in selection 
+        'FatJet_eta','FatJet_msoftdrop','FatJet_pt','FatJet_phi',
+        'FatJet_deepTagMD_HbbvsQCD', 'FatJet_deepTagMD_ZHbbvsQCD',
+        'FatJet_deepTagMD_WvsQCD', 'FatJet_deepTag_TvsQCD', 'FatJet_particleNet_HbbvsQCD',
+        'FatJet_particleNet_TvsQCD', 'FatJet_particleNetMD.*', 'FatJet_rawFactor', 'FatJet_tau*',
+        'FatJet_jetId', 'nFatJet', 'FatJet_JES_nom','FatJet_particleNetMD_Xqq',
+	'FatJet_particleNetMD_Xcc', 'FatJet_particleNet_QCD',
+        'FatJet_particleNet_WvsQCD','HLT_PFHT.*', 'HLT_PFJet.*', 'HLT_AK8.*', 'HLT_Mu50',
         'event', 'eventWeight', 'luminosityBlock', 'run',
 	'NPROC', 'NJETS', 'NPT', 'NETA', 'NMSD']
         
         # append to columns list if not Data
         if not self.a.isData:
-            columns.extend(['GenPart_.*', 'nGenPart','genWeight'])
+            columns.extend(['GenPart_.*', 'nGenPart', 'genWeight', 'GenModel*'])	# since we're moving trijet definition to selection, need genModel for determining multiSampleStr
 	    columns.extend(['Trijet_JES_up','Trijet_JES_down',
 			    'Trijet_JER_nom','Trijet_JER_up','Trijet_JER_down',
 			    'Trijet_JMS_nom','Trijet_JMS_up','Trijet_JMS_down',
@@ -284,29 +267,29 @@ class XHYbbWW:
     # used in order to see the effect of varying the tagger on selection
     def GetNminus1Group(self,tagger):
 	cutgroup = CutGroup('taggingVars')
-	# inside the studies code, we'll have made SubCollections called Higgs, W1, W2
+	# inside the studies code, we'll have made SubCollections called Higgs, LeadW, SubleadW
 	# first, cuts based on softdrop mass
 	cutgroup.Add('mH_{}_cut'.format(tagger),'Higgs_msoftdrop > {0} && Higgs_msoftdrop < {1}'.format(*self.cuts['mh']))
-	cutgroup.Add('mW1_{}_cut'.format(tagger),'W1_msoftdrop > {0} && W1_msoftdrop < {1}'.format(*self.cuts['mw']))
-	cutgroup.Add('mW2_{}_cut'.format(tagger),'W2_msoftdrop > {0} && W2_msoftdrop < {1}'.format(*self.cuts['mw']))
+	cutgroup.Add('mLeadW_{}_cut'.format(tagger),'LeadW_msoftdrop > {0} && LeadW_msoftdrop < {1}'.format(*self.cuts['mw']))
+	cutgroup.Add('mSubleadW_{}_cut'.format(tagger),'SubleadW_msoftdrop > {0} && SubleadW_msoftdrop < {1}'.format(*self.cuts['mw']))
 	# now, cuts based on particleNet scores (for now, don't use mass-decorrelated)
 	# taggers are: particleNet_HbbvsQCD, particleNet_WvsQCD
 	cutgroup.Add('{}_H_cut'.format(tagger),'Higgs_{0}_HbbvsQCD > {1}'.format(tagger, self.cuts[tagger+'_HbbvsQCD']))
-	cutgroup.Add('{}_W1_cut'.format(tagger),'W1_{0}_WvsQCD > {1}'.format(tagger, self.cuts[tagger+'_WvsQCD']))
-	cutgroup.Add('{}_W2_cut'.format(tagger),'W2_{0}_WvsQCD > {1}'.format(tagger, self.cuts[tagger+'_WvsQCD']))
+	cutgroup.Add('{}_LeadW_cut'.format(tagger),'LeadW_{0}_WvsQCD > {1}'.format(tagger, self.cuts[tagger+'_WvsQCD']))
+	cutgroup.Add('{}_SubleadW_cut'.format(tagger),'SubleadW_{0}_WvsQCD > {1}'.format(tagger, self.cuts[tagger+'_WvsQCD']))
 	return cutgroup
 
     # N-2 group - in this case we want to plot the Higgs tag cut after *all* cuts are made EXCEPT for the Higgs mass cut
     def GetNminus2Group(self,tagger):
 	cutgroup = CutGroup('taggingVars')
 	# we want to add every cut EXCEPT for higgs mass cut. Starting with mass cuts:
-	cutgroup.Add('mW1_{}_cut'.format(tagger),'W1_msoftdrop > {0} && W1_msoftdrop < {1}'.format(*self.cuts['mw']))
-        cutgroup.Add('mW2_{}_cut'.format(tagger),'W2_msoftdrop > {0} && W2_msoftdrop < {1}'.format(*self.cuts['mw']))
+	cutgroup.Add('mLeadW_{}_cut'.format(tagger),'LeadW_msoftdrop > {0} && LeadW_msoftdrop < {1}'.format(*self.cuts['mw']))
+        cutgroup.Add('mSubleadW_{}_cut'.format(tagger),'SubleadW_msoftdrop > {0} && SubleadW_msoftdrop < {1}'.format(*self.cuts['mw']))
 	# now we want to make cuts on particleNet scores (including Higgs tagger score)
 	# after we call this function, we will grab the key that ends with 'H_cut'
         cutgroup.Add('{}_H_cut'.format(tagger),'Higgs_{0}_HbbvsQCD > {1}'.format(tagger, self.cuts[tagger+'_HbbvsQCD']))
-        cutgroup.Add('{}_W1_cut'.format(tagger),'W1_{0}_WvsQCD > {1}'.format(tagger, self.cuts[tagger+'_WvsQCD']))
-        cutgroup.Add('{}_W2_cut'.format(tagger),'W2_{0}_WvsQCD > {1}'.format(tagger, self.cuts[tagger+'_WvsQCD']))
+        cutgroup.Add('{}_LeadW_cut'.format(tagger),'LeadW_{0}_WvsQCD > {1}'.format(tagger, self.cuts[tagger+'_WvsQCD']))
+        cutgroup.Add('{}_SubleadW_cut'.format(tagger),'SubleadW_{0}_WvsQCD > {1}'.format(tagger, self.cuts[tagger+'_WvsQCD']))
 	return cutgroup
 
     # for comparing mX vs mY
@@ -330,17 +313,17 @@ class XHYbbWW:
         region1 = CutGroup('region1')
 	# mass cuts
         region1.Add('MXvsMY_mH_{}_cut'.format(tagger),'Higgs_msoftdrop > {0} && Higgs_msoftdrop < {1}'.format(*self.cuts['mh']))
-        region1.Add('MXvsMY_mW1_{}_cut'.format(tagger),'W1_msoftdrop > {0} && W1_msoftdrop < {1}'.format(*self.cuts['mw']))
-        region1.Add('MXvsMY_mW2_{}_cut'.format(tagger),'W2_msoftdrop > {0} && W2_msoftdrop < {1}'.format(*self.cuts['mw']))
+        region1.Add('MXvsMY_mLeadW_{}_cut'.format(tagger),'LeadW_msoftdrop > {0} && LeadW_msoftdrop < {1}'.format(*self.cuts['mw']))
+        region1.Add('MXvsMY_mSubleadW_{}_cut'.format(tagger),'SubleadW_msoftdrop > {0} && SubleadW_msoftdrop < {1}'.format(*self.cuts['mw']))
 	if (len(Hbb) > len(W)):    # we are using tight W cut 	- AKA SIGNAL REGION
             # W score cuts 
-            region1.Add('MXvsMY_{}_W1_cut'.format(tagger),'W1_{0}_WvsQCD > {1}'.format(tagger, W[0])) 
-            region1.Add('MXvsMY_{}_W2_cut'.format(tagger),'W2_{0}_WvsQCD > {1}'.format(tagger, W[0]))
+            region1.Add('MXvsMY_{}_LeadW_cut'.format(tagger),'LeadW_{0}_WvsQCD > {1}'.format(tagger, W[0])) 
+            region1.Add('MXvsMY_{}_SubleadW_cut'.format(tagger),'SubleadW_{0}_WvsQCD > {1}'.format(tagger, W[0]))
 	    # H score in the specified region
 	    region1.Add('MXvsMY_{}_H_cut'.format(tagger),'Higgs_{0}_HbbvsQCD < {1}'.format(tagger, Hbb[0])) 
         else:		# we are using loose W cut, in a region W[0] < WvsQCD < W[1]	- AKA CONTROL REGION
-            region1.Add('MXvsMY_{}_W1_cut'.format(tagger),'W1_{0}_WvsQCD > {1} && W1_{0}_WvsQCD < {2}'.format(tagger, W[0], W[1]))
-            region1.Add('MXvsMY_{}_W2_cut'.format(tagger),'W2_{0}_WvsQCD > {1} && W2_{0}_WvsQCD < {2}'.format(tagger, W[0], W[1]))
+            region1.Add('MXvsMY_{}_LeadW_cut'.format(tagger),'LeadW_{0}_WvsQCD > {1} && LeadW_{0}_WvsQCD < {2}'.format(tagger, W[0], W[1]))
+            region1.Add('MXvsMY_{}_SubleadW_cut'.format(tagger),'SubleadW_{0}_WvsQCD > {1} && SubleadW_{0}_WvsQCD < {2}'.format(tagger, W[0], W[1]))
             region1.Add('MXvsMY_{}_H_cut'.format(tagger),'Higgs_{0}_HbbvsQCD < {1}'.format(tagger, Hbb[0]))
 
 	# every cut, but Hbb[0] < Hbb < Hbb[1]
@@ -349,15 +332,15 @@ class XHYbbWW:
 	# --------------------------------------------
 	region2 = CutGroup('region2')
         region2.Add('MXvsMY_mH_{}_cut'.format(tagger),'Higgs_msoftdrop > {0} && Higgs_msoftdrop < {1}'.format(*self.cuts['mh']))
-	region2.Add('MXvsMY_mW1_{}_cut'.format(tagger),'W1_msoftdrop > {0} && W1_msoftdrop < {1}'.format(*self.cuts['mw']))
-	region2.Add('MXvsMY_mW2_{}_cut'.format(tagger),'W2_msoftdrop > {0} && W2_msoftdrop < {1}'.format(*self.cuts['mw']))
+	region2.Add('MXvsMY_mLeadW_{}_cut'.format(tagger),'LeadW_msoftdrop > {0} && LeadW_msoftdrop < {1}'.format(*self.cuts['mw']))
+	region2.Add('MXvsMY_mSubleadW_{}_cut'.format(tagger),'SubleadW_msoftdrop > {0} && SubleadW_msoftdrop < {1}'.format(*self.cuts['mw']))
 	if (len(Hbb) > len(W)):
-            region2.Add('MXvsMY_{}_W1_cut'.format(tagger),'W1_{0}_WvsQCD > {1}'.format(tagger, W[0]))
-            region2.Add('MXvsMY_{}_W2_cut'.format(tagger),'W2_{0}_WvsQCD > {1}'.format(tagger, W[0]))
+            region2.Add('MXvsMY_{}_LeadW_cut'.format(tagger),'LeadW_{0}_WvsQCD > {1}'.format(tagger, W[0]))
+            region2.Add('MXvsMY_{}_SubleadW_cut'.format(tagger),'SubleadW_{0}_WvsQCD > {1}'.format(tagger, W[0]))
             region2.Add('MXvsMY_{}_H_cut'.format(tagger),'Higgs_{0}_HbbvsQCD > {1} && Higgs_{0}_HbbvsQCD < {2}'.format(tagger, Hbb[0], Hbb[1]))
 	else:
-            region2.Add('MXvsMY_{}_W1_cut'.format(tagger),'W1_{0}_WvsQCD > {1} && W1_{0}_WvsQCD < {2}'.format(tagger, W[0], W[1]))
-            region2.Add('MXvsMY_{}_W2_cut'.format(tagger),'W2_{0}_WvsQCD > {1} && W2_{0}_WvsQCD < {2}'.format(tagger, W[0], W[1]))
+            region2.Add('MXvsMY_{}_LeadW_cut'.format(tagger),'LeadW_{0}_WvsQCD > {1} && LeadW_{0}_WvsQCD < {2}'.format(tagger, W[0], W[1]))
+            region2.Add('MXvsMY_{}_SubleadW_cut'.format(tagger),'SubleadW_{0}_WvsQCD > {1} && SubleadW_{0}_WvsQCD < {2}'.format(tagger, W[0], W[1]))
             region2.Add('MXvsMY_{}_H_cut'.format(tagger),'Higgs_{0}_HbbvsQCD > {1} && Higgs_{0}_HbbvsQCD < {2}'.format(tagger, Hbb[0], Hbb[1]))
 
 	# every cut but Hbb > Hbb[1]
@@ -366,15 +349,15 @@ class XHYbbWW:
 	# -----------------------------------------------
 	region3 = CutGroup('region3')
         region3.Add('MXvsMY_mH_{}_cut'.format(tagger),'Higgs_msoftdrop > {0} && Higgs_msoftdrop < {1}'.format(*self.cuts['mh']))
-	region3.Add('MXvsMY_mW1_{}_cut'.format(tagger),'W1_msoftdrop > {0} && W1_msoftdrop < {1}'.format(*self.cuts['mw']))
-	region3.Add('MXvsMY_mW2_{}_cut'.format(tagger),'W2_msoftdrop > {0} && W2_msoftdrop < {1}'.format(*self.cuts['mw']))
+	region3.Add('MXvsMY_mLeadW_{}_cut'.format(tagger),'LeadW_msoftdrop > {0} && LeadW_msoftdrop < {1}'.format(*self.cuts['mw']))
+	region3.Add('MXvsMY_mSubleadW_{}_cut'.format(tagger),'SubleadW_msoftdrop > {0} && SubleadW_msoftdrop < {1}'.format(*self.cuts['mw']))
 	if (len(Hbb) > len(W)):
-	    region3.Add('MXvsMY_{}_W1_cut'.format(tagger),'W1_{0}_WvsQCD > {1}'.format(tagger, W[0]))
-	    region3.Add('MXvsMY_{}_W2_cut'.format(tagger),'W2_{0}_WvsQCD > {1}'.format(tagger, W[0]))
+	    region3.Add('MXvsMY_{}_LeadW_cut'.format(tagger),'LeadW_{0}_WvsQCD > {1}'.format(tagger, W[0]))
+	    region3.Add('MXvsMY_{}_SubleadW_cut'.format(tagger),'SubleadW_{0}_WvsQCD > {1}'.format(tagger, W[0]))
 	    region3.Add('MXvsMY_{}_H_cut'.format(tagger),'Higgs_{0}_HbbvsQCD > {1}'.format(tagger, Hbb[1]))
 	else:
-	    region3.Add('MXvsMY_{}_W1_cut'.format(tagger),'W1_{0}_WvsQCD > {1} && W1_{0}_WvsQCD < {2}'.format(tagger, W[0], W[1]))
-	    region3.Add('MXvsMY_{}_W2_cut'.format(tagger),'W2_{0}_WvsQCD > {1} && W2_{0}_WvsQCD < {2}'.format(tagger, W[0], W[1]))
+	    region3.Add('MXvsMY_{}_LeadW_cut'.format(tagger),'LeadW_{0}_WvsQCD > {1} && LeadW_{0}_WvsQCD < {2}'.format(tagger, W[0], W[1]))
+	    region3.Add('MXvsMY_{}_SubleadW_cut'.format(tagger),'SubleadW_{0}_WvsQCD > {1} && SubleadW_{0}_WvsQCD < {2}'.format(tagger, W[0], W[1]))
 	    region3.Add('MXvsMY_{}_H_cut'.format(tagger),'Higgs_{0}_HbbvsQCD > {1}'.format(tagger, Hbb[1]))
 	
 	# return list (fixed order) of the three cutgroups, for use in XHYbbWW_studies.py
@@ -388,13 +371,13 @@ class XHYbbWW:
 	self.nHiggs = self.getNweighted()
 	self.AddCutflowColumn(self.nHiggs, 'nHiggsMassCut')
 	# Lead W mass window cut, cutflow
-	self.a.Cut('mW1_{}_cut'.format('window'),'W1_msoftdrop > {0} && W1_msoftdrop < {1}'.format(*self.cuts['mw']))
-	self.nW1 = self.getNweighted()
-	self.AddCutflowColumn(self.nW1, 'nW1MassCut')
+	self.a.Cut('mLeadW_{}_cut'.format('window'),'LeadW_msoftdrop > {0} && LeadW_msoftdrop < {1}'.format(*self.cuts['mw']))
+	self.nLeadW = self.getNweighted()
+	self.AddCutflowColumn(self.nLeadW, 'nLeadWMassCut')
 	# sublead W
-	self.a.Cut('mW2_{}_cut'.format('window'),'W2_msoftdrop > {0} && W2_msoftdrop > {1}'.format(*self.cuts['mw']))
-	self.nW2 = self.getNweighted()
-	self.AddCutflowColumn(self.nW2, 'nW2MassCut')
+	self.a.Cut('mSubleadW_{}_cut'.format('window'),'SubleadW_msoftdrop > {0} && SubleadW_msoftdrop > {1}'.format(*self.cuts['mw']))
+	self.nSubleadW = self.getNweighted()
+	self.AddCutflowColumn(self.nSubleadW, 'nSubleadWMassCut')
 	return self.a.GetActiveNode()
 
     def ApplyWTag(self, SRorCR, tagger):
@@ -412,16 +395,16 @@ class XHYbbWW:
         W_SR = 0.8
 	if SRorCR == 'SR':
 	    # Signal region - ID two W jets
-	    self.a.Cut('W1_{}_cut_{}'.format(tagger,SRorCR), 'W1_{0} > {1}'.format(tagger,W_SR))
-	    self.a.Cut('W2_{}_cut_{}'.format(tagger,SRorCR), 'W2_{0} > {1}'.format(tagger,W_SR))
+	    self.a.Cut('LeadW_{}_cut_{}'.format(tagger,SRorCR), 'LeadW_{0} > {1}'.format(tagger,W_SR))
+	    self.a.Cut('SubleadW_{}_cut_{}'.format(tagger,SRorCR), 'SubleadW_{0} > {1}'.format(tagger,W_SR))
 	else:
 	    # Control Region - invert top IDs
-	    self.a.Cut('W1_{}_cut_{}'.format(tagger,SRorCR), 'W1_{0} > {1} && W1_{0} < {2}'.format(tagger,*W_CR))
-	    self.a.Cut('W2_{}_cut_{}'.format(tagger,SRorCR), 'W2_{0} > {1} && W2_{0} < {2}'.format(tagger,*W_CR))
+	    self.a.Cut('LeadW_{}_cut_{}'.format(tagger,SRorCR), 'LeadW_{0} > {1} && LeadW_{0} < {2}'.format(tagger,*W_CR))
+	    self.a.Cut('SubleadW_{}_cut_{}'.format(tagger,SRorCR), 'SubleadW_{0} > {1} && SubleadW_{0} < {2}'.format(tagger,*W_CR))
 	# save cutflow info
 	self.nWTag = self.getNweighted()
 	self.AddCutflowColumn(self.nWTag, 'nWTag_{}'.format(SRorCR))
-	return self.GetActiveNode()
+	return self.a.GetActiveNode()
 
     def ApplyHiggsTag(self, SRorCR, tagger):
 	'''
@@ -439,7 +422,7 @@ class XHYbbWW:
 	self.AddCutflowColumn(self.nHF, 'higgsF_{}'.format(SRorCR))
 	# Higgs Loose + cutflow
 	self.a.SetActiveNode(checkpoint)
-	FLP['loose'] = self.a.Cut('HbbTag_loose','Higgs_{0} > {1} && Higgs{0} < {2}'.format(tagger, *cuts))
+	FLP['loose'] = self.a.Cut('HbbTag_loose','Higgs_{0} > {1} && Higgs_{0} < {2}'.format(tagger, *cuts))
 	self.nHL = self.getNweighted()
 	self.AddCutflowColumn(self.nHL, 'higgsL_{}'.format(SRorCR))
 	# Higgs Pass + cutflow

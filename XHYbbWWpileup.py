@@ -23,13 +23,7 @@ if __name__ == "__main__":
     fullname = '%s_%s'%(args.setname,args.era)
     out = ROOT.TFile.Open('XHYbbWWpileup_{}.root'.format(fullname), 'RECREATE')
 
-    # if signal files, format is raw_nano/XYH_WWbb_MX_XMASS_MY_YMASS_loc.txt
-    if 'MX' in fullname:
-	# need to consider the multiSampleStr - this is the YMASS in MX_XMASS_MY_YMASS
-	ymass = args.setname.split('_')[-1]
-	a = analyzer('raw_nano/XYH_WWbb_{}_loc.txt'.format(args.setname),multiSampleStr=ymass)
-    else:
-        a = analyzer('raw_nano/%s.txt'%(fullname))
+    a = analyzer('raw_nano/%s.txt'%(fullname))
 
     # get pointer to histogram
     #hptr = MakePU(a, '20%sUL'%args.era, fullname+'.root')

@@ -2,6 +2,7 @@ import ROOT, time
 from TIMBER.Analyzer import HistGroup, Correction
 from TIMBER.Tools.Common import CompileCpp
 from collections import OrderedDict
+import TIMBER.Tools.AutoJME as AutoJME
 
 ROOT.gROOT.SetBatch(True)
 
@@ -14,6 +15,13 @@ def XHYbbWW_selection(args):
 
     # gather all snapshots
     selection = XHYbbWW('trijet_nano/{}_{}_snapshot.txt'.format(args.setname,args.era),int(args.era),1,1)
+
+    # need to create Trijet collection, make weight columns 
+    selection.a.Define('TrijetIdxs','PickTrijets(FatJet_pt, FatJet_eta, FatJet_phi, FatJet_msoftdrop)')
+    selection.a.Cut('trijetsExist','TrijetIdxs[0] > -1 && TrijetIdxs[1] > -1 && TrijetIdxs[2] > -1')
+    #selection.a = AutoJME.AutoJME(selection.a, 'Trijet', '20{}'.format(args.era), args.setname if 'Muon' not in args.setname else args.setname[10:])
+    selection.a.SubCollection('Trijet','FatJet','TrijetIdxs',useTake=True)
+
     selection.OpenForSelection(args.variation)
     selection.ApplyTrigs(args.trigEff)
     selection.a.Define('Trijet_vect','hardware::TLvector(Trijet_pt, Trijet_eta, Trijet_phi, Trijet_msoftdrop)')
