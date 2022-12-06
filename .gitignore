@@ -12,3 +12,4 @@ raw_nano/*.txt
 *.gz
 plots/*
 rootfiles/*
+triggers/*.root
