@@ -1,0 +1,9 @@
+Later  JetHT:    719219.0
+Full JetHT:      810692.0
+Later SingleMuon:  22283.0
+Full SingleMuon: 24112.0
+JetHT full/later =      0.88716676617
+SingleMuon full/later = 0.924145653616
+-------------------------------------------------------------------
+Run 2017B makes up 11.283323383% of the 2017 JetHT dataset
+Run 2017B makes up 7.58543463835% of the 2017 SingleMuon dataset

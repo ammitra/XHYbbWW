@@ -24,7 +24,7 @@ start = time.time()
 # use the XHYbbWW class to gather all the information automatically
 filename = 'raw_nano/{}_{}.txt'.format(args.setname, args.era)
 
-CompileCpp('HWWmodules.cc')
+#CompileCpp('HWWmodules.cc')
 selection = XHYbbWW(filename, args.era, args.ijob, args.njobs)
 selection.ApplyKinematicsSnap()
 out = selection.ApplyStandardCorrections(snapshot=True)

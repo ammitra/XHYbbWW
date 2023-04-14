@@ -1,14 +1,13 @@
 import sys, time, ROOT
 from collections import OrderedDict
-
 from TIMBER.Analyzer import HistGroup
 from TIMBER.Tools.Common import CompileCpp
-
 from XHYbbWW_class import XHYbbWW
 
-def MakeEfficiency(year):
+def MakeEfficiency(year, HT=0):
     '''
         year (str) : 16, 17, 17B, 17All, 18
+	HT   (int) : value of HT to cut on 
     '''
     if year == '17B':
         fName = 'trijet_nano/SingleMuonDataB_17_snapshot.txt'
@@ -17,9 +16,14 @@ def MakeEfficiency(year):
     else:
         fName = 'trijet_nano/SingleMuonData_{}_snapshot.txt'.format(year)
 
-    selection = XHYbbWW(fName,year if year.isdigit() else '17',1,1)
+    selection = XHYbbWW(fName,year if 'B' not in year else '17',1,1)
     selection.OpenForSelection('None')
     hists = HistGroup('out')
+
+    # cut on HT to improve efficiency
+    before = selection.a.DataFrame.Count()
+    selection.a.Cut('HT_cut', 'HT > {}'.format(HT))
+    after = selection.a.DataFrame.Count()
 
     noTag = selection.a.Cut('pretrig','HLT_Mu50==1')
 
@@ -32,7 +36,7 @@ def MakeEfficiency(year):
         "Pretag": ROOT.TEfficiency(hists['preTagNumerator'], hists['preTagDenominator'])
     }
 
-    out = ROOT.TFile.Open('HWWtrigger2D_%s.root'%year,'RECREATE')
+    out = ROOT.TFile.Open('triggers/HWWtrigger2D_HT{}_{}.root'.format(HT,year),'RECREATE')
 
     out.cd()
     for name,eff in effs.items():
@@ -40,15 +44,15 @@ def MakeEfficiency(year):
         g.SetName(name+'_hist')
         g.SetTitle(name)
         g.GetXaxis().SetTitle('m_{j}^{avg} (GeV)')
-        g.GetYaxis().SetTitle('m_{jj} (GeV)')
+        g.GetYaxis().SetTitle('m_{jjj} (GeV)')
         g.GetZaxis().SetTitle('Efficiency')
         g.SetMinimum(0.6)
         g.SetMaximum(1.0)
-        f = ROOT.TF2("eff_func","1-[0]/10*exp([1]*y/1000)*exp([2]*x/200)",60,260,800,2600)
-        f.SetParameter(0,1)
-        f.SetParameter(1,-2)
-        f.SetParameter(2,-2)
-        g.Fit(f)
+        #f = ROOT.TF2("eff_func","1-[0]/10*exp([1]*y/1000)*exp([2]*x/200)",60,260,800,2600)
+        #f.SetParameter(0,1)
+        #f.SetParameter(1,-2)
+        #f.SetParameter(2,-2)
+        #g.Fit(f)
         g.Write()
         eff.SetName(name)
         eff.Write()
@@ -57,6 +61,9 @@ def MakeEfficiency(year):
 if __name__ == '__main__':
     from argparse import ArgumentParser
     parser = ArgumentParser()
+    parser.add_argument('--HT', type=str, dest='HT',
+                        action='store', default='0',
+                         help='Value of HT to cut on')
     parser.add_argument('--recycle', dest='recycle',
                         action='store_true', default=False,
                         help='Recycle existing files and just plot.')
@@ -64,15 +71,14 @@ if __name__ == '__main__':
     start = time.time()
     #CompileCpp('THmodules.cc')
     if not args.recycle:
-        for y in ['16','17','18']:
-            MakeEfficiency(y)
+        for y in ['16','17','17B','18']:
+            MakeEfficiency(y, args.HT)
 
     files = {
-        '16': ROOT.TFile.Open('HWWtrigger2D_16.root'),
-        '17': ROOT.TFile.Open('HWWtrigger2D_17.root'),
-        '18': ROOT.TFile.Open('HWWtrigger2D_18.root'),
-	'17B': ROOT.TFile.Open('HWWtrigger2D_17B.root'),
-	'17All': ROOT.TFile.Open('HWWtrigger2D_17All.root')
+        '16': ROOT.TFile.Open('triggers/HWWtrigger2D_HT{}_16.root'.format(args.HT)),
+        '17': ROOT.TFile.Open('triggers/HWWtrigger2D_HT{}_17.root'.format(args.HT)),
+        '18': ROOT.TFile.Open('triggers/HWWtrigger2D_HT{}_18.root'.format(args.HT)),
+	'17B': ROOT.TFile.Open('triggers/HWWtrigger2D_HT{}_17B.root'.format(args.HT)),
     }
 
     hists = {hname.GetName():[files[y].Get(hname.GetName()) for y in ['16','17','18']] for hname in files['16'].GetListOfKeys() if '_hist' in hname.GetName()}
@@ -90,6 +96,6 @@ if __name__ == '__main__':
             h.SetTitle(legendNames[i])
             h.Draw('colz')
 
-        c.Print('plots/Trigger2D_%s.pdf'%hname,'pdf')
+        c.Print('plots/Trigger2D_{}_HT{}.pdf'.format(hname,args.HT),'pdf')
 
     print ('%s sec'%(time.time()-start))

@@ -10,8 +10,8 @@ for f in glob.glob('raw_nano/*.txt'):
 
     # now write to file
     if 'MX' in filename:
-	# signals are generated with a ton of small files, so its ok just to split them up into 10 or so jobs
-	njobs = 5
+	# signals are generated with a ton of small files, so its ok just to split them up into fewer jobs
+	njobs = 2
     else:
         njobs = int(nfiles/2)
     if njobs == 0: 	# this occurs when nfiles = 1

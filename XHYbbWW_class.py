@@ -5,9 +5,7 @@ from TIMBER.Tools.AutoPU import ApplyPU
 from JMEvalsOnly import JMEvalsOnly
 import TIMBER.Tools.AutoJME as AutoJME
 
-#AutoJME.AK8collection = 'Trijet'
-AutoJME.AK8collection = 'FatJet'
-
+AutoJME.AK8collection = 'Trijet'
 
 # Helper file for dealing with .txt files containing NanoAOD file locs
 def SplitUp(filename,npieces,nFiles=False):
@@ -119,29 +117,15 @@ class XHYbbWW:
 	self.NETA = self.getNweighted()
 	self.AddCutflowColumn(self.NETA, "NETA")
 
-        self.a.Cut('msoftdop_cut','FatJet_msoftdrop[0] > 50 && FatJet_msoftdrop[1] > 40 && FatJet_msoftdrop[2] > 40') # should always use softdrop mass
+        self.a.Cut('msoftdrop_cut','FatJet_msoftdrop[0] > 50 && FatJet_msoftdrop[1] > 40 && FatJet_msoftdrop[2] > 40') # should always use softdrop mass
 	self.NMSD = self.getNweighted()
 	self.AddCutflowColumn(self.NMSD, "NMSD")
 
-	'''
         self.a.Define('TrijetIdxs','ROOT::VecOps::RVec({0,1,2})')   # create a vector of the three jets - assume Higgs & Ws will be 3 leading jets
 	# now we make a subcollection, which maps all branches with "FatJet" to a new subcollection named "Trijet", in this case
 	# we specify that the Trijet indices are given by the TrijetIdxs vector above
 	self.a.SubCollection('Trijet','FatJet','TrijetIdxs',useTake=True)
-	'''
-
-	# Performing the trijet check kills too many events -> lowers trigger efficiency
-	# Instead, call PickTrijets() before selection. 
-	'''
-	self.a.Define('TrijetIdxs','PickTrijets(FatJet_pt, FatJet_eta, FatJet_phi, FatJet_msoftdrop)')
-	self.a.Cut('trijetsExist','TrijetIdxs[0] > -1 && TrijetIdxs[1] > -1 && TrijetIdxs[2] > -1')
-	self.NTRIJETS = self.getNweighted()
-	self.AddCutflowColumn(self.NTRIJETS, "NTRIJETS")
-
-	self.a.SubCollection('Trijet','FatJet','TrijetIdxs',useTake=True)
-	self.a.Define('Trijet_vect','hardware::TLvector(Trijet_pt, Trijet_eta, Trijet_phi, Trijet_msoftdrop)')
-        return self.a.GetActiveNode()
-       	'''
+	
 	return self.a.GetActiveNode()
 
     # corrections - used in both snapshots and selection
@@ -164,10 +148,7 @@ class XHYbbWW:
 		elif self.year == '18':
 		    self.a.AddCorrection(Correction('HEM_drop','TIMBER/Framework/include/HEM_drop.h',[self.setname],corrtype='corr'))
 
-	    # Instead of creating the Trijet collection during snapshotting, do it afterwards. For now, see if it works on the FatJet collection
-	    #self.a = AutoJME.AutoJME(self.a, 'Trijet', '20{}'.format(self.year), self.setname if 'Muon' not in self.setname else self.setname[10:])
-	    #self.a.MakeWeightCols(extraNominal='genWeight' if not self.a.isData else '')
-	    self.a = AutoJME.AutoJME(self.a, 'FatJet', '20{}'.format(self.year), self.setname if 'Muon' not in self.setname else self.setname[10:])
+	    self.a = AutoJME.AutoJME(self.a, 'Trijet', '20{}'.format(self.year), self.setname if 'Muon' not in self.setname else self.setname[10:])
 	    self.a.MakeWeightCols(extraNominal='genWeight' if not self.a.isData else '')
 
 	# now for selection
@@ -177,8 +158,7 @@ class XHYbbWW:
 		self.a.AddCorrection(Correction('Pdfweight',corrtype='uncert'))
                 if self.year == '16' or self.year == '17' or 'APV' in self.year:
                     #self.a.AddCorrection(Correction('Prefire',corrtype='weight'))
-		# instantiate ModuleWorker to handle the C++ code via clang
-		    # NEED TO CHECK IF THIS WILL WORK ON SIGNAL MONTE CARLO
+		    # Instead, instantiate ModuleWorker to handle the C++ code via clang. This uses the branches already existing in NanoAODv9
 		    self.a.AddCorrection(Correction('L1PreFiringWeight',corrtype='weight'))
                 elif self.year == '18':
                     self.a.AddCorrection(Correction('HEM_drop',corrtype='corr'))
@@ -188,10 +168,11 @@ class XHYbbWW:
 
     # for selection purposes - used for making templates for 2DAlphabet
     def OpenForSelection(self, variation):
-	# create both discriminants for possible later use in selection
+	# Mass-decorrelated W tagger discriminant is defined by inclusion of X->cc 
 	# See slide 16: https://indico.cern.ch/event/809820/contributions/3632617/attachments/1970786/3278138/MassDecorrelation_ML4Jets_H_Qu.pdf
-	self.a.Define('Trijet_particleNetMD_WvsQCD','Trijet_particleNetMD_Xqq/(Trijet_particleNetMD_Xqq+Trijet_particleNetMD_QCD)')
-	self.a.Define('Trijet_particleNetMD_WccvsQCD','(Trijet_particleNetMD_Xqq+Trijet_particleNetMD_Xcc)/(Trijet_particleNetMD_Xqq+Trijet_particleNetMD_Xcc+Trijet_particleNetMD_QCD)')
+	#self.a.Define('Trijet_particleNetMD_WvsQCD','Trijet_particleNetMD_Xqq/(Trijet_particleNetMD_Xqq+Trijet_particleNetMD_QCD)')
+	self.a.Define('Trijet_particleNetMD_WvsQCD','(Trijet_particleNetMD_Xqq+Trijet_particleNetMD_Xcc)/(Trijet_particleNetMD_Xqq+Trijet_particleNetMD_Xcc+Trijet_particleNetMD_QCD)')
+	self.a.Define('Trijet_particleNetMD_HbbvsQCD','Trijet_particleNetMD_Xbb/(Trijet_particleNetMD_Xbb+Trijet_particleNetMD_QCD)')
 	self.ApplyStandardCorrections(snapshot=False)
 	# for trigger effs
 	self.a.Define('Trijet_vect_trig','hardware::TLvector(Trijet_pt, Trijet_eta, Trijet_phi, Trijet_msoftdrop)')
@@ -201,12 +182,20 @@ class XHYbbWW:
 	if not self.a.isData:
 	    # since H, W close enough in mass, we can treat them the same. 
 	    # Higgs, W will have same pt and mass calibrations
+	    # WARNING --------------------------------------------------------------------------------------------------------------
+	    # IS THIS ACTUALLY TRUE?
+	    # ----------------------------------------------------------------------------------------------------------------------
 	    pt_calibs, mass_calibs = JMEvariationStr('Higgs',variation)
 	    self.a.Define('Trijet_pt_corr','hardware::MultiHadamardProduct(Trijet_pt,{})'.format(pt_calibs))
 	    self.a.Define('Trijet_msoftdrop_corr','hardware::MultiHadamardProduct(Trijet_msoftdrop,{})'.format(mass_calibs))
 	else:
 	    self.a.Define('Trijet_pt_corr','hardware::MultiHadamardProduct(Trijet_pt,{Trijet_JES_nom})')
 	    self.a.Define('Trijet_msoftdrop_corr','hardware::MultiHadamardProduct(Trijet_msoftdrop,{Trijet_JES_nom})')
+	# for trigger studies
+	self.a.Define('pt0','Trijet_pt_corr[0]')
+        self.a.Define('pt1','Trijet_pt_corr[1]')
+        self.a.Define('pt2','Trijet_pt_corr[2]')
+	self.a.Define('HT','pt0+pt1+pt2')
 	return self.a.GetActiveNode()
 
     # for trigger effs
@@ -224,20 +213,20 @@ class XHYbbWW:
             node = self.a.GetActiveNode()
         
         columns = [
-	'FatJet_J*',	# this will collect all the JME variations created during snapshotting and used in selection 
-        'FatJet_eta','FatJet_msoftdrop','FatJet_pt','FatJet_phi',
-        'FatJet_deepTagMD_HbbvsQCD', 'FatJet_deepTagMD_ZHbbvsQCD',
-        'FatJet_deepTagMD_WvsQCD', 'FatJet_deepTag_TvsQCD', 'FatJet_particleNet_HbbvsQCD',
-        'FatJet_particleNet_TvsQCD', 'FatJet_particleNetMD.*', 'FatJet_rawFactor', 'FatJet_tau*',
-        'FatJet_jetId', 'nFatJet', 'FatJet_JES_nom','FatJet_particleNetMD_Xqq',
-	'FatJet_particleNetMD_Xcc', 'FatJet_particleNet_QCD',
-        'FatJet_particleNet_WvsQCD','HLT_PFHT.*', 'HLT_PFJet.*', 'HLT_AK8.*', 'HLT_Mu50',
+	#'FatJet_J*',	# this will collect all the JME variations created during snapshotting and used in selection 
+        'Trijet_eta','Trijet_msoftdrop','Trijet_pt','Trijet_phi',
+        'Trijet_deepTagMD_HbbvsQCD', 'Trijet_deepTagMD_ZHbbvsQCD',
+        'Trijet_deepTagMD_WvsQCD', 'Trijet_deepTag_TvsQCD', 'Trijet_particleNet_HbbvsQCD',
+        'Trijet_particleNet_TvsQCD', 'Trijet_particleNetMD.*', 'Trijet_rawFactor', 'Trijet_tau*',
+        'Trijet_jetId', 'nTrijet', 'Trijet_JES_nom','Trijet_particleNetMD_Xqq',
+	'Trijet_particleNetMD_Xcc', 'Trijet_particleNet_QCD',
+        'Trijet_particleNet_WvsQCD','HLT_PFHT.*', 'HLT_PFJet.*', 'HLT_AK8.*', 'HLT_Mu50',
         'event', 'eventWeight', 'luminosityBlock', 'run',
 	'NPROC', 'NJETS', 'NPT', 'NETA', 'NMSD']
         
         # append to columns list if not Data
         if not self.a.isData:
-            columns.extend(['GenPart_.*', 'nGenPart', 'genWeight', 'GenModel*'])	# since we're moving trijet definition to selection, need genModel for determining multiSampleStr
+            columns.extend(['GenPart_.*', 'nGenPart', 'genWeight', 'GenModel*'])	
 	    columns.extend(['Trijet_JES_up','Trijet_JES_down',
 			    'Trijet_JER_nom','Trijet_JER_up','Trijet_JER_down',
 			    'Trijet_JMS_nom','Trijet_JMS_up','Trijet_JMS_down',
@@ -292,6 +281,84 @@ class XHYbbWW:
         cutgroup.Add('{}_SubleadW_cut'.format(tagger),'SubleadW_{0}_WvsQCD > {1}'.format(tagger, self.cuts[tagger+'_WvsQCD']))
 	return cutgroup
 
+
+
+    # ------------------------------------------------------------- For selection -------------------------------------------------------------------------
+    def ApplyWPick_Signal(self, WTagger, HTagger, pt, WScoreCut, eff0, eff1, eff2, year, WVariation, invert):
+	''' For use in selection - picks the 2 W jets from the 3 candidate jets after performing jet-by-jet updating of W tag status according to SF and pT
+	Args:
+	    WTagger    (str): The name of the original W tag branch in the DF ('Trijet_particleNetMD_WvsQCD')
+	    HTagger    (str): The name of the original H tag branch in the DF ('Trijet_particleNetMD_HbbvsQCD')
+	    pt         (str): The name of the corrected pT branch ('Trijet_pt_corr')
+	    WScoreCut  (str): Value on which to cut on W tag (0.8)
+	    effX     (float): Value of the W tagging efficiencies for the three cand. jets (X=0,1,2)
+	    year       (str): 16, 16APV, 17, 18
+	    WVariation (int): 0: nominal, 1: up, 2: down
+	    invert    (bool): True if CR, False if SR
+	'''
+	objIdxs = 'ObjIdxs_{}{}'.format('Not' if invert else '', WTagger)
+	if objIdxs not in [str(cname) for cname in self.a.DataFrame.GetColumnNames()]:
+	    self.a.Define(objIdxs, 'PickWWithSFs(%s, %s, %s, {0, 1, 2}, %f, %f, %f, %f, "20%s", %i, %s)'%(WTagger, HTagger, pt, WScoreCut, 
+													 eff0, eff1, eff2, year, WVariation, 
+													 'true' if invert else 'false'))
+	    # At this point, we'll have a column named ObjIdxs_(NOT)_particleNetMD_WvsQCD containing the indices of 
+	    # which of the three jets are the Ws and the Higgs (W1_idx, W2_idx, H_idx). Or {-1, -1, -1} if two jets didn't pass W tagging
+	    self.a.Define('w1Idx','{}[0]'.format(objIdxs))
+            self.a.Define('w2Idx','{}[1]'.format(objIdxs))
+            self.a.Define('hIdx', '{}[2]'.format(objIdxs))
+	
+	#DEBUG (next 2 lines)
+	nTot = self.a.DataFrame.Sum("genWeight").GetValue()
+	print('NTot before WPick (signal) = {}'.format(nTot))
+	self.a.Cut('Has2Ws','(w1Idx > -1) && (w2Idx > -1)')		# cut to ensure the event has the two requisite Ws
+        #DEBUG (next 2 lines)
+        nTot = self.a.DataFrame.Sum("genWeight").GetValue()
+        print('NTot after WPick (signal) = {}'.format(nTot))
+	
+	# at this point, rename Trijet -> W1/W2/Higgs based on its index determined above
+	self.a.ObjectFromCollection('W1','Trijet','w1Idx')#,skip=['msoftdrop_corrH'])
+        self.a.ObjectFromCollection('W2','Trijet','w2Idx')#,skip=['msoftdrop_corrH'])
+        self.a.ObjectFromCollection('H','Trijet','hIdx')#,skip=['msoftdrop_corrH'])
+	# in order to avoid column naming duplicates, call these LeadW, SubleadW, Higgs
+	self.a.Define('LeadW_vect','hardware::TLvector(W1_pt_corr, W1_eta, W1_phi, W1_msoftdrop_corr)')
+	self.a.Define('SubleadW_vect','hardware::TLvector(W2_pt_corr, W2_eta, W2_phi, W2_msoftdrop_corr)')
+	self.a.Define('Higgs_vect','hardware::TLvector(H_pt_corr, H_eta, H_phi, H_msoftdrop_corr)')
+	# make X and Y mass
+	self.a.Define('mhww','hardware::InvariantMass({LeadW_vect, SubleadW_vect, Higgs_vect})')
+	self.a.Define('mww','hardware::InvariantMass({LeadW_vect,SubleadW_vect})')
+	return self.a.GetActiveNode()
+
+    def ApplyWPick(self, tagger, invert):
+	'''For use in selection with all non-signal samples
+	Args:
+	    tagger (str): The name of the original W tag branch in the DF ('Trijet_particleNetMD_WvsQCD')
+	    invert (bool): True if CR, False if SR
+	'''
+	objIdxs = 'ObjIdxs_{}{}'.format('Not' if invert else '', tagger)
+	if objIdxs not in [str(cname) for cname in self.a.DataFrame.GetColumnNames()]:
+	    # first option is tagger, second is W score cut threshold (0.8), third is invert boolean
+	    self.a.Define(objIdxs,'PickW(%s, {0, 1, 2}, %s, %s)'%(tagger, 0.8, 'true' if invert else 'false'))
+            self.a.Define('w1Idx','{}[0]'.format(objIdxs))
+            self.a.Define('w2Idx','{}[1]'.format(objIdxs))
+            self.a.Define('hIdx', '{}[2]'.format(objIdxs))
+	self.a.Cut('Has2Ws','w1Idx > -1 && w2Idx > -1')
+        self.a.ObjectFromCollection('W1','Trijet','w1Idx')
+        self.a.ObjectFromCollection('W2','Trijet','w2Idx')
+        self.a.ObjectFromCollection('H','Trijet','hIdx')
+        self.a.Define('LeadW_vect','hardware::TLvector(W1_pt_corr, W1_eta, W1_phi, W1_msoftdrop_corr)')
+        self.a.Define('SubleadW_vect','hardware::TLvector(W2_pt_corr, W2_eta, W2_phi, W2_msoftdrop_corr)')
+        self.a.Define('Higgs_vect','hardware::TLvector(H_pt_corr, H_eta, H_phi, H_msoftdrop_corr)')
+        self.a.Define('mhww','hardware::InvariantMass({LeadW_vect, SubleadW_vect, Higgs_vect})')
+        self.a.Define('mww','hardware::InvariantMass({LeadW_vect,SubleadW_vect})')
+        return self.a.GetActiveNode()
+
+
+
+
+
+
+
+    # ------------------------------------------------------------- DEPRECATED -------------------------------------------------------------------------
     # for comparing mX vs mY
     # DEPRECATED - ONLY FOR USE IN STUDIES
     def MXvsMY(self, tagger, Hbb=[0.8,0.98], W=[0.8]):
@@ -364,7 +431,6 @@ class XHYbbWW:
 	return [region1, region2, region3]
 
 
-    # new functions to be used in selection 
     def ApplyMassCuts(self):
 	# perform Higgs mass window cut, save cutflow info
 	self.a.Cut('mH_{}_cut'.format('window'),'Higgs_msoftdrop > {0} && Higgs_msoftdrop < {1}'.format(*self.cuts['mh']))
@@ -406,34 +472,54 @@ class XHYbbWW:
 	self.AddCutflowColumn(self.nWTag, 'nWTag_{}'.format(SRorCR))
 	return self.a.GetActiveNode()
 
-    def ApplyHiggsTag(self, SRorCR, tagger):
+    def ApplyHiggsTag(self, SRorCR, tagger, signal):
 	'''
 	Fail:	H < 0.8
 	Loose:	0.8 < H < 0.98
 	Pass: 	H > 0.98
+
+	if signal:
+	Fail:   NewTagCats==0
+	Loose:  NewTagCats==1
+	Pass:	NewTagCats==2
 	'''
 	assert(SRorCR=='SR' or SRorCR=='CR')
 	checkpoint = self.a.GetActiveNode()
 	cuts = [0.8, 0.98]
 	FLP = {}
 	# Higgs fail + cutflow info
-	FLP['fail'] = self.a.Cut('HbbTag_fail','Higgs_{0} < {1}'.format(tagger, cuts[0]))
-	self.nHF = self.getNweighted()
-	self.AddCutflowColumn(self.nHF, 'higgsF_{}'.format(SRorCR))
+	FLP['fail'] = self.a.Cut('HbbTag_fail','{0} < {1}'.format(tagger, cuts[0]) if not signal else 'NewTagCats==0')
+	if SRorCR=='SR':
+	    self.nHF_SR = self.getNweighted()
+	    self.AddCutflowColumn(self.nHF_SR, 'higgsF_SR')
+	else:
+	    self.nHF_CR = self.getNweighted()
+	    self.AddCutflowColumn(self.nHF_CR, 'higgsF_CR')
+
 	# Higgs Loose + cutflow
 	self.a.SetActiveNode(checkpoint)
-	FLP['loose'] = self.a.Cut('HbbTag_loose','Higgs_{0} > {1} && Higgs_{0} < {2}'.format(tagger, *cuts))
-	self.nHL = self.getNweighted()
-	self.AddCutflowColumn(self.nHL, 'higgsL_{}'.format(SRorCR))
+	FLP['loose'] = self.a.Cut('HbbTag_loose','{0} > {1} && {0} < {2}'.format(tagger, *cuts) if not signal else 'NewTagCats==1')
+	if SRorCR == 'SR':
+	    self.nHL_SR = self.getNweighted()
+	    self.AddCutflowColumn(self.nHL_SR, 'higgsL_SR')
+	else:
+	    self.nHL_CR = self.getNweighted()
+	    self.AddCutflowColumn(self.nHL_CR, 'higgsL_CR')
+
 	# Higgs Pass + cutflow
 	self.a.SetActiveNode(checkpoint)
-	FLP['pass'] = self.a.Cut('HbbTag_pass','Higgs_{0} > {1}'.format(tagger, cuts[1]))
-	self.nHP = self.getNweighted()
-	self.AddCutflowColumn(self.nHP, 'higgsP_{}'.format(SRorCR))
+	FLP['pass'] = self.a.Cut('HbbTag_pass','{0} > {1}'.format(tagger, cuts[1]) if not signal else 'NewTagCats==2')
+	if SRorCR == 'SR':
+	    self.nHP_SR = self.getNweighted()
+	    self.AddCutflowColumn(self.nHP_SR, 'higgsP_SR')
+	else:
+	    self.nHP_CR = self.getNweighted()
+	    self.AddCutflowColumn(self.nHP_CR, 'higgsP_CR')
+
 	# reset state, return dict
 	self.a.SetActiveNode(checkpoint)
 	return FLP
-	
+    # ------------------------------------------------------------------------------------------------------------------------------------------------
 
 # for use in selection - essentially just creates combinations of all the JME variations
 def JMEvariationStr(p, variation):
@@ -442,7 +528,7 @@ def JMEvariationStr(p, variation):
     pt_calib_vect = '{'
     mass_calib_vect = '{'
     for c in base_calibs:
-	if 'JM' in c and p != 'Top':	# 'Top' will never be in p, but just leave this
+	if 'JM' in c and p != 'Top':	# WARNING - might need to change this if we treat W, H differently for mass and pt calibrations  
 	    mass_calib_vect += '%s,'%('Trijet_'+variation if variationType in c else c)
 	elif 'JE' in c:
 	    pt_calib_vect += '%s,'%('Trijet_'+variation if variationType in c else c)

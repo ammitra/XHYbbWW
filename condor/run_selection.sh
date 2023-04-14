@@ -1,3 +1,4 @@
+#!/bin/bash
 echo "Run script starting"
 source /cvmfs/cms.cern.ch/cmsset_default.sh
 xrdcp root://cmseos.fnal.gov//store/user/ammitra/XHYbbWW.tgz ./
