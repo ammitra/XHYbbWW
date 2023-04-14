@@ -66,7 +66,7 @@ def XHYbbWW_selection(args):
     signal = False
 
     # gather all snapshots
-    selection = XHYbbWW('trijet_nano/{}_{}_snapshot.txt'.format(args.setname,args.era),int(args.era),1,1)
+    selection = XHYbbWW('trijet_nano/{}_{}_snapshot.txt'.format(args.setname,args.era),args.era,1,1)
     selection.OpenForSelection(args.variation)
 
     # apply HT cut due to improved trigger effs
