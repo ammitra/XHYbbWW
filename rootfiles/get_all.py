@@ -26,7 +26,7 @@ def CombineCommonSets(groupname,doStudies=False,modstr='',HT=''):
         raise ValueError('Can only combine QCD or ttbar or W/Z')
     
     for y in ['16','16APV','17','18']:
-        baseStr = 'rootfiles/XHYbbWW%s_{0}{2}_{1}{3}.root'%('studies' if doStudies else 'selection')
+        baseStr = 'rootfiles/XHYbbWW%s_{0}_{2}_{1}{3}.root'%('studies' if doStudies else 'selection')
         if groupname == 'ttbar':
             to_loop = [''] if doStudies else ['','JES','JER','JMS','JMR']
             for v in to_loop:
@@ -86,7 +86,7 @@ if __name__ == '__main__':
 			action='store', default='0',
 			 help='Value of HT to cut on')
     args = parser.parse_args()
-
+    '''
     redirector = 'root://cmseos.fnal.gov/'
     eos_path = '/store/user/ammitra/XHYbbWW/selection/'.format(args.HT)
 
@@ -98,10 +98,10 @@ if __name__ == '__main__':
 	    pass
     	else:
             ExecuteCmd('xrdcp {}{}{} rootfiles/'.format(redirector, eos_path, fName))
-
+    '''
     # now that we have all files, perform housekeeping
     CombineCommonSets('QCD', False, args.HT)
     CombineCommonSets('ttbar', False, args.HT)
-    CombineCommonSets('W', False, args.HT)
-    CombineCommonSets('Z', False, args.HT)
+    #CombineCommonSets('W', False, args.HT)
+    #CombineCommonSets('Z', False, args.HT)
     MakeRun2('Data', False, args.HT)

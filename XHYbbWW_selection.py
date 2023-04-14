@@ -98,7 +98,7 @@ def XHYbbWW_selection(args):
 
     kinOnly = selection.a.MakeWeightCols(extraNominal='' if selection.a.isData else 'genWeight*%s'%selection.GetXsecScale())
 
-    out = ROOT.TFile.Open('rootfiles/XHYbbWWselection_{}_HT{}_{}{}.root'.format(args.setname, args.HT, args.era, '_'+args.variation if args.variation != 'None' else ''), 'RECREATE')
+    out = ROOT.TFile.Open('rootfiles/XHYbbWWselection_HT{}_{}_{}{}.root'.format(args.HT, args.setname, args.era, '_'+args.variation if args.variation != 'None' else ''), 'RECREATE')
     out.cd()
 
     for t in ['particleNet']:
