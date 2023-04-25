@@ -29,9 +29,9 @@ def MakeEfficiency(year, HT=0):
 
     # Baseline - no tagging
     # We want to bin efficiency in ~mX vs ~mY -> mhww vs m_javg
-    hists.Add('preTagDenominator',selection.a.DataFrame.Histo2D(('preTagDenominator','',20,60,260,22,800,3000),'mhww_trig','m_javg'))
+    hists.Add('preTagDenominator',selection.a.DataFrame.Histo2D(('preTagDenominator','',22,800,3000,20,60,260),'mhww_trig','m_javg'))
     selection.ApplyTrigs()
-    hists.Add('preTagNumerator',selection.a.DataFrame.Histo2D(('preTagNumerator','',20,60,260,22,800,3000),'mhww_trig','m_javg'))
+    hists.Add('preTagNumerator',selection.a.DataFrame.Histo2D(('preTagNumerator','',22,800,3000,20,60,260),'mhww_trig','m_javg'))
 
     effs = {
         "Pretag": ROOT.TEfficiency(hists['preTagNumerator'], hists['preTagDenominator'])
@@ -44,8 +44,8 @@ def MakeEfficiency(year, HT=0):
         g = eff.CreateHistogram()
         g.SetName(name+'_hist')
         g.SetTitle(name)
-        g.GetXaxis().SetTitle('m_{j}^{avg} (GeV)')
-        g.GetYaxis().SetTitle('m_{jjj} (GeV)')
+        g.GetXaxis().SetTitle('m_{jjj} (GeV)')
+        g.GetYaxis().SetTitle('m_{j}^{avg} (GeV)')
         g.GetZaxis().SetTitle('Efficiency')
         g.SetMinimum(0.6)
         g.SetMaximum(1.0)
