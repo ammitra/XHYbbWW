@@ -177,7 +177,9 @@ class XHYbbWW:
 	# for trigger effs
 	self.a.Define('Trijet_vect_trig','hardware::TLvector(Trijet_pt, Trijet_eta, Trijet_phi, Trijet_msoftdrop)')
 	self.a.Define('mhww_trig','hardware::InvariantMass(Trijet_vect_trig)')
-	self.a.Define('m_javg','(Trijet_msoftdrop[0]+Trijet_msoftdrop[1]+Trijet_msoftdrop[2])/3')
+	# naively consider the lead + sublead as the two Ws (higher pT), this will form our m_javg for trigger
+	# we want trigger efficiency binned in ~mX vs ~mY -> mhww vs m_javg
+	self.a.Define('m_javg','(Trijet_msoftdrop[0]+Trijet_msoftdrop[1])/2')
 	# JME variations - we only do this for MC
 	if not self.a.isData:
 	    # since H, W close enough in mass, we can treat them the same. 

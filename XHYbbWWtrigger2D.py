@@ -28,9 +28,10 @@ def MakeEfficiency(year, HT=0):
     noTag = selection.a.Cut('pretrig','HLT_Mu50==1')
 
     # Baseline - no tagging
-    hists.Add('preTagDenominator',selection.a.DataFrame.Histo2D(('preTagDenominator','',20,60,260,22,800,3000),'m_javg','mhww_trig'))
+    # We want to bin efficiency in ~mX vs ~mY -> mhww vs m_javg
+    hists.Add('preTagDenominator',selection.a.DataFrame.Histo2D(('preTagDenominator','',20,60,260,22,800,3000),'mhww_trig','m_javg'))
     selection.ApplyTrigs()
-    hists.Add('preTagNumerator',selection.a.DataFrame.Histo2D(('preTagNumerator','',20,60,260,22,800,3000),'m_javg','mhww_trig'))
+    hists.Add('preTagNumerator',selection.a.DataFrame.Histo2D(('preTagNumerator','',20,60,260,22,800,3000),'mhww_trig','m_javg'))
 
     effs = {
         "Pretag": ROOT.TEfficiency(hists['preTagNumerator'], hists['preTagDenominator'])
