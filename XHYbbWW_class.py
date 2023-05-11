@@ -205,7 +205,7 @@ class XHYbbWW:
 	if self.a.isData:
 	    self.a.Cut('trigger',self.a.GetTriggerString(self.trigs[int(self.year) if 'APV' not in self.year else 16]))
 	else:
-	    self.a.AddCorrection(corr, evalArgs={"xval":"m_javg","yval":"mhww_trig"})
+	    self.a.AddCorrection(corr, evalArgs={"xval":"mhww_trig","yval":"m_javg"})
 	return self.a.GetActiveNode()
 
     # for creating snapshots
@@ -316,6 +316,14 @@ class XHYbbWW:
         #DEBUG (next 2 lines)
         nTot = self.a.DataFrame.Sum("genWeight").GetValue()
         print('NTot after WPick (signal) = {}'.format(nTot))
+
+        # Cutflow info
+        if (invert == True):
+            self.nWTag_CR = self.getNweighted()
+            self.AddCutflowColumn(self.nWTag_CR, 'nWTag_CR')
+        else:
+            self.nWTag_SR = self.getNweighted()
+            self.AddCutflowColumn(self.nWTag_SR, 'nWTag_SR')
 	
 	# at this point, rename Trijet -> W1/W2/Higgs based on its index determined above
 	self.a.ObjectFromCollection('W1','Trijet','w1Idx')#,skip=['msoftdrop_corrH'])
@@ -344,6 +352,14 @@ class XHYbbWW:
             self.a.Define('w2Idx','{}[1]'.format(objIdxs))
             self.a.Define('hIdx', '{}[2]'.format(objIdxs))
 	self.a.Cut('Has2Ws','w1Idx > -1 && w2Idx > -1')
+	# Cutflow info
+	if (invert == True):
+	    self.nWTag_CR = self.getNweighted()
+	    self.AddCutflowColumn(self.nWTag_CR, 'nWTag_CR')
+	else:
+	    self.nWTag_SR = self.getNweighted()
+	    self.AddCutflowColumn(self.nWTag_SR, 'nWTag_SR')
+	# make collections
         self.a.ObjectFromCollection('W1','Trijet','w1Idx')
         self.a.ObjectFromCollection('W2','Trijet','w2Idx')
         self.a.ObjectFromCollection('H','Trijet','hIdx')

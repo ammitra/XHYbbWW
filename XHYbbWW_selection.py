@@ -155,11 +155,7 @@ def XHYbbWW_selection(args):
 	    templates = selection.a.MakeTemplateHistos(ROOT.TH2F('MXvMY_%s'%mod_name, 'MXvMY %s with %s'%(mod_title,t),binsX[0],binsX[1],binsX[2],binsY[0],binsY[1],binsY[2]),['mhww','mww'])
 	    templates.Do('Write')
 
-    '''
     cutflowInfo = OrderedDict([
-	#('nHiggsMassCut',selection.nHiggsMassCut),
-	#('nW1MassCut',selection.nW1MassCut),
-	#('nW2MassCut',selection.nW2MassCut),
 	('nWTag_CR',selection.nWTag_CR),
         ('higgsF_CR',selection.higgsF_CR),
         ('higgsL_CR',selection.higgsL_CR),
@@ -178,7 +174,6 @@ def XHYbbWW_selection(args):
 	hCutflow.AddBinContent(nBin, value)
 	nBin += 1
     hCutflow.Write()
-    '''
 
     if not selection.a.isData:
         scale = ROOT.TH1F('scale','xsec*lumi/genEventSumw',1,0,1)

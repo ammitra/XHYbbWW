@@ -101,6 +101,10 @@ python trijet_nano/get_all.py
 ## 5) Making trigger efficiencies
 The trigger efficiency is measured in the SingleMuon dataset separately for the three years, using the `HLT_Mu50` trigger as a reference. It was discovered that, during run 2017B certain substructure- and grooming-based triggers were not available. Therefore, including run 2017B into the total 2017 dataset caused the efficiency of the entire year to drop dramatically. Therefore, the efficiency is measured separately for 2017B, but this run is dropped from the total 2017 dataset when measuring the efficiency for the whole year. Run 2017B accounts for ~12% of the total 2017 JetHT dataset and ~8% of the total SingleMuon dataset, after preselection/snapshotting (see `scripts/check2017fraction.py`). Therefore, we apply the 2017B efficiency to 12% of the 2017MC to account for this difference in efficiency (see the main function in `XHYbbWW_selection.py`).
 
+Run `XHYbbWWtrigger.py` to generate the 1D efficiencies as a function of trijet mass or HT. Based on studies and intuition from B2G-21-002 (see slides 5 and 6 [here](https://indico.cern.ch/event/1046716/contributions/4432638/attachments/2276873/3868137/WWW_0lep_approval_v3.pdf)), it is determined that we must demand HT > 1200 GeV and mj0,mj1,mj2 > 50,40,40 in order to achieve (mostly) >99% efficiency across all three years. 
+
+Run `XHYbbWWtrigger2d.py` to generate the histograms of 2D trigger efficiency as a function of average jet mass and trijet mass. We use average jet mass as proxy for the Higgs mass, since we have performed no tagging at the point when these efficiencies are created. **NOTE:** The `XHYbbWWtrigger2d.py` script will output the ROOT files containing the efficiency histos to the `triggers/` directory. You must copy the ROOT files corresponding to the desired cut on HT to the main analysis directory so that they are included when you run `condor/tar_env.sh` for selection studies. The selection script (`XHYbbWW_selection.py`) relies on the 2D trigger efficiency histos which have the form `HWWtrigger2D_{year}.root`, where `year` can be `16`, `17`, `17B`, or `18`.
+
 The triggers used in this analysis are as follows:
 | Dataset  | Triggers |
 | -------- | -------- |
@@ -182,14 +186,10 @@ To generate the histograms for 2DAlphabet on a given setname and year, run:
 python XHYbbWW_selection.py -s [setname] -y [year] [-v variation]
 ```
 
-Where the variation flag `-v` may be omitted if there is no desired variation to be made. 
-
-Until I figure out how best to offload this to Condor to be done in parallel, if you want to perform the selection with all variations (including none), just run `python perform_selection.py`. This script:
+Where the variation flag `-v` may be omitted if there is no desired variation to be made. This script:
 
 * Performs selection on all data (except DataB1, whose `Events` TTree is broken so it's skipped) and QCD with NO variations. QCD is just used for validation, so there's no need to run any JMS, JMR, JES, JER variations.  
 * Performs selection on all signal and ttbar with all variations (including no variations)
-
-**----------------- WORK IN PROGRESS -----------------**
 
 Since there are many setnames, years, and variations, this is best done in parallel using Condor. To aid in this, the script `condor/selection_args.py` generates a .txt file with all possible setname, year, and variation combinations. Then run 
 
@@ -199,7 +199,6 @@ python CondorHelper.py -r condor/run_selection.sh -a condor/selection_args.txt -
 
 The finished files will reside on the EOS, so use `scripts/get_selection.sh` to recover the selection directory, then just move those files to the `rootfiles/` directory
 
-**----------------- WORK IN PROGRESS -----------------**
 
 There is an additional directory `twoD_fits` which holds the JSON config file and python script for use with 2DAlphabat to perform the background estimation. These files are not for use with this repository, but the background estimation depends on the selection files generated in step 8.  
 
