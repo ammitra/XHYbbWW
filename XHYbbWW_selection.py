@@ -144,26 +144,26 @@ def XHYbbWW_selection(args):
 	    passfailSR = selection.ApplyHiggsTag('SR', tagger='H_'+h_tagger, signal=signal)
 
 
-    binsX = [35,0,3500]	# nbins, low, high
-    binsY = [35,0,3500]
-    for region, rdict in {"SR":passfailSR,"CR":passfailCR}.items():
-	for flp, node in rdict.items():
-            mod_name = "{}_{}_{}".format(t,region,flp)
-            mod_title = "{} {}".format(region,flp)
-            selection.a.SetActiveNode(node)
-	    print('Evaluating {}'.format(mod_title))
-	    templates = selection.a.MakeTemplateHistos(ROOT.TH2F('MXvMY_%s'%mod_name, 'MXvMY %s with %s'%(mod_title,t),binsX[0],binsX[1],binsX[2],binsY[0],binsY[1],binsY[2]),['mhww','mww'])
-	    templates.Do('Write')
+    	binsX = [35,0,3500]	# nbins, low, high
+    	binsY = [35,0,3500]
+    	for region, rdict in {"SR":passfailSR,"CR":passfailCR}.items():
+	    for flp, node in rdict.items():
+            	mod_name = "{}_{}_{}".format(t,region,flp)
+            	mod_title = "{} {}".format(region,flp)
+            	selection.a.SetActiveNode(node)
+	   	print('Evaluating {}'.format(mod_title))
+	    	templates = selection.a.MakeTemplateHistos(ROOT.TH2F('MXvMY_%s'%mod_name, 'MXvMY %s with %s'%(mod_title,t),binsX[0],binsX[1],binsX[2],binsY[0],binsY[1],binsY[2]),['mhww','mww'])
+	    	templates.Do('Write')
 
     cutflowInfo = OrderedDict([
 	('nWTag_CR',selection.nWTag_CR),
-        ('higgsF_CR',selection.higgsF_CR),
-        ('higgsL_CR',selection.higgsL_CR),
-        ('higgsP_CR',selection.higgsP_CR),
+        ('higgsF_CR',selection.nHF_CR),
+        ('higgsL_CR',selection.nHL_CR),
+        ('higgsP_CR',selection.nHP_CR),
         ('nWTag_SR',selection.nWTag_SR),
-        ('higgsF_SR',selection.higgsF_SR),
-        ('higgsL_SR',selection.higgsL_SR),
-        ('higgsP_SR',selection.higgsP_SR)
+        ('higgsF_SR',selection.nHF_SR),
+        ('higgsL_SR',selection.nHL_SR),
+        ('higgsP_SR',selection.nHP_SR)
     ])
 
     nLabels = len(cutflowInfo)
