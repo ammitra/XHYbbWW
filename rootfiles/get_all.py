@@ -26,31 +26,31 @@ def CombineCommonSets(groupname,doStudies=False,modstr='',HT=''):
         raise ValueError('Can only combine QCD or ttbar or W/Z')
     
     for y in ['16','16APV','17','18']:
-        baseStr = 'rootfiles/XHYbbWW%s_{0}_{2}_{1}{3}.root'%('studies' if doStudies else 'selection')
+        baseStr = 'rootfiles/XHYbbWW%s_HT%s_{0}{2}_{1}{3}.root'%('studies' if doStudies else 'selection',HT)
         if groupname == 'ttbar':
             to_loop = [''] if doStudies else ['','JES','JER','JMS','JMR']
             for v in to_loop:
                 if v == '':
                     ExecuteCmd('hadd -f -k %s %s %s'%(
-                        baseStr.format('ttbar',y,'HT'+modstr,''),
-                        baseStr.format('ttbar-allhad',y,'HT'+modstr,''),
-                        baseStr.format('ttbar-semilep',y,'HT'+modstr,''))
+                        baseStr.format('ttbar',y,modstr,''),
+                        baseStr.format('ttbar-allhad',y,modstr,''),
+                        baseStr.format('ttbar-semilep',y,modstr,''))
                     )
                 else:
                     for v2 in ['up','down']:
                         v3 = '_%s_%s'%(v,v2)
                         ExecuteCmd('hadd -f -k %s %s %s'%(
-                            baseStr.format('ttbar',y,'HT'+modstr,v3),
-                            baseStr.format('ttbar-allhad',y,'HT'+modstr,v3),
-                            baseStr.format('ttbar-semilep',y,'HT'+modstr,v3))
+                            baseStr.format('ttbar',y,modstr,v3),
+                            baseStr.format('ttbar-allhad',y,modstr,v3),
+                            baseStr.format('ttbar-semilep',y,modstr,v3))
                         )
         elif groupname == 'QCD':
             ExecuteCmd('hadd -f -k %s %s %s %s %s'%(
                 baseStr.format('QCD',y,modstr,''),
-                baseStr.format('QCDHT700',y,'HT'+modstr,''),
-                baseStr.format('QCDHT1000',y,'HT'+modstr,''),
-                baseStr.format('QCDHT1500',y,'HT'+modstr,''),
-                baseStr.format('QCDHT2000',y,'HT'+modstr,''))
+                baseStr.format('QCDHT700',y,modstr,''),
+                baseStr.format('QCDHT1000',y,modstr,''),
+                baseStr.format('QCDHT1500',y,modstr,''),
+                baseStr.format('QCDHT2000',y,modstr,''))
             )
 
         elif groupname == 'W' or 'Z':
@@ -58,19 +58,19 @@ def CombineCommonSets(groupname,doStudies=False,modstr='',HT=''):
             for v in to_loop:
                 if v == '':
                     ExecuteCmd('hadd -f -k %s %s %s %s'%(
-                        baseStr.format('{}Jets'.format('W' if groupname == 'W' else 'Z'),y,'HT'+modstr,''),
-                        baseStr.format('{}JetsHT400'.format('W' if groupname == 'W' else 'Z'),y,'HT'+modstr,''),
-                        baseStr.format('{}JetsHT600'.format('W' if groupname == 'W' else 'Z'),y,'HT'+modstr,''),
-                        baseStr.format('{}JetsHT800'.format('W' if groupname == 'W' else 'Z'),y,'HT'+modstr,''))
+                        baseStr.format('{}Jets'.format('W' if groupname == 'W' else 'Z'),y,modstr,''),
+                        baseStr.format('{}JetsHT400'.format('W' if groupname == 'W' else 'Z'),y,modstr,''),
+                        baseStr.format('{}JetsHT600'.format('W' if groupname == 'W' else 'Z'),y,modstr,''),
+                        baseStr.format('{}JetsHT800'.format('W' if groupname == 'W' else 'Z'),y,modstr,''))
                     )
                 else:
                     for v2 in ['up','down']:
                         v3 = '_{}_{}'.format(v,v2)
                         ExecuteCmd('hadd -f -k %s %s %s %s'%(
-                            baseStr.format('{}Jets'.format('W' if groupname == 'W' else 'Z'),y,'HT'+modstr,v3),
-                            baseStr.format('{}JetsHT400'.format('W' if groupname == 'W' else 'Z'),y,'HT'+modstr,v3),
-                            baseStr.format('{}JetsHT600'.format('W' if groupname == 'W' else 'Z'),y,'HT'+modstr,v3),
-                            baseStr.format('{}JetsHT800'.format('W' if groupname == 'W' else 'Z'),y,'HT'+modstr,v3))
+                            baseStr.format('{}Jets'.format('W' if groupname == 'W' else 'Z'),y,modstr,v3),
+                            baseStr.format('{}JetsHT400'.format('W' if groupname == 'W' else 'Z'),y,modstr,v3),
+                            baseStr.format('{}JetsHT600'.format('W' if groupname == 'W' else 'Z'),y,modstr,v3),
+                            baseStr.format('{}JetsHT800'.format('W' if groupname == 'W' else 'Z'),y,modstr,v3))
                         )
 
 def MakeRun2(setname,doStudies=False,modstr='',HT=''):
@@ -86,7 +86,7 @@ if __name__ == '__main__':
 			action='store', default='0',
 			 help='Value of HT to cut on')
     args = parser.parse_args()
-    '''
+
     redirector = 'root://cmseos.fnal.gov/'
     eos_path = '/store/user/ammitra/XHYbbWW/selection/'.format(args.HT)
 
@@ -98,10 +98,7 @@ if __name__ == '__main__':
 	    pass
     	else:
             ExecuteCmd('xrdcp {}{}{} rootfiles/'.format(redirector, eos_path, fName))
-    '''
     # now that we have all files, perform housekeeping
-    CombineCommonSets('QCD', False, args.HT)
-    CombineCommonSets('ttbar', False, args.HT)
-    #CombineCommonSets('W', False, args.HT)
-    #CombineCommonSets('Z', False, args.HT)
-    MakeRun2('Data', False, args.HT)
+    CombineCommonSets('QCD', False, HT=args.HT)
+    CombineCommonSets('ttbar', False, HT=args.HT)
+    MakeRun2('Data', False, HT=args.HT)

@@ -36,11 +36,11 @@ def MakeEfficiency(year, HT=0):
     # Baseline - no tagging
     hists.Add('preTagDenominator',selection.a.DataFrame.Histo1D(('preTagDenominator','',22,800,3000),'mhww_trig'))
     hists.Add('HTDenominator',selection.a.DataFrame.Histo1D(('HTDenominator','',22,800,3000),'HT'))
-    hists.Add('preTagDenominator_mjavg',selection.a.DataFrame.Histo1D(('preTagDenominator_mjavg','',22,800,3000),'m_javg'))
+    hists.Add('preTagDenominator_mjavg',selection.a.DataFrame.Histo1D(('preTagDenominator_mjavg','',20,60,260),'m_javg'))
     selection.ApplyTrigs()
     hists.Add('preTagNumerator',selection.a.DataFrame.Histo1D(('preTagNumerator','',22,800,3000),'mhww_trig'))
     hists.Add('HTNumerator',selection.a.DataFrame.Histo1D(('HTNumerator','',22,800,3000),'HT'))
-    hists.Add('preTagNumerator_mjavg',selection.a.DataFrame.Histo1D(('preTagNumerator_mjavg','',22,800,3000),'m_javg'))
+    hists.Add('preTagNumerator_mjavg',selection.a.DataFrame.Histo1D(('preTagNumerator_mjavg','',20,60,260),'m_javg'))
 
     # Make efficieincies
     effs = {
@@ -52,6 +52,7 @@ def MakeEfficiency(year, HT=0):
     out = ROOT.TFile.Open('triggers/HWWtrigger_HT{}_{}.root'.format(HT,year),'RECREATE')
     out.cd()
     for name,eff in effs.items():
+	print('Processing {}'.format(name))
         f = ROOT.TF1("eff_func","-[0]/10*exp([1]*x/1000)+1",800,2600)
         f.SetParameter(0,1)
         f.SetParameter(1,-2)
@@ -138,7 +139,7 @@ if __name__ == '__main__':
     leg2.AddEntry(h17B, 'full 2017', 'pe')
 
     leg2.Draw()
-    c.Print('plots/Trigger_2017Full_vs_2017Later_pretag.pdf')
+    c.Print('plots/Trigger_2017Full_vs_2017Later_pretag_HT{}.pdf'.format(args.HT))
 
     print ('%s sec'%(time.time()-start))
 

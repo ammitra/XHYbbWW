@@ -23,25 +23,17 @@ def XHYbbWW_studies(args):
     selection.OpenForSelection('None')
     selection.a.Define('Trijet_vect','hardware::TLvector(Trijet_pt, Trijet_eta, Trijet_phi, Trijet_msoftdrop)')
     selection.a.Define('mhww','hardware::InvariantMass(Trijet_vect)')
-    selection.a.Define('m_avg','(Trijet_msoftdrop[0]+Trijet_msoftdrop[1]+Trijet_msoftdrop[2])/3')    # is this necessary?
+    selection.a.Define('m_avg','(Trijet_msoftdrop[0]+Trijet_msoftdrop[1])/2')    # is this necessary?
     # make Lorentz vectors for each of the three jets
-    selection.a.Define('H_vect','hardware::TLvector(Trijet_pt[0], Trijet_eta[0], Trijet_phi[0], Trijet_msoftdrop[0])')    # Higgs
-    selection.a.Define('LeadW_vect','hardware::TLvector(Trijet_pt[1], Trijet_eta[1], Trijet_phi[1], Trijet_msoftdrop[1])')   # W1
-    selection.a.Define('SubleadW_vect','hardware::TLvector(Trijet_pt[2], Trijet_eta[2], Trijet_phi[2], Trijet_msoftdrop[2])')   # W2
+    selection.a.Define('H_vect','hardware::TLvector(Trijet_pt[2], Trijet_eta[2], Trijet_phi[2], Trijet_msoftdrop[2])')    # Higgs
+    selection.a.Define('LeadW_vect','hardware::TLvector(Trijet_pt[0], Trijet_eta[0], Trijet_phi[0], Trijet_msoftdrop[0])')   # W1
+    selection.a.Define('SubleadW_vect','hardware::TLvector(Trijet_pt[1], Trijet_eta[1], Trijet_phi[1], Trijet_msoftdrop[1])')   # W2
     selection.a.Define('Ws_vect','LeadW_vect + SubleadW_vect')	# vector sum of two W vectors 
     # resonance masses
     selection.a.Define('Y','hardware::InvariantMass({LeadW_vect + SubleadW_vect})')
     selection.a.Define('X','hardware::InvariantMass({H_vect + LeadW_vect + SubleadW_vect})')
     selection.a.MakeWeightCols(extraNominal='' if selection.a.isData else 'genWeight*{}'.format(selection.GetXsecScale())) # weight
 
-    # tagger definitions
-
-    
-    # kinematic definitions
-    selection.a.Define('pt0','Trijet_pt[0]')	# Higgs pT
-    selection.a.Define('pt1','Trijet_pt[1]')    # Lead W pT
-    selection.a.Define('pt2','Trijet_pt[2]')    # Sublead W pT
-    selection.a.Define('HT','pt0+pt1+pt2')	# scalar sum of all three Jet pTs, aka hadronic activity pT (not so useful tho)
     selection.a.Define('deltaEta','abs(H_vect.Eta() - Ws_vect.Eta())')   # difference b/w H vector and sum of W vecs
     selection.a.Define('deltaPhi','hardware::DeltaPhi(H_vect.Phi(), Ws_vect.Phi())')
     # get final node to branch off of
@@ -49,9 +41,9 @@ def XHYbbWW_studies(args):
     
     # kinematic plots
     kinPlots = HistGroup('kinPlots')
-    kinPlots.Add('pt0',selection.a.DataFrame.Histo1D(('pt0','Higgs jet pt',100,350,2350),'pt0','weight__nominal'))
-    kinPlots.Add('pt1',selection.a.DataFrame.Histo1D(('pt1','Lead W jet pt',100,350,2350),'pt1','weight__nominal'))
-    kinPlots.Add('pt2',selection.a.DataFrame.Histo1D(('pt2','Sublead W jet pt',100,350,2350),'pt2','weight__nominal'))
+    kinPlots.Add('pt0',selection.a.DataFrame.Histo1D(('pt0','Lead W jet pt',100,350,2350),'pt0','weight__nominal'))
+    kinPlots.Add('pt1',selection.a.DataFrame.Histo1D(('pt1','Sublead W jet pt',100,350,2350),'pt1','weight__nominal'))
+    kinPlots.Add('pt2',selection.a.DataFrame.Histo1D(('pt2','Higgs jet pt',100,350,2350),'pt2','weight__nominal'))
     kinPlots.Add('HT',selection.a.DataFrame.Histo1D(('HT','Scalar sum of pt of HWW jets',150,700,3700),'HT','weight__nominal'))
     kinPlots.Add('deltaEta',selection.a.DataFrame.Histo1D(('deltaEta','| #Delta #eta |',48,0,4.8),'deltaEta','weight__nominal'))
     kinPlots.Add('deltaPhi',selection.a.DataFrame.Histo1D(('deltaPhi','| #Delta #phi |',32,1,3.14),'deltaPhi','weight__nominal'))
@@ -60,11 +52,11 @@ def XHYbbWW_studies(args):
     # do N-1 setup, but don't worry about splitting into DAK8 and PN, just use PN
     selection.a.SetActiveNode(kinOnly)   # branch off the kinematic-only node
     # ObjectFromCollection makes a new collection from a derivative collection - specify index
-    # at this point, it's important to note that we're just assuming that the Higgs is the leading jet and the two Ws are subleading. 
-    selection.a.ObjectFromCollection('Higgs','Trijet',0)
-    selection.a.ObjectFromCollection('W1','Trijet',1)
+    # at this point, it's important to note that we're just assuming that the two Ws are the leading jets and the Higgs is the third 
+    selection.a.ObjectFromCollection('Higgs','Trijet',2)
+    selection.a.ObjectFromCollection('W1','Trijet',0)
     # now this will be the node we branch off for the N-1 
-    nminus1Node = selection.a.ObjectFromCollection('W2','Trijet',2)
+    nminus1Node = selection.a.ObjectFromCollection('W2','Trijet',1)
     
     # now we can begin the N-1 process
     out = ROOT.TFile.Open('rootfiles/XHYbbWWstudies_{}_{}{}.root'.format(args.setname,args.era,'_'+args.variation if args.variation != 'None' else ''),'RECREATE')
@@ -131,6 +123,7 @@ def XHYbbWW_studies(args):
     '''
     selection.a.SetActiveNode(kinOnly)   # branch off the kinematic-only node again (from before N-1 process)
     nminus2Node = nminus1Node    # just return to where N-1 node began 
+    print('------------------- N minus 2 ----------------------------')
     taggers = ['particleNet']
     for t in taggers:
 	higgs_tagger = '{}_HbbvsQCD'.format(t)
