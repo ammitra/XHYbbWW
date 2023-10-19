@@ -144,7 +144,8 @@ def XHYbbWW_selection(args):
 	    passfailSR = selection.ApplyHiggsTag('SR', tagger='H_'+h_tagger, signal=signal)
 
 
-    	binsX = [35,0,3500]	# nbins, low, high
+	# mX [240, 4000], mY [60, 2800]
+    	binsX = [45,0,4500]	# nbins, low, high
     	binsY = [35,0,3500]
     	for region, rdict in {"SR":passfailSR,"CR":passfailCR}.items():
 	    for flp, node in rdict.items():

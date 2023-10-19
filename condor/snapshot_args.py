@@ -9,9 +9,10 @@ for f in glob.glob('raw_nano/*.txt'):
     year = filename.split('_')[1]
 
     # now write to file
-    if 'MX' in filename:
-	# signals are generated with a ton of small files, so its ok just to split them up into fewer jobs
-	njobs = 2
+    if 'NMSSM' in filename:
+	# PFNano signals are generated with a ton of small files, so its ok just to split them up into fewer jobs
+	# but official MC are generated w 1 or 2 files, better to just keep it to one job to limit number of condor jobs
+	njobs = nfiles
     else:
         njobs = int(nfiles/2)
     if njobs == 0: 	# this occurs when nfiles = 1

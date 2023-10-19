@@ -20,7 +20,7 @@ for f in glob.glob('raw_nano/*.txt'):
     if 'Data' not in setname and 'QCD' not in setname:
 	out.write('-s {} -y {} -v None --HT {}\n'.format(setname, year, args.HT))
 	systs = ['JES','JER','JMS','JMR']
-	if 'MX' in setname:
+	if 'NMSSM' in setname:
 	    systs.extend(['PNetHbb','PNetWqq'])
 	for syst in systs:
 	    for v in ['up','down']:
