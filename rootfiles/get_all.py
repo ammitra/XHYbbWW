@@ -17,7 +17,7 @@ def GetProcYearFromTxt(filename):
     else:
 	print('ERROR')
 
-def CombineCommonSets(groupname,doStudies=False,modstr='',HT=''):
+def CombineCommonSets(groupname,doStudies=False,modstr='',HT='',remote=False):
     '''Which stitch together either QCD or ttbar (ttbar-allhad+ttbar-semilep)
     @param groupname (str, optional): "QCD" or "ttbar".
     '''
@@ -26,7 +26,10 @@ def CombineCommonSets(groupname,doStudies=False,modstr='',HT=''):
         raise ValueError('Can only combine QCD or ttbar or W/Z')
     
     for y in ['16','16APV','17','18']:
-        baseStr = 'rootfiles/XHYbbWW%s_HT%s_{0}{2}_{1}{3}.root'%('studies' if doStudies else 'selection',HT)
+	if not remote:
+            baseStr = 'rootfiles/XHYbbWW%s_HT%s_{0}{2}_{1}{3}.root'%('studies' if doStudies else 'selection',HT)
+	else:
+	    baseStr = 'root://cmseos.fnal.gov//store/user/ammitra/XHYbbWW/selection/XHYbbWW%s_HT%s_{0}{2}_{1}{3}.root'%('studies' if doStudies else 'selection',HT)
         if groupname == 'ttbar':
             to_loop = [''] if doStudies else ['','JES','JER','JMS','JMR']
             for v in to_loop:
@@ -96,9 +99,14 @@ if __name__ == '__main__':
     for fName in files:
 	if (fName == '') or ('Muon' in fName):
 	    pass
+	if ('NMSSM' in fName) and ('1800-800' not in fName):
+	    pass
     	else:
             ExecuteCmd('xrdcp {}{}{} rootfiles/'.format(redirector, eos_path, fName))
     # now that we have all files, perform housekeeping
     CombineCommonSets('QCD', False, HT=args.HT)
     CombineCommonSets('ttbar', False, HT=args.HT)
     MakeRun2('Data', False, HT=args.HT)
+
+    # combine the ttbar on EOS as well, using the remote flag 
+    CombineCommonSets('ttbar',doStudies=False,HT=args.HT,remote=True)
