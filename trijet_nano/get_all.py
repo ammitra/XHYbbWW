@@ -9,11 +9,11 @@ eos_path = '/store/user/{}/XHYbbWW/snapshots/'.format(os.getenv('USER'))
 print("Running eos {} ls {}".format(redirector, eos_path))
 files = subprocess.check_output('eos {} ls {}'.format(redirector, eos_path), shell=True)
 
-print(files)
+#print(files)
 
 org_files = {}
 for f in files.split('\n'):
-    if (f == '') or ('pileup' in f):
+    if (f == '') or ('snapshot' not in f):
 	# not sure why XHYbbWWpileup.root ends up in snapshots/ dir, but just skip it 
 	continue
 

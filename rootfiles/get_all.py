@@ -93,6 +93,7 @@ if __name__ == '__main__':
     redirector = 'root://cmseos.fnal.gov/'
     eos_path = '/store/user/ammitra/XHYbbWW/selection/'.format(args.HT)
 
+    '''
     rawFiles = subprocess.check_output('eos {} ls {}'.format(redirector,eos_path), shell=True)
     files = rawFiles.split('\n')
 
@@ -107,6 +108,9 @@ if __name__ == '__main__':
     CombineCommonSets('QCD', False, HT=args.HT)
     CombineCommonSets('ttbar', False, HT=args.HT)
     MakeRun2('Data', False, HT=args.HT)
+    '''
 
     # combine the ttbar on EOS as well, using the remote flag 
-    CombineCommonSets('ttbar',doStudies=False,HT=args.HT,remote=True)
+    #CombineCommonSets('ttbar',doStudies=False,HT=args.HT,remote=True)
+    CombineCommonSets('W',doStudies=False,HT=args.HT,remote=True)
+    CombineCommonSets('Z',doStudies=False,HT=args.HT,remote=True)

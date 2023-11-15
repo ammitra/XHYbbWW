@@ -77,7 +77,7 @@ def XHYbbWW_selection(args):
     selection.ApplyTrigs(args.trigEff)
 
     # scale factor application
-    if ('MX' in args.setname):
+    if ('NMSSM' in args.setname):
 	signal = True
 	# determine which scale factors we're varying (nom:0, up:1, down:2)
 	if (args.variation == 'PNetHbb_up'):
@@ -218,7 +218,7 @@ if __name__ == '__main__':
 	args.trigEff = Correction("TriggerEff"+args.era,'TIMBER/Framework/include/EffLoader.h',['triggers/HWWtrigger2D_HT{}_{}.root'.format(args.HT,args.era if 'APV' not in args.era else 16),'Pretag'], corrtype='weight')
 
     CompileCpp('HWWmodules.cc')
-    if ('MX' in args.setname):
+    if ('NMSSM' in args.setname):
 	CompileCpp('ParticleNet_HbbSF.cc')
     XHYbbWW_selection(args)
 
