@@ -58,9 +58,12 @@ class XHYbbWW:
             #'16':['HLT_PFHT800','HLT_PFHT900'],
             #'17':['HLT_PFHT1050','HLT_AK8PFJet500'],
             #'18':['HLT_AK8PFJet400_TrimMass30','HLT_AK8PFHT850_TrimMass50','HLT_PFHT1050']
-	    16:['HLT_PFHT800','HLT_PFHT900'],
-	    17:["HLT_PFHT1050","HLT_AK8PFJet500","HLT_AK8PFHT750_TrimMass50","HLT_AK8PFHT800_TrimMass50","HLT_AK8PFJet400_TrimMass30"],
-	    18:['HLT_AK8PFJet400_TrimMass30','HLT_AK8PFHT850_TrimMass50','HLT_PFHT1050']
+	    #16:['HLT_PFHT800','HLT_PFHT900'],
+	    #17:["HLT_PFHT1050","HLT_AK8PFJet500","HLT_AK8PFHT750_TrimMass50","HLT_AK8PFHT800_TrimMass50","HLT_AK8PFJet400_TrimMass30"],
+	    #18:['HLT_AK8PFJet400_TrimMass30','HLT_AK8PFHT850_TrimMass50','HLT_PFHT1050']
+	    16:['HLT_AK8PFJet360_TrimMass30','HLT_AK8PFJet450','HLT_PFHT800','HLT_PFHT900','HLT_PFJet450','HLT_AK8PFHT700_TrimR0p1PT0p03Mass50'],
+	    17:["HLT_PFHT1050","HLT_AK8PFJet500","HLT_AK8PFHT750_TrimMass50","HLT_AK8PFHT800_TrimMass50","HLT_AK8PFJet400_TrimMass30","HLT_PFJet500","HLT_AK8PFJet380_TrimMass30","HLT_AK8PFJet400_TrimMass30"],
+	    18:['HLT_AK8PFJet400_TrimMass30','HLT_AK8PFHT850_TrimMass50','HLT_PFHT1050','HLT_PFJet500','HLT_AK8PFJet330_TrimMass30_PFAK8BoostedDoubleB_np2','HLT_AK8PFJet400_TrimMass30']
         }
 
         # check if data or sim
@@ -257,10 +260,11 @@ class XHYbbWW:
         
     # xsecs from JSON config file
     def GetXsecScale(self):	
-	lumi = self.config['lumi{}'.format(self.year if 'APV' not in self.year else 16)]
+	lumi = self.config['lumi{}'.format(self.year)]
 	xsec = self.config['XSECS'][self.setname]
 	if self.a.genEventSumw == 0:
 	    raise ValueError('{} {}: genEventSumw is 0'.format(self.setname, self.year))
+        print('Normalizing by lumi*xsec/genEventSumw:\n\t{} * {} / {} = {}'.format(lumi,xsec,self.a.genEventSumw,lumi*xsec/self.a.genEventSumw))
         return lumi*xsec/self.a.genEventSumw
 
     # N-1 group - this returns a dict of nodes, where each node is such that it has all but one of the cuts applied. 

@@ -29,12 +29,14 @@ def MakeEfficiency(year, HT=0):
 
     # Baseline - no tagging
     # We want to bin efficiency in ~mX vs ~mY -> mhww vs m_javg
-    hists.Add('preTagDenominator',selection.a.DataFrame.Histo2D(('preTagDenominator','',22,800,3000,20,60,260),'mhww_trig','m_javg'))
+    hists.Add('preTagDenominator',selection.a.DataFrame.Histo2D(('preTagDenominator','',45,0,4500,35,0,3500),'mhww_trig','m_javg'))
+    hists.Add('preTagDenominatorZoomed',selection.a.DataFrame.Histo2D(('preTagDenominatorZoomed','',22,800,3000,20,60,260),'mhww_trig','m_javg'))
     selection.ApplyTrigs()
-    hists.Add('preTagNumerator',selection.a.DataFrame.Histo2D(('preTagNumerator','',22,800,3000,20,60,260),'mhww_trig','m_javg'))
-
+    hists.Add('preTagNumerator',selection.a.DataFrame.Histo2D(('preTagNumerator','',45,0,4500,35,0,3500),'mhww_trig','m_javg'))
+    hists.Add('preTagNumeratorZoomed',selection.a.DataFrame.Histo2D(('preTagNumeratorZoomed','',22,800,3000,20,60,260),'mhww_trig','m_javg'))
     effs = {
-        "Pretag": ROOT.TEfficiency(hists['preTagNumerator'], hists['preTagDenominator'])
+        "Pretag": ROOT.TEfficiency(hists['preTagNumerator'], hists['preTagDenominator']),
+	"Pretag_zoomed": ROOT.TEfficiency(hists['preTagNumeratorZoomed'], hists['preTagDenominatorZoomed'])
     }
 
     out = ROOT.TFile.Open('triggers/HWWtrigger2D_HT{}_{}.root'.format(HT,year),'RECREATE')
