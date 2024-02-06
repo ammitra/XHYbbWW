@@ -58,12 +58,12 @@ class XHYbbWW:
             #'16':['HLT_PFHT800','HLT_PFHT900'],
             #'17':['HLT_PFHT1050','HLT_AK8PFJet500'],
             #'18':['HLT_AK8PFJet400_TrimMass30','HLT_AK8PFHT850_TrimMass50','HLT_PFHT1050']
-	    #16:['HLT_PFHT800','HLT_PFHT900'],
-	    #17:["HLT_PFHT1050","HLT_AK8PFJet500","HLT_AK8PFHT750_TrimMass50","HLT_AK8PFHT800_TrimMass50","HLT_AK8PFJet400_TrimMass30"],
-	    #18:['HLT_AK8PFJet400_TrimMass30','HLT_AK8PFHT850_TrimMass50','HLT_PFHT1050']
-	    16:['HLT_AK8PFJet360_TrimMass30','HLT_AK8PFJet450','HLT_PFHT800','HLT_PFHT900','HLT_PFJet450','HLT_AK8PFHT700_TrimR0p1PT0p03Mass50'],
-	    17:["HLT_PFHT1050","HLT_AK8PFJet500","HLT_AK8PFHT750_TrimMass50","HLT_AK8PFHT800_TrimMass50","HLT_AK8PFJet400_TrimMass30","HLT_PFJet500","HLT_AK8PFJet380_TrimMass30","HLT_AK8PFJet400_TrimMass30"],
-	    18:['HLT_AK8PFJet400_TrimMass30','HLT_AK8PFHT850_TrimMass50','HLT_PFHT1050','HLT_PFJet500','HLT_AK8PFJet330_TrimMass30_PFAK8BoostedDoubleB_np2','HLT_AK8PFJet400_TrimMass30']
+	    16:['HLT_PFHT800','HLT_PFHT900'],
+	    17:["HLT_PFHT1050","HLT_AK8PFJet500","HLT_AK8PFHT750_TrimMass50","HLT_AK8PFHT800_TrimMass50","HLT_AK8PFJet400_TrimMass30"],
+	    18:['HLT_AK8PFJet400_TrimMass30','HLT_AK8PFHT850_TrimMass50','HLT_PFHT1050']
+	    #16:['HLT_AK8PFJet360_TrimMass30','HLT_AK8PFJet450','HLT_PFHT800','HLT_PFHT900','HLT_PFJet450','HLT_AK8PFHT700_TrimR0p1PT0p03Mass50'],
+	    #17:["HLT_PFHT1050","HLT_AK8PFJet500","HLT_AK8PFHT750_TrimMass50","HLT_AK8PFHT800_TrimMass50","HLT_AK8PFJet400_TrimMass30","HLT_PFJet500","HLT_AK8PFJet380_TrimMass30","HLT_AK8PFJet400_TrimMass30"],
+	    #18:['HLT_AK8PFJet400_TrimMass30','HLT_AK8PFHT850_TrimMass50','HLT_PFHT1050','HLT_PFJet500','HLT_AK8PFJet330_TrimMass30_PFAK8BoostedDoubleB_np2','HLT_AK8PFJet400_TrimMass30']
         }
 
         # check if data or sim
@@ -120,7 +120,8 @@ class XHYbbWW:
 	self.NETA = self.getNweighted()
 	self.AddCutflowColumn(self.NETA, "NETA")
 
-        self.a.Cut('msoftdrop_cut','FatJet_msoftdrop[0] > 50 && FatJet_msoftdrop[1] > 40 && FatJet_msoftdrop[2] > 40') # should always use softdrop mass
+        #self.a.Cut('msoftdrop_cut','FatJet_msoftdrop[0] > 50 && FatJet_msoftdrop[1] > 40 && FatJet_msoftdrop[2] > 40') # should always use softdrop mass
+	self.a.Cut('regressedmass_cut','FatJet_particleNet_mass[0] > 50 && FatJet_particleNet_mass[1] > 40 && FatJet_particleNet_mass[2] > 40')
 	self.NMSD = self.getNweighted()
 	self.AddCutflowColumn(self.NMSD, "NMSD")
 
@@ -130,9 +131,14 @@ class XHYbbWW:
 	self.a.SubCollection('Trijet','FatJet','TrijetIdxs',useTake=True)
 
 	# now just look at the three jets selected and look at deltaR (angular difference) between each
+	'''
 	self.a.Define('jet0','ROOT::Math::PtEtaPhiMVector(Trijet_pt[0],Trijet_eta[0],Trijet_phi[0],Trijet_msoftdrop[0])')
         self.a.Define('jet1','ROOT::Math::PtEtaPhiMVector(Trijet_pt[1],Trijet_eta[1],Trijet_phi[1],Trijet_msoftdrop[1])')
         self.a.Define('jet2','ROOT::Math::PtEtaPhiMVector(Trijet_pt[2],Trijet_eta[2],Trijet_phi[2],Trijet_msoftdrop[2])')
+	'''
+        self.a.Define('jet0','ROOT::Math::PtEtaPhiMVector(Trijet_pt[0],Trijet_eta[0],Trijet_phi[0],Trijet_particleNet_mass[0])')
+        self.a.Define('jet1','ROOT::Math::PtEtaPhiMVector(Trijet_pt[1],Trijet_eta[1],Trijet_phi[1],Trijet_particleNet_mass[1])')
+        self.a.Define('jet2','ROOT::Math::PtEtaPhiMVector(Trijet_pt[2],Trijet_eta[2],Trijet_phi[2],Trijet_particleNet_mass[2])')
 	self.a.Define('dR01','hardware::DeltaR(jet0,jet1)')
 	self.a.Define('dR02','hardware::DeltaR(jet0,jet2)')
 	self.a.Define('dR12','hardware::DeltaR(jet1,jet2)')
@@ -186,24 +192,25 @@ class XHYbbWW:
 	self.a.Define('Trijet_particleNetMD_HbbvsQCD','Trijet_particleNetMD_Xbb/(Trijet_particleNetMD_Xbb+Trijet_particleNetMD_QCD)')
 	self.ApplyStandardCorrections(snapshot=False)
 	# for trigger effs
-	self.a.Define('Trijet_vect_trig','hardware::TLvector(Trijet_pt, Trijet_eta, Trijet_phi, Trijet_msoftdrop)')
+	self.a.Define('Trijet_vect_trig_softdrop','hardware::TLvector(Trijet_pt, Trijet_eta, Trijet_phi, Trijet_msoftdrop)')
+	self.a.Define('Trijet_vect_trig','hardware::TLvector(Trijet_pt, Trijet_eta, Trijet_phi, Trijet_particleNet_mass)')
 	self.a.Define('mhww_trig','hardware::InvariantMass(Trijet_vect_trig)')
 	# naively consider the lead + sublead as the two Ws (higher pT), this will form our m_javg for trigger
 	# we want trigger efficiency binned in ~mX vs ~mY -> mhww vs m_javg
-	self.a.Define('m_javg','(Trijet_msoftdrop[0]+Trijet_msoftdrop[1])/2')
+	self.a.Define('m_javg_softdrop','(Trijet_msoftdrop[0]+Trijet_msoftdrop[1])/2')
+	self.a.Define('m_javg','(Trijet_particleNet_mass[0]+Trijet_particleNet_mass[1])/2')
 	# JME variations - we only do this for MC
 	if not self.a.isData:
 	    # since H, W close enough in mass, we can treat them the same. 
 	    # Higgs, W will have same pt and mass calibrations
-	    # WARNING --------------------------------------------------------------------------------------------------------------
-	    # IS THIS ACTUALLY TRUE?
-	    # ----------------------------------------------------------------------------------------------------------------------
 	    pt_calibs, mass_calibs = JMEvariationStr('Higgs',variation)
 	    self.a.Define('Trijet_pt_corr','hardware::MultiHadamardProduct(Trijet_pt,{})'.format(pt_calibs))
 	    self.a.Define('Trijet_msoftdrop_corr','hardware::MultiHadamardProduct(Trijet_msoftdrop,{})'.format(mass_calibs))
+	    self.a.Define('Trijet_mregressed_corr','hardware::MultiHadamardProduct(Trijet_particleNet_mass,{})'.format(mass_calibs))
 	else:
 	    self.a.Define('Trijet_pt_corr','hardware::MultiHadamardProduct(Trijet_pt,{Trijet_JES_nom})')
 	    self.a.Define('Trijet_msoftdrop_corr','hardware::MultiHadamardProduct(Trijet_msoftdrop,{Trijet_JES_nom})')
+	    self.a.Define('Trijet_mregressed_corr','hardware::MultiHadamardProduct(Trijet_particleNet_mass,{Trijet_JES_nom})')
 	# for trigger studies
 	self.a.Define('pt0','Trijet_pt_corr[0]')
         self.a.Define('pt1','Trijet_pt_corr[1]')
@@ -212,8 +219,8 @@ class XHYbbWW:
 	return self.a.GetActiveNode()
 
     # for trigger effs
-    def ApplyTrigs(self, corr=None):
-	if self.a.isData:
+    def ApplyTrigs(self, corr=None, applyToMC=False):
+	if (self.a.isData) or (applyToMC):
 	    self.a.Cut('trigger',self.a.GetTriggerString(self.trigs[int(self.year) if 'APV' not in self.year else 16]))
 	else:
 	    self.a.AddCorrection(corr, evalArgs={"xval":"mhww_trig","yval":"m_javg"})
@@ -227,7 +234,7 @@ class XHYbbWW:
         
         columns = [
 	#'FatJet_J*',	# this will collect all the JME variations created during snapshotting and used in selection 
-        'Trijet_eta','Trijet_msoftdrop','Trijet_pt','Trijet_phi',
+        'Trijet_eta','Trijet_msoftdrop','Trijet_pt','Trijet_phi','Trijet_particleNet_mass',
         'Trijet_deepTagMD_HbbvsQCD', 'Trijet_deepTagMD_ZHbbvsQCD',
         'Trijet_deepTagMD_WvsQCD', 'Trijet_deepTag_TvsQCD', 'Trijet_particleNet_HbbvsQCD',
         'Trijet_particleNet_TvsQCD', 'Trijet_particleNetMD.*', 'Trijet_rawFactor', 'Trijet_tau*',
@@ -343,9 +350,14 @@ class XHYbbWW:
         self.a.ObjectFromCollection('W2','Trijet','w2Idx')#,skip=['msoftdrop_corrH'])
         self.a.ObjectFromCollection('H','Trijet','hIdx')#,skip=['msoftdrop_corrH'])
 	# in order to avoid column naming duplicates, call these LeadW, SubleadW, Higgs
+	'''
 	self.a.Define('LeadW_vect','hardware::TLvector(W1_pt_corr, W1_eta, W1_phi, W1_msoftdrop_corr)')
 	self.a.Define('SubleadW_vect','hardware::TLvector(W2_pt_corr, W2_eta, W2_phi, W2_msoftdrop_corr)')
 	self.a.Define('Higgs_vect','hardware::TLvector(H_pt_corr, H_eta, H_phi, H_msoftdrop_corr)')
+	'''
+        self.a.Define('LeadW_vect','hardware::TLvector(W1_pt_corr, W1_eta, W1_phi, W1_mregressed_corr)')
+        self.a.Define('SubleadW_vect','hardware::TLvector(W2_pt_corr, W2_eta, W2_phi, W2_mregressed_corr)')
+        self.a.Define('Higgs_vect','hardware::TLvector(H_pt_corr, H_eta, H_phi, H_mregressed_corr)')
 	# make X and Y mass
 	self.a.Define('mhww','hardware::InvariantMass({LeadW_vect, SubleadW_vect, Higgs_vect})')
 	self.a.Define('mww','hardware::InvariantMass({LeadW_vect,SubleadW_vect})')
@@ -376,9 +388,14 @@ class XHYbbWW:
         self.a.ObjectFromCollection('W1','Trijet','w1Idx')
         self.a.ObjectFromCollection('W2','Trijet','w2Idx')
         self.a.ObjectFromCollection('H','Trijet','hIdx')
+	'''
         self.a.Define('LeadW_vect','hardware::TLvector(W1_pt_corr, W1_eta, W1_phi, W1_msoftdrop_corr)')
         self.a.Define('SubleadW_vect','hardware::TLvector(W2_pt_corr, W2_eta, W2_phi, W2_msoftdrop_corr)')
         self.a.Define('Higgs_vect','hardware::TLvector(H_pt_corr, H_eta, H_phi, H_msoftdrop_corr)')
+	'''
+        self.a.Define('LeadW_vect','hardware::TLvector(W1_pt_corr, W1_eta, W1_phi, W1_mregressed_corr)')
+        self.a.Define('SubleadW_vect','hardware::TLvector(W2_pt_corr, W2_eta, W2_phi, W2_mregressed_corr)')
+        self.a.Define('Higgs_vect','hardware::TLvector(H_pt_corr, H_eta, H_phi, H_mregressed_corr)')
         self.a.Define('mhww','hardware::InvariantMass({LeadW_vect, SubleadW_vect, Higgs_vect})')
         self.a.Define('mww','hardware::InvariantMass({LeadW_vect,SubleadW_vect})')
         return self.a.GetActiveNode()
