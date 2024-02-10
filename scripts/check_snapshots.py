@@ -61,7 +61,15 @@ def make_rerun_args(jobs_to_rerun):
 	for line in jobs_to_rerun:
 	    f.write('%s\n'%line)
 
+def get_null_jobs(procname, arg_list):
+    '''if no jobs found on EOS, get the jobs from the snapshot arg.txt file and append'''
+    name = procname.split('_')[0]
+    year = procname.split('_')[-1]
+    return [i for i in arg_list if '-s {} -y {} '.format(name,year) in i]
+
 if __name__ == "__main__":
+    snapshot_args_txt = open('condor/snapshot_args.txt','r').readlines()
+    snapshot_args_txt = [i.strip() for i in snapshot_args_txt]
     procs_raw = get_raw_processes()	# all processes in raw_nano/
     snaps_eos = get_eos_snapshots()	# all processes on EOS snapshot dir
     jobs_to_rerun = []
@@ -73,6 +81,9 @@ if __name__ == "__main__":
 	if procs_found == 0:
             print('-------------------------------- %s --------------------------------'%proc_raw)
 	    print('WARNING: No snapshots found on EOS for process %s\n'%proc_raw)
+	    out_args = get_null_jobs(proc_raw, snapshot_args_txt)
+	    for arg in out_args:
+		jobs_to_rerun.append(arg)
 	if procs_found == proc_tot:
 	    continue
 	else:

@@ -18,16 +18,19 @@ if __name__ == "__main__":
                         help='Year of set (16, 17, 18).')
     args = parser.parse_args()
 
-    # setname: 
-    #	DataX		MX_XMASS_MY_YMASS
     fullname = '%s_%s'%(args.setname,args.era)
-    out = ROOT.TFile.Open('XHYbbWWpileup_{}.root'.format(fullname), 'RECREATE')
-
+    print('Analyzing {}'.format(fullname))
+    print('Searching for file: \n\t{}'.format('raw_nano/%s.txt'%(fullname)))
+    #out = ROOT.TFile.Open('XHYbbWWpileup_{}.root'.format(fullname), 'RECREATE')
+    outname = 'XHYbbWWpileup_{}.root'.format(fullname)
     a = analyzer('raw_nano/%s.txt'%(fullname))
+    MakePU(a, args.era, ULflag=True, filename=outname, setname=fullname)
 
+    '''
     # get pointer to histogram
     #hptr = MakePU(a, '20%sUL'%args.era, fullname+'.root')
-    hptr = MakePU(a, args.era, ULflag=True, filename=fullname+'.root')	# update to latest TIMBER version
+    hptr = MakePU(a, args.era, ULflag=True, filename='') # don't save to root file, just get TH1
     hout = hptr.Clone()
     out.WriteTObject(hout, fullname)
     out.Close()
+    '''

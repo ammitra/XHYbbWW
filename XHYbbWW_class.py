@@ -350,14 +350,9 @@ class XHYbbWW:
         self.a.ObjectFromCollection('W2','Trijet','w2Idx')#,skip=['msoftdrop_corrH'])
         self.a.ObjectFromCollection('H','Trijet','hIdx')#,skip=['msoftdrop_corrH'])
 	# in order to avoid column naming duplicates, call these LeadW, SubleadW, Higgs
-	'''
 	self.a.Define('LeadW_vect','hardware::TLvector(W1_pt_corr, W1_eta, W1_phi, W1_msoftdrop_corr)')
 	self.a.Define('SubleadW_vect','hardware::TLvector(W2_pt_corr, W2_eta, W2_phi, W2_msoftdrop_corr)')
 	self.a.Define('Higgs_vect','hardware::TLvector(H_pt_corr, H_eta, H_phi, H_msoftdrop_corr)')
-	'''
-        self.a.Define('LeadW_vect','hardware::TLvector(W1_pt_corr, W1_eta, W1_phi, W1_msoftdrop_corr)')
-        self.a.Define('SubleadW_vect','hardware::TLvector(W2_pt_corr, W2_eta, W2_phi, W2_msoftdrop_corr)')
-        self.a.Define('Higgs_vect','hardware::TLvector(H_pt_corr, H_eta, H_phi, H_mregressed_corr)') # only used regressed mass on Higgs jet
 	# make X and Y mass
 	self.a.Define('mhww','hardware::InvariantMass({LeadW_vect, SubleadW_vect, Higgs_vect})')
 	self.a.Define('mww','hardware::InvariantMass({LeadW_vect,SubleadW_vect})')
@@ -532,10 +527,12 @@ class XHYbbWW:
 	Pass:	NewTagCats==2
 	'''
 	assert(SRorCR=='SR' or SRorCR=='CR')
+	print('ApplyHiggsTag(): Using H tagger {}'.format(tagger))
 	checkpoint = self.a.GetActiveNode()
 	cuts = [0.8, 0.98]
 	FLP = {}
-	# Higgs fail + cutflow info
+	# Higgs fail + cutflow info 
+	# FAIL NO LONGER USED IN ANALYSIS, BUT KEEP IT ANYWAY
 	FLP['fail'] = self.a.Cut('HbbTag_fail','{0} < {1}'.format(tagger, cuts[0]) if not signal else 'NewTagCats==0')
 	if SRorCR=='SR':
 	    self.nHF_SR = self.getNweighted()
@@ -563,6 +560,38 @@ class XHYbbWW:
 	else:
 	    self.nHP_CR = self.getNweighted()
 	    self.AddCutflowColumn(self.nHP_CR, 'higgsP_CR')
+
+	# ---------- Now do the same but with a regressed mass cut on the H jet ---------------------------
+	mreg = 'H_mregressed_corr'
+	mreg_cut_SR = '{0} >= 110 && {0} < 145'.format(mreg)
+	mreg_cut_CR = '(({0} >= 92.5 && {0} < 110) || ({0} >= 145 && {0} < 162))'.format(mreg)
+	#mreg_cut_CR = '{0} >= 92.5 && {0} < 110 || {0} >= 145 && {0} < 162'.format(mreg)
+
+        # Higgs Loose + mreg cut + cutflow
+        self.a.SetActiveNode(checkpoint)
+	loose_cut_mreg = '{0} > {1} && {0} < {2}'.format(tagger, *cuts) if not signal else 'NewTagCats==1'
+        self.a.Cut('HbbTag_loose_temp', loose_cut_mreg)
+        print('number after temp cut: {}'.format(self.getNweighted()))
+        FLP['loose_mreg_cut'] = self.a.Cut('HbbTag_loose_mreg', mreg_cut_SR if SRorCR == 'SR' else mreg_cut_CR)
+        if SRorCR == 'SR':
+            self.nHL_SR_mreg = self.getNweighted()
+            self.AddCutflowColumn(self.nHL_SR_mreg, 'higgsL_SR_mreg')
+        else:
+            self.nHL_CR_mreg = self.getNweighted()
+            self.AddCutflowColumn(self.nHL_CR_mreg, 'higgsL_CR_mreg')
+
+        # Higgs Pass + mreg cut + cutflow
+        self.a.SetActiveNode(checkpoint)
+	pass_cut_mreg = '{0} > {1}'.format(tagger, cuts[1]) if not signal else 'NewTagCats==2'
+        self.a.Cut('HbbTag_pass_temp', pass_cut_mreg)
+	print('number after temp cut: {}'.format(self.getNweighted()))
+        FLP['pass_mreg_cut'] = self.a.Cut('HbbTag_pass_mreg', mreg_cut_SR if SRorCR == 'SR' else mreg_cut_CR)
+        if SRorCR == 'SR':
+            self.nHP_SR_mreg = self.getNweighted()
+            self.AddCutflowColumn(self.nHP_SR, 'higgsP_SR_mreg')
+        else:
+            self.nHP_CR_mreg = self.getNweighted()
+            self.AddCutflowColumn(self.nHP_CR, 'higgsP_CR_mreg')
 
 	# reset state, return dict
 	self.a.SetActiveNode(checkpoint)

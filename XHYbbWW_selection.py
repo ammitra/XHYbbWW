@@ -118,7 +118,7 @@ def XHYbbWW_selection(args):
 	    eff_L_CR, eff_T_CR = getHbbEfficiencies(analyzer=selection.a, tagger=h_tagger, SRorCR='CR', wp_loose=0.8, wp_tight=0.98)
 	    applyHbbScaleFactors(analyzer=selection.a, tagger='H_'+h_tagger, variation=HVar, SRorCR='CR', eff_loose=eff_L_CR, 
 				 eff_tight=eff_T_CR, wp_loose=0.8, wp_tight=0.98)
-	    passfailCR = selection.ApplyHiggsTag('CR', tagger=h_tagger, signal=signal)
+	    passfailCR = selection.ApplyHiggsTag('CR', tagger='H_'+h_tagger, signal=signal)
 	    # SIGNAL REGION 
             print("SIGNAL REGION --------------------------------------------------------------------------------------------------------")
             selection.a.SetActiveNode(kinOnly)
@@ -130,7 +130,7 @@ def XHYbbWW_selection(args):
 	    eff_L_SR, eff_T_SR = getHbbEfficiencies(analyzer=selection.a, tagger=h_tagger, SRorCR='SR', wp_loose=0.8, wp_tight=0.98)
             applyHbbScaleFactors(analyzer=selection.a, tagger='H_'+h_tagger, variation=HVar, SRorCR='SR', eff_loose=eff_L_SR,
                                  eff_tight=eff_T_SR, wp_loose=0.8, wp_tight=0.98)
-            passfailSR = selection.ApplyHiggsTag('SR', tagger=h_tagger, signal=signal)
+            passfailSR = selection.ApplyHiggsTag('SR', tagger='H_'+h_tagger, signal=signal)
 
 	# Everything else
 	else:
@@ -161,10 +161,14 @@ def XHYbbWW_selection(args):
         ('higgsF_CR',selection.nHF_CR),
         ('higgsL_CR',selection.nHL_CR),
         ('higgsP_CR',selection.nHP_CR),
+	('higgsL_CR_mreg',selection.nHL_CR_mreg),
+        ('higgsP_CR_mreg',selection.nHP_CR_mreg),
         ('nWTag_SR',selection.nWTag_SR),
         ('higgsF_SR',selection.nHF_SR),
         ('higgsL_SR',selection.nHL_SR),
-        ('higgsP_SR',selection.nHP_SR)
+        ('higgsP_SR',selection.nHP_SR),
+        ('higgsL_SR_mreg',selection.nHL_SR_mreg),
+        ('higgsP_SR_mreg',selection.nHP_SR_mreg)
     ])
 
     nLabels = len(cutflowInfo)
