@@ -120,10 +120,13 @@ class XHYbbWW:
 	self.NETA = self.getNweighted()
 	self.AddCutflowColumn(self.NETA, "NETA")
 
+	''' 
+	Wait to perform the mass cut until we have selected which mass method to use (softdrop vs regressed)
+	'''
         #self.a.Cut('msoftdrop_cut','FatJet_msoftdrop[0] > 50 && FatJet_msoftdrop[1] > 40 && FatJet_msoftdrop[2] > 40') # should always use softdrop mass
-	self.a.Cut('regressedmass_cut','FatJet_particleNet_mass[0] > 50 && FatJet_particleNet_mass[1] > 40 && FatJet_particleNet_mass[2] > 40')
-	self.NMSD = self.getNweighted()
-	self.AddCutflowColumn(self.NMSD, "NMSD")
+	#self.a.Cut('regressedmass_cut','FatJet_particleNet_mass[0] > 50 && FatJet_particleNet_mass[1] > 40 && FatJet_particleNet_mass[2] > 40')
+	#self.NMSD = self.getNweighted()
+	#self.AddCutflowColumn(self.NMSD, "NMSD")
 
         self.a.Define('TrijetIdxs','ROOT::VecOps::RVec({0,1,2})')   # create a vector of the three jets - assume Higgs & Ws will be 3 leading jets
 	# now we make a subcollection, which maps all branches with "FatJet" to a new subcollection named "Trijet", in this case
@@ -131,18 +134,18 @@ class XHYbbWW:
 	self.a.SubCollection('Trijet','FatJet','TrijetIdxs',useTake=True)
 
 	# now just look at the three jets selected and look at deltaR (angular difference) between each
-	'''
 	self.a.Define('jet0','ROOT::Math::PtEtaPhiMVector(Trijet_pt[0],Trijet_eta[0],Trijet_phi[0],Trijet_msoftdrop[0])')
         self.a.Define('jet1','ROOT::Math::PtEtaPhiMVector(Trijet_pt[1],Trijet_eta[1],Trijet_phi[1],Trijet_msoftdrop[1])')
         self.a.Define('jet2','ROOT::Math::PtEtaPhiMVector(Trijet_pt[2],Trijet_eta[2],Trijet_phi[2],Trijet_msoftdrop[2])')
-	'''
-        self.a.Define('jet0','ROOT::Math::PtEtaPhiMVector(Trijet_pt[0],Trijet_eta[0],Trijet_phi[0],Trijet_particleNet_mass[0])')
-        self.a.Define('jet1','ROOT::Math::PtEtaPhiMVector(Trijet_pt[1],Trijet_eta[1],Trijet_phi[1],Trijet_particleNet_mass[1])')
-        self.a.Define('jet2','ROOT::Math::PtEtaPhiMVector(Trijet_pt[2],Trijet_eta[2],Trijet_phi[2],Trijet_particleNet_mass[2])')
+        self.a.Define('jet0_mreg','ROOT::Math::PtEtaPhiMVector(Trijet_pt[0],Trijet_eta[0],Trijet_phi[0],Trijet_particleNet_mass[0])')
+        self.a.Define('jet1_mreg','ROOT::Math::PtEtaPhiMVector(Trijet_pt[1],Trijet_eta[1],Trijet_phi[1],Trijet_particleNet_mass[1])')
+        self.a.Define('jet2_mreg','ROOT::Math::PtEtaPhiMVector(Trijet_pt[2],Trijet_eta[2],Trijet_phi[2],Trijet_particleNet_mass[2])')
 	self.a.Define('dR01','hardware::DeltaR(jet0,jet1)')
 	self.a.Define('dR02','hardware::DeltaR(jet0,jet2)')
 	self.a.Define('dR12','hardware::DeltaR(jet1,jet2)')
-	
+        self.a.Define('dR01_mreg','hardware::DeltaR(jet0_mreg,jet1_mreg)')
+        self.a.Define('dR02_mreg','hardware::DeltaR(jet0_mreg,jet2_mreg)')
+        self.a.Define('dR12_mreg','hardware::DeltaR(jet1_mreg,jet2_mreg)')
 	return self.a.GetActiveNode()
 
     # corrections - used in both snapshots and selection
@@ -165,7 +168,9 @@ class XHYbbWW:
 		elif self.year == '18':
 		    self.a.AddCorrection(Correction('HEM_drop','TIMBER/Framework/include/HEM_drop.h',[self.setname],corrtype='corr'))
 
+	    # AutoJME rewritten to automatically do softdrop and regressed mass
 	    self.a = AutoJME.AutoJME(self.a, 'Trijet', '20{}'.format(self.year), self.setname if 'Muon' not in self.setname else self.setname[10:])
+
 	    self.a.MakeWeightCols(extraNominal='genWeight' if not self.a.isData else '')
 
 	# now for selection
@@ -192,21 +197,22 @@ class XHYbbWW:
 	self.a.Define('Trijet_particleNetMD_HbbvsQCD','Trijet_particleNetMD_Xbb/(Trijet_particleNetMD_Xbb+Trijet_particleNetMD_QCD)')
 	self.ApplyStandardCorrections(snapshot=False)
 	# for trigger effs
-	self.a.Define('Trijet_vect_trig_softdrop','hardware::TLvector(Trijet_pt, Trijet_eta, Trijet_phi, Trijet_msoftdrop)')
-	self.a.Define('Trijet_vect_trig','hardware::TLvector(Trijet_pt, Trijet_eta, Trijet_phi, Trijet_particleNet_mass)')
-	self.a.Define('mhww_trig','hardware::InvariantMass(Trijet_vect_trig)')
+	self.a.Define('Trijet_vect_msoftdrop','hardware::TLvector(Trijet_pt, Trijet_eta, Trijet_phi, Trijet_msoftdrop)')
+	self.a.Define('Trijet_vect_mregressed','hardware::TLvector(Trijet_pt, Trijet_eta, Trijet_phi, Trijet_particleNet_mass)')
+	self.a.Define('mhww_msoftdrop','hardware::InvariantMass(Trijet_vect_msoftdrop)')
+	self.a.Define('mhww_mregressed','hardware::InvariantMass(Trijet_vect_mregressed)')
 	# naively consider the lead + sublead as the two Ws (higher pT), this will form our m_javg for trigger
 	# we want trigger efficiency binned in ~mX vs ~mY -> mhww vs m_javg
 	self.a.Define('m_javg_softdrop','(Trijet_msoftdrop[0]+Trijet_msoftdrop[1])/2')
-	self.a.Define('m_javg','(Trijet_particleNet_mass[0]+Trijet_particleNet_mass[1])/2')
+	self.a.Define('m_javg_regressed','(Trijet_particleNet_mass[0]+Trijet_particleNet_mass[1])/2')
 	# JME variations - we only do this for MC
 	if not self.a.isData:
 	    # since H, W close enough in mass, we can treat them the same. 
 	    # Higgs, W will have same pt and mass calibrations
-	    pt_calibs, mass_calibs = JMEvariationStr('Higgs',variation)
+	    pt_calibs, softdrop_mass_calibs, regressed_mass_calibs = JMEvariationStr('Higgs',variation)
 	    self.a.Define('Trijet_pt_corr','hardware::MultiHadamardProduct(Trijet_pt,{})'.format(pt_calibs))
-	    self.a.Define('Trijet_msoftdrop_corr','hardware::MultiHadamardProduct(Trijet_msoftdrop,{})'.format(mass_calibs))
-	    self.a.Define('Trijet_mregressed_corr','hardware::MultiHadamardProduct(Trijet_particleNet_mass,{})'.format(mass_calibs))
+	    self.a.Define('Trijet_msoftdrop_corr','hardware::MultiHadamardProduct(Trijet_msoftdrop,{})'.format(softdrop_mass_calibs))
+	    self.a.Define('Trijet_mregressed_corr','hardware::MultiHadamardProduct(Trijet_particleNet_mass,{})'.format(regressed_mass_calibs))
 	else:
 	    self.a.Define('Trijet_pt_corr','hardware::MultiHadamardProduct(Trijet_pt,{Trijet_JES_nom})')
 	    self.a.Define('Trijet_msoftdrop_corr','hardware::MultiHadamardProduct(Trijet_msoftdrop,{Trijet_JES_nom})')
@@ -223,7 +229,7 @@ class XHYbbWW:
 	if (self.a.isData) or (applyToMC):
 	    self.a.Cut('trigger',self.a.GetTriggerString(self.trigs[int(self.year) if 'APV' not in self.year else 16]))
 	else:
-	    self.a.AddCorrection(corr, evalArgs={"xval":"mhww_trig","yval":"m_javg"})
+	    self.a.AddCorrection(corr, evalArgs={"xval":"mhww_msoftdrop","yval":"m_javg_softdrop"})
 	return self.a.GetActiveNode()
 
     # for creating snapshots
@@ -243,15 +249,19 @@ class XHYbbWW:
         'Trijet_particleNet_WvsQCD','HLT_PFHT.*', 'HLT_PFJet.*', 'HLT_AK8.*', 'HLT_Mu50',
         'event', 'eventWeight', 'luminosityBlock', 'run',
 	'jet0','jet1','jet2','dR01','dR02','dR12',
-	'NPROC', 'NJETS', 'NPT', 'NETA', 'NMSD']
+	'NPROC', 'NJETS', 'NPT', 'NETA', 'NMSD'] # NMSD might have to be removed/renamed
         
         # append to columns list if not Data
         if not self.a.isData:
             columns.extend(['GenPart_.*', 'nGenPart', 'genWeight', 'GenModel*'])	
 	    columns.extend(['Trijet_JES_up','Trijet_JES_down',
 			    'Trijet_JER_nom','Trijet_JER_up','Trijet_JER_down',
-			    'Trijet_JMS_nom','Trijet_JMS_up','Trijet_JMS_down',
-			    'Trijet_JMR_nom','Trijet_JMR_up','Trijet_JMR_down'])
+			    'Trijet_JMS_nom','Trijet_JMS_up','Trijet_JMS_down', # no longer exists
+			    'Trijet_JMR_nom','Trijet_JMR_up','Trijet_JMR_down', # no longer exists
+			    'Trijet_JMS_regressed_nom','Trijet_JMS_regressed_up','Trijet_JMS_regressed_down',
+			    'Trijet_JMR_regressed_nom','Trijet_JMR_regressed_up','Trijet_JMR_regressed_down',
+			    'Trijet_JMS_softdrop_nom','Trijet_JMS_softdrop_up','Trijet_JMS_softdrop_down',
+			    'Trijet_JMR_softdrop_nom','Trijet_JMR_softdrop_up','Trijet_JMR_softdrop_down'])
 	    columns.extend(['Pileup__nom','Pileup__up','Pileup__down','Pdfweight__nom','Pdfweight__up','Pdfweight__down'])
 	    if self.year == '16' or self.year == '17' or 'APV' in self.year:
 		#columns.extend(['Prefire__nom','Prefire__up','Prefire__down'])
@@ -383,14 +393,9 @@ class XHYbbWW:
         self.a.ObjectFromCollection('W1','Trijet','w1Idx')
         self.a.ObjectFromCollection('W2','Trijet','w2Idx')
         self.a.ObjectFromCollection('H','Trijet','hIdx')
-	'''
         self.a.Define('LeadW_vect','hardware::TLvector(W1_pt_corr, W1_eta, W1_phi, W1_msoftdrop_corr)')
         self.a.Define('SubleadW_vect','hardware::TLvector(W2_pt_corr, W2_eta, W2_phi, W2_msoftdrop_corr)')
         self.a.Define('Higgs_vect','hardware::TLvector(H_pt_corr, H_eta, H_phi, H_msoftdrop_corr)')
-	'''
-        self.a.Define('LeadW_vect','hardware::TLvector(W1_pt_corr, W1_eta, W1_phi, W1_mregressed_corr)')
-        self.a.Define('SubleadW_vect','hardware::TLvector(W2_pt_corr, W2_eta, W2_phi, W2_mregressed_corr)')
-        self.a.Define('Higgs_vect','hardware::TLvector(H_pt_corr, H_eta, H_phi, H_mregressed_corr)')
         self.a.Define('mhww','hardware::InvariantMass({LeadW_vect, SubleadW_vect, Higgs_vect})')
         self.a.Define('mww','hardware::InvariantMass({LeadW_vect,SubleadW_vect})')
         return self.a.GetActiveNode()
@@ -600,19 +605,33 @@ class XHYbbWW:
 
 # for use in selection - essentially just creates combinations of all the JME variations
 def JMEvariationStr(p, variation):
+    '''Perform the calibration for both softdrop and regressed masses
+    The AutoJME function has been modified to rename JMX -> JMX_regressed/JMX_softdrop
+    '''
     base_calibs = ['Trijet_JES_nom','Trijet_JER_nom','Trijet_JMS_nom','Trijet_JMR_nom']
     variationType = variation.split('_')[0]
+    jmr_variation = variation.split('_')
     pt_calib_vect = '{'
-    mass_calib_vect = '{'
+    softdrop_mass_calib_vect = '{'
+    regressed_mass_calib_vect = '{'
     for c in base_calibs:
-	if 'JM' in c and p != 'Top':	# WARNING - might need to change this if we treat W, H differently for mass and pt calibrations  
-	    mass_calib_vect += '%s,'%('Trijet_'+variation if variationType in c else c)
-	elif 'JE' in c:
-	    pt_calib_vect += '%s,'%('Trijet_'+variation if variationType in c else c)
-	    mass_calib_vect += '%s,'%('Trijet_'+variation if variationType in c else c)
+        if 'JM' in c and p != 'Top':
+            for mass in ['softdrop','regressed']:
+                modifier = '_%s_'%(mass)
+                if variationType in c:
+                    modifier = modifier.join(jmr_variation)
+                else:
+                    modifier = 'JM%s'%('S' if variationType == 'JMR' else 'R')+modifier+'nom'
+                if mass == 'softdrop':
+                    softdrop_mass_calib_vect += '%s,'%('Trijet_'+modifier)
+                else:
+                    regressed_mass_calib_vect += '%s,'%('Trijet_'+modifier)
+        elif 'JE' in c:
+            pt_calib_vect += '%s,'%('Trijet_'+variation if variationType in c else c)
+            regressed_mass_calib_vect += '%s,'%('Trijet_'+variation if variationType in c else c)
+            softdrop_mass_calib_vect += '%s,'%('Trijet_'+variation if variationType in c else c)
+
     pt_calib_vect = pt_calib_vect[:-1]+'}'
-    mass_calib_vect = mass_calib_vect[:-1]+'}'
-    return pt_calib_vect, mass_calib_vect
-
-
-
+    regressed_mass_calib_vect = regressed_mass_calib_vect[:-1]+'}'
+    softdrop_mass_calib_vect = softdrop_mass_calib_vect[:-1]+'}'
+    return pt_calib_vect, softdrop_mass_calib_vect, regressed_mass_calib_vect
