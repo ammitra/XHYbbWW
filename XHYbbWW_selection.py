@@ -143,32 +143,31 @@ def XHYbbWW_selection(args):
 	    selection.ApplyWPick(tagger='Trijet_'+w_tagger, invert=False)
 	    passfailSR = selection.ApplyHiggsTag('SR', tagger='H_'+h_tagger, signal=signal)
 
-
-	# mX [240, 4000], mY [60, 2800]
     	binsX = [45,0,4500]	# nbins, low, high
     	binsY = [35,0,3500]
     	for region, rdict in {"SR":passfailSR,"CR":passfailCR}.items():
 	    for flp, node in rdict.items():
-            	mod_name = "{}_{}_{}".format(t,region,flp)
-            	mod_title = "{} {}".format(region,flp)
-            	selection.a.SetActiveNode(node)
-	   	print('Evaluating {}'.format(mod_title))
-	    	templates = selection.a.MakeTemplateHistos(ROOT.TH2F('MXvMY_%s'%mod_name, 'MXvMY %s with %s'%(mod_title,t),binsX[0],binsX[1],binsX[2],binsY[0],binsY[1],binsY[2]),['mhww','mww'])
-	    	templates.Do('Write')
+		# The node will have columns for mX and mY calculated with both softdrop and regressed masses (both corrected).
+		# We want to make templates for both to see how they vary
+		for mass in ['softdrop','regressed']:
+		    mod_name = "{}_{}_{}_{}".format(mass,t,region,flp)
+		    mod_title = "{} {} {}".format(region,flp,mass)
+		    selection.a.SetActiveNode(node)
+		    print('Evaluating {}'.format(mod_title))
+		    mX = 'mhww_%s'%(mass)
+		    mY = 'mww_%s'%(mass)
+		    templates = selection.a.MakeTemplateHistos(ROOT.TH2F('MXvMY_%s'%mod_name, 'MXvMY %s with %s'%(mod_title,t),binsX[0],binsX[1],binsX[2],binsY[0],binsY[1],binsY[2]),[mX,mY])
+		    templates.Do('Write')
 
     cutflowInfo = OrderedDict([
 	('nWTag_CR',selection.nWTag_CR),
         ('higgsF_CR',selection.nHF_CR),
         ('higgsL_CR',selection.nHL_CR),
         ('higgsP_CR',selection.nHP_CR),
-	('higgsL_CR_mreg',selection.nHL_CR_mreg),
-        ('higgsP_CR_mreg',selection.nHP_CR_mreg),
         ('nWTag_SR',selection.nWTag_SR),
         ('higgsF_SR',selection.nHF_SR),
         ('higgsL_SR',selection.nHL_SR),
         ('higgsP_SR',selection.nHP_SR),
-        ('higgsL_SR_mreg',selection.nHL_SR_mreg),
-        ('higgsP_SR_mreg',selection.nHP_SR_mreg)
     ])
 
     nLabels = len(cutflowInfo)
