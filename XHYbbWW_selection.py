@@ -45,7 +45,7 @@ def getWTagEfficiencies(analyzer, tagger, wp, idx, tag):
     analyzer.SetActiveNode(start)
     return eff
 
-def applyHbbScaleFactors(analyzer, tagger, variation, SRorCR, eff_loose, eff_tight, wp_loose, wp_tight):
+def applyHbbScaleFactors(analyzer, tagger, variation, SRorCR, eff_loose, eff_tight, wp_loose, wp_tight, WMassCut):
     '''
 	creates PNetHbbSFHandler object and creates the original and updated tagger categories
 	must be called ONLY once, after calling ApplyWPick_Signal() so proper Higgs vect is created
@@ -53,11 +53,11 @@ def applyHbbScaleFactors(analyzer, tagger, variation, SRorCR, eff_loose, eff_tig
     '''
     print('Applying SFs in {}'.format(SRorCR))
     # instantiate Scale Factor class: {WPs}, {effs}, "year", variation
-    CompileCpp('PNetHbbSFHandler p_%s = PNetHbbSFHandler({0.8,0.98}, {%f,%f}, "20%s", %i);'%(SRorCR, eff_loose, eff_tight, args.era, variation))
+    CompileCpp('PNetHbbSFHandler p_%s%s = PNetHbbSFHandler({0.8,0.98}, {%f,%f}, "20%s", %i);'%(SRorCR, WMassCut, eff_loose, eff_tight, args.era, variation))
     # now create the column with original tagger category values (0: fail, 1: loose, 2: tight)
-    analyzer.Define("OriginalTagCats","p_{}.createTag({})".format(SRorCR, tagger))
+    analyzer.Define("OriginalTagCats","p_{}.createTag({})".format(SRorCR+WMassCut, tagger))
     # now create the column with *new* tagger categories, after applying logic. MUST feed in the original column (created in last step)
-    analyzer.Define("NewTagCats","p_{}.updateTag(OriginalTagCats, H_pt_corr, {})".format(SRorCR, tagger))
+    analyzer.Define("NewTagCats","p_{}.updateTag(OriginalTagCats, H_pt_corr, {})".format(SRorCR+WMassCut, tagger))
 
 
 def XHYbbWW_selection(args):
@@ -117,7 +117,7 @@ def XHYbbWW_selection(args):
 					eff0=e0CR, eff1=e1CR, eff2=e2CR, year=args.era, WVariation=WVar, invert=True)
 	    eff_L_CR, eff_T_CR = getHbbEfficiencies(analyzer=selection.a, tagger=h_tagger, SRorCR='CR', wp_loose=0.8, wp_tight=0.98)
 	    applyHbbScaleFactors(analyzer=selection.a, tagger='H_'+h_tagger, variation=HVar, SRorCR='CR', eff_loose=eff_L_CR, 
-				 eff_tight=eff_T_CR, wp_loose=0.8, wp_tight=0.98)
+				 eff_tight=eff_T_CR, wp_loose=0.8, wp_tight=0.98, WMassCut='')
 	    passfailCR = selection.ApplyHiggsTag('CR', tagger='H_'+h_tagger, signal=signal)
 	    # SIGNAL REGION 
             print("SIGNAL REGION --------------------------------------------------------------------------------------------------------")
@@ -129,8 +129,17 @@ def XHYbbWW_selection(args):
                                         eff0=e0SR, eff1=e1SR, eff2=e2SR, year=args.era, WVariation=WVar, invert=False)
 	    eff_L_SR, eff_T_SR = getHbbEfficiencies(analyzer=selection.a, tagger=h_tagger, SRorCR='SR', wp_loose=0.8, wp_tight=0.98)
             applyHbbScaleFactors(analyzer=selection.a, tagger='H_'+h_tagger, variation=HVar, SRorCR='SR', eff_loose=eff_L_SR,
-                                 eff_tight=eff_T_SR, wp_loose=0.8, wp_tight=0.98)
-            passfailSR = selection.ApplyHiggsTag('SR', tagger='H_'+h_tagger, signal=signal)
+                                 eff_tight=eff_T_SR, wp_loose=0.8, wp_tight=0.98, WMassCut='_noWMassCut')
+            passfailSR = selection.ApplyHiggsTag('SR', tagger='H_'+h_tagger, signal=signal, WMassCut=False)
+	    # Now do the SR with the W mass cuts applied 
+	    selection.a.SetActiveNode(kinOnly)
+	    masscut = [60., 110.]
+	    selection.ApplyWPick_Signal(WTagger='Trijet_'+w_tagger, HTagger='Trijet_'+h_tagger, pt='Trijet_pt_corr', WScoreCut=0.8,
+                                        eff0=e0SR, eff1=e1SR, eff2=e2SR, year=args.era, WVariation=WVar, invert=False, massCut=masscut)
+            applyHbbScaleFactors(analyzer=selection.a, tagger='H_'+h_tagger, variation=HVar, SRorCR='SR', eff_loose=eff_L_SR,
+                                 eff_tight=eff_T_SR, wp_loose=0.8, wp_tight=0.98, WMassCut='_WMassCut')
+	    passfailSR_WMassCut = selection.ApplyHiggsTag('SR', tagger='H_'+h_tagger, signal=signal, WMassCut=True)
+
 
 	# Everything else
 	else:
@@ -141,11 +150,17 @@ def XHYbbWW_selection(args):
 	    # SIGNAL REGION
 	    selection.a.SetActiveNode(kinOnly)
 	    selection.ApplyWPick(tagger='Trijet_'+w_tagger, invert=False)
-	    passfailSR = selection.ApplyHiggsTag('SR', tagger='H_'+h_tagger, signal=signal)
+	    passfailSR = selection.ApplyHiggsTag('SR', tagger='H_'+h_tagger, signal=signal, WMassCut=False)
+	    # Now do the SR with W mass cuts applied 
+	    selection.a.SetActiveNode(kinOnly)
+	    masscut = [60., 110.]
+	    selection.ApplyWPick(tagger='Trijet_'+w_tagger, invert=False,massCut=masscut)
+            passfailSR_WMassCut = selection.ApplyHiggsTag('SR', tagger='H_'+h_tagger, signal=signal, WMassCut=True)
+
 
     	binsX = [45,0,4500]	# nbins, low, high
     	binsY = [35,0,3500]
-    	for region, rdict in {"SR":passfailSR,"CR":passfailCR}.items():
+    	for region, rdict in {"SR":passfailSR,"mWreg_cut_SR":passfailSR_WMassCut,"CR":passfailCR}.items():
 	    for flp, node in rdict.items():
 		# The node will have columns for mX and mY calculated with both softdrop and regressed masses (both corrected).
 		# We want to make templates for both to see how they vary
@@ -160,14 +175,21 @@ def XHYbbWW_selection(args):
 		    templates.Do('Write')
 
     cutflowInfo = OrderedDict([
-	('nWTag_CR',selection.nWTag_CR),
-        ('higgsF_CR',selection.nHF_CR),
-        ('higgsL_CR',selection.nHL_CR),
-        ('higgsP_CR',selection.nHP_CR),
-        ('nWTag_SR',selection.nWTag_SR),
-        ('higgsF_SR',selection.nHF_SR),
-        ('higgsL_SR',selection.nHL_SR),
-        ('higgsP_SR',selection.nHP_SR),
+	('nWTag_CR',selection.nWTag_CR),		# control region
+        ('higgsF_CR',selection.nHF_CR),			# no mH_reg or mW_reg cut
+        ('higgsL_CR',selection.nHL_CR),			# no mH_reg or mW_reg cut 
+        ('higgsP_CR',selection.nHP_CR),			# no mH_reg or mW_reg cut 
+	('higgsL_CR_mHreg',selection.nHL_CR_mreg),	# after mH_reg anti-cut in CR Loose
+	('higgsP_CR_mHreg',selection.nHP_CR_mreg),	# after mH_reg anti-cut in CR Pass
+        ('nWTag_SR',selection.nWTag_SR),		# signal region, no mass cuts
+        ('higgsF_SR',selection.nHF_SR),			# same
+        ('higgsL_SR',selection.nHL_SR),			# same
+        ('higgsP_SR',selection.nHP_SR),			# same
+	('nWTag_SR_massCut',selection.nWTag_SR_massCut), # mW_reg cut
+	('higgsL_SR_mHreg_mWreg',selection.nHL_SR_mreg_WMass), # mH_reg & mW_reg cut
+	('higgsP_SR_mHreg_mWreg',selection.nHP_SR_mreg_WMass), # mH_reg & mW_reg cut
+        ('higgsL_SR_mHreg',selection.nHL_SR_mreg),      # SR_loose, mH_reg cut, no mW_reg
+        ('higgsP_SR_mHreg',selection.nHP_SR_mreg)	# SR_loose, mH_reg cut, no mW_reg
     ])
 
     nLabels = len(cutflowInfo)

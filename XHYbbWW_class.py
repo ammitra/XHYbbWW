@@ -151,6 +151,7 @@ class XHYbbWW:
     # corrections - used in both snapshots and selection
     def ApplyStandardCorrections(self, snapshot=False):
 	# first apply corrections for snapshot phase
+	
 	if snapshot:
 	    if self.a.isData:
 		# NOTE: LumiFilter requires the year as an integer 
@@ -161,9 +162,11 @@ class XHYbbWW:
 		    self.a.Cut('HEM','%s[0] > 0'%(HEM_worker.GetCall(evalArgs={"FatJet_eta":"Trijet_eta","FatJet_phi":"Trijet_phi"})))
 	    else:
 		self.a = ApplyPU(self.a, 'XHYbbWWpileup.root', '20{}'.format(self.year), ULflag=True, histname='{}_{}'.format(self.setname,self.year))
-		self.a.AddCorrection(
-		    Correction('Pdfweight','TIMBER/Framework/include/PDFweight_uncert.h',[self.a.lhaid],corrtype='uncert')
-		)
+		if self.a.lhaid != -1:
+		    print('PDFweight correction: LHAid = {}'.format(self.a.lhaid))
+		    self.a.AddCorrection(
+		    	Correction('Pdfweight','TIMBER/Framework/include/PDFweight_uncert.h',[self.a.lhaid],corrtype='uncert')
+		    )
 		if self.year == '16' or self.year == '17' or 'APV' in self.year:
 		    #self.a.AddCorrection(Correction("Prefire","TIMBER/Framework/include/Prefire_weight.h",[self.year],corrtype='weight'))
 		    L1PreFiringWeight = Correction("L1PreFiringWeight","TIMBER/Framework/TopPhi_modules/BranchCorrection.cc",constructor=[],mainFunc='evalWeight',corrtype='weight',columnList=['L1PreFiringWeight_Nom','L1PreFiringWeight_Up','L1PreFiringWeight_Dn'])
@@ -180,7 +183,7 @@ class XHYbbWW:
 	else:
 	    if not self.a.isData:
 		self.a.AddCorrection(Correction('Pileup',corrtype='weight'))
-		self.a.AddCorrection(Correction('Pdfweight',corrtype='uncert'))
+		if self.a.lhaid != -1: self.a.AddCorrection(Correction('Pdfweight',corrtype='uncert'))
                 if self.year == '16' or self.year == '17' or 'APV' in self.year:
 		    # Instead, instantiate ModuleWorker to handle the C++ code via clang. This uses the branches already existing in NanoAODv9
 		    self.a.AddCorrection(Correction('L1PreFiringWeight',corrtype='weight'))
@@ -325,7 +328,7 @@ class XHYbbWW:
 
 
     # ------------------------------------------------------------- For selection -------------------------------------------------------------------------
-    def ApplyWPick_Signal(self, WTagger, HTagger, pt, WScoreCut, eff0, eff1, eff2, year, WVariation, invert):
+    def ApplyWPick_Signal(self, WTagger, HTagger, pt, WScoreCut, eff0, eff1, eff2, year, WVariation, invert, massCut=[]):
 	''' For use in selection - picks the 2 W jets from the 3 candidate jets after performing jet-by-jet updating of W tag status according to SF and pT
 	Args:
 	    WTagger    (str): The name of the original W tag branch in the DF ('Trijet_particleNetMD_WvsQCD')
@@ -336,8 +339,9 @@ class XHYbbWW:
 	    year       (str): 16, 16APV, 17, 18
 	    WVariation (int): 0: nominal, 1: up, 2: down
 	    invert    (bool): True if CR, False if SR
+	    massCut [float,float]: lower and upper bounds on W mass window cut. If empty list, no cut is made
 	'''
-	objIdxs = 'ObjIdxs_{}{}'.format('Not' if invert else '', WTagger)
+	objIdxs = 'ObjIdxs_{}{}{}'.format('Not' if invert else '', WTagger,'_WMassCut' if massCut else '_noWMassCut')
 	if objIdxs not in [str(cname) for cname in self.a.DataFrame.GetColumnNames()]:
 	    self.a.Define(objIdxs, 'PickWWithSFs(%s, %s, %s, {0, 1, 2}, %f, %f, %f, %f, "20%s", %i, %s)'%(WTagger, HTagger, pt, WScoreCut, 
 													 eff0, eff1, eff2, year, WVariation, 
@@ -356,18 +360,29 @@ class XHYbbWW:
         nTot = self.a.DataFrame.Sum("genWeight").GetValue()
         print('NTot after WPick (signal) = {}'.format(nTot))
 
+	# at this point, rename Trijet -> W1/W2/Higgs based on its index determined above
+	self.a.ObjectFromCollection('W1','Trijet','w1Idx')#,skip=['msoftdrop_corrH'])
+        self.a.ObjectFromCollection('W2','Trijet','w2Idx')#,skip=['msoftdrop_corrH'])
+        self.a.ObjectFromCollection('H','Trijet','hIdx')#,skip=['msoftdrop_corrH'])
+
+	# Now add the W mass window cut, if applicable (only use regressed mass, since reg/SD are mostly compatible in this range)
+	if massCut and not invert: # only do this in SR
+	    print('Applying W-mass window cut b/w [{0},{1}] GeV'.format(*massCut))
+	    self.a.Cut('W1_massCut','W1_mregressed_corr > {0} && W1_mregressed_corr < {1}'.format(*massCut))
+	    self.a.Cut('W2_massCut','W2_mregressed_corr > {0} && W2_mregressed_corr < {1}'.format(*massCut))
+
         # Cutflow info
         if (invert == True):
             self.nWTag_CR = self.getNweighted()
             self.AddCutflowColumn(self.nWTag_CR, 'nWTag_CR')
         else:
-            self.nWTag_SR = self.getNweighted()
-            self.AddCutflowColumn(self.nWTag_SR, 'nWTag_SR')
-	
-	# at this point, rename Trijet -> W1/W2/Higgs based on its index determined above
-	self.a.ObjectFromCollection('W1','Trijet','w1Idx')#,skip=['msoftdrop_corrH'])
-        self.a.ObjectFromCollection('W2','Trijet','w2Idx')#,skip=['msoftdrop_corrH'])
-        self.a.ObjectFromCollection('H','Trijet','hIdx')#,skip=['msoftdrop_corrH'])
+            if not massCut:
+                self.nWTag_SR = self.getNweighted()
+                self.AddCutflowColumn(self.nWTag_SR, 'nWTag_SR')
+            else:
+                self.nWTag_SR_massCut = self.getNweighted()
+                self.AddCutflowColumn(self.nWTag_SR_massCut, 'nWTag_SR_massCut')
+
 	# in order to avoid column naming duplicates, call these LeadW, SubleadW, Higgs
 	self.a.Define('LeadW_vect_softdrop','hardware::TLvector(W1_pt_corr, W1_eta, W1_phi, W1_msoftdrop_corr)')
 	self.a.Define('SubleadW_vect_softdrop','hardware::TLvector(W2_pt_corr, W2_eta, W2_phi, W2_msoftdrop_corr)')
@@ -384,13 +399,14 @@ class XHYbbWW:
 
 	return self.a.GetActiveNode()
 
-    def ApplyWPick(self, tagger, invert):
+    def ApplyWPick(self, tagger, invert, massCut=[]):
 	'''For use in selection with all non-signal samples
 	Args:
 	    tagger (str): The name of the original W tag branch in the DF ('Trijet_particleNetMD_WvsQCD')
 	    invert (bool): True if CR, False if SR
+	    massCut [float,float]: lower and upper bounds on W mass window cut. If empty list, no cut is made
 	'''
-	objIdxs = 'ObjIdxs_{}{}'.format('Not' if invert else '', tagger)
+	objIdxs = 'ObjIdxs_{}{}{}'.format('Not' if invert else '', tagger, '_WMassCut' if massCut else '_noWMassCut')
 	if objIdxs not in [str(cname) for cname in self.a.DataFrame.GetColumnNames()]:
 	    # first option is tagger, second is W score cut threshold (0.8), third is invert boolean
 	    self.a.Define(objIdxs,'PickW(%s, {0, 1, 2}, %s, %s)'%(tagger, 0.8, 'true' if invert else 'false'))
@@ -398,17 +414,26 @@ class XHYbbWW:
             self.a.Define('w2Idx','{}[1]'.format(objIdxs))
             self.a.Define('hIdx', '{}[2]'.format(objIdxs))
 	self.a.Cut('Has2Ws','w1Idx > -1 && w2Idx > -1')
-	# Cutflow info
-	if (invert == True):
-	    self.nWTag_CR = self.getNweighted()
-	    self.AddCutflowColumn(self.nWTag_CR, 'nWTag_CR')
-	else:
-	    self.nWTag_SR = self.getNweighted()
-	    self.AddCutflowColumn(self.nWTag_SR, 'nWTag_SR')
 	# make collections
         self.a.ObjectFromCollection('W1','Trijet','w1Idx')
         self.a.ObjectFromCollection('W2','Trijet','w2Idx')
         self.a.ObjectFromCollection('H','Trijet','hIdx')
+	# add mass window cut, if applicable
+	if massCut and not invert:
+	    print('Applying W-mass window cut b/w [{0},{1}] GeV'.format(*massCut))
+            self.a.Cut('W1_massCut','W1_mregressed_corr > {0} && W1_mregressed_corr < {1}'.format(*massCut))
+            self.a.Cut('W2_massCut','W2_mregressed_corr > {0} && W2_mregressed_corr < {1}'.format(*massCut))
+        # Cutflow info
+        if (invert == True):
+            self.nWTag_CR = self.getNweighted()
+            self.AddCutflowColumn(self.nWTag_CR, 'nWTag_CR')
+        else:
+            if not massCut:
+                self.nWTag_SR = self.getNweighted()
+                self.AddCutflowColumn(self.nWTag_SR, 'nWTag_SR')
+            else:
+                self.nWTag_SR_massCut = self.getNweighted()
+                self.AddCutflowColumn(self.nWTag_SR_massCut, 'nWTag_SR_massCut')
 	# softdrop mass
         self.a.Define('LeadW_vect_softdrop','hardware::TLvector(W1_pt_corr, W1_eta, W1_phi, W1_msoftdrop_corr)')
         self.a.Define('SubleadW_vect_softdrop','hardware::TLvector(W2_pt_corr, W2_eta, W2_phi, W2_msoftdrop_corr)')
@@ -545,7 +570,7 @@ class XHYbbWW:
 	self.AddCutflowColumn(self.nWTag, 'nWTag_{}'.format(SRorCR))
 	return self.a.GetActiveNode()
 
-    def ApplyHiggsTag(self, SRorCR, tagger, signal):
+    def ApplyHiggsTag(self, SRorCR, tagger, signal, WMassCut=False):
 	'''
 	Fail:	H < 0.8
 	Loose:	0.8 < H < 0.98
@@ -602,26 +627,34 @@ class XHYbbWW:
 	loose_cut_mreg = '{0} > {1} && {0} < {2}'.format(tagger, *cuts) if not signal else 'NewTagCats==1'
         self.a.Cut('HbbTag_loose_temp', loose_cut_mreg)
         print('number after temp cut: {}'.format(self.getNweighted()))
-        FLP['loose_mreg_cut'] = self.a.Cut('HbbTag_loose_mreg', mreg_cut_SR if SRorCR == 'SR' else mreg_cut_CR)
+        FLP['loose_mHreg_cut'] = self.a.Cut('HbbTag_loose_mreg', mreg_cut_SR if SRorCR == 'SR' else mreg_cut_CR)
         if SRorCR == 'SR':
-            self.nHL_SR_mreg = self.getNweighted()
-            self.AddCutflowColumn(self.nHL_SR_mreg, 'higgsL_SR_mreg')
+	    if WMassCut:
+		self.nHL_SR_mreg_WMass = self.getNweighted()
+		self.AddCutflowColumn(self.nHL_SR_mreg_WMass, 'higgsL_SR_mHreg_mWreg')
+	    else:
+            	self.nHL_SR_mreg = self.getNweighted()
+            	self.AddCutflowColumn(self.nHL_SR_mreg, 'higgsL_SR_mHreg')
         else:
             self.nHL_CR_mreg = self.getNweighted()
-            self.AddCutflowColumn(self.nHL_CR_mreg, 'higgsL_CR_mreg')
+            self.AddCutflowColumn(self.nHL_CR_mreg, 'higgsL_CR_mHreg')
 
         # Higgs Pass + mreg cut + cutflow
         self.a.SetActiveNode(checkpoint)
 	pass_cut_mreg = '{0} > {1}'.format(tagger, cuts[1]) if not signal else 'NewTagCats==2'
         self.a.Cut('HbbTag_pass_temp', pass_cut_mreg)
 	print('number after temp cut: {}'.format(self.getNweighted()))
-        FLP['pass_mreg_cut'] = self.a.Cut('HbbTag_pass_mreg', mreg_cut_SR if SRorCR == 'SR' else mreg_cut_CR)
+        FLP['pass_mHreg_cut'] = self.a.Cut('HbbTag_pass_mreg', mreg_cut_SR if SRorCR == 'SR' else mreg_cut_CR)
         if SRorCR == 'SR':
-            self.nHP_SR_mreg = self.getNweighted()
-            self.AddCutflowColumn(self.nHP_SR, 'higgsP_SR_mreg')
+	    if WMassCut:
+            	self.nHP_SR_mreg_WMass = self.getNweighted()
+            	self.AddCutflowColumn(self.nHP_SR_mreg_WMass, 'higgsP_SR_mHreg_mWreg')
+	    else:
+                self.nHP_SR_mreg = self.getNweighted()
+                self.AddCutflowColumn(self.nHP_SR_mreg, 'higgsP_SR_mHreg')
         else:
             self.nHP_CR_mreg = self.getNweighted()
-            self.AddCutflowColumn(self.nHP_CR, 'higgsP_CR_mreg')
+            self.AddCutflowColumn(self.nHP_CR_mreg, 'higgsP_CR_mHreg')
 
 	# reset state, return dict
 	self.a.SetActiveNode(checkpoint)
