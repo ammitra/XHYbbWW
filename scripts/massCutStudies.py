@@ -7,13 +7,16 @@ import os
 from collections import OrderedDict
 from TIMBER.Tools.Plot import CompareShapes, EasyPlots
 
-def NMinus1(setname, era):
+def NMinus1(setname, era, massWindow=False):
     # Open the snapshots
     selection = XHYbbWW('trijet_nano/{}_{}_snapshot.txt'.format(setname,era), era, 1, 1)
     # perform JECs, define Trijet vector
     selection.OpenForSelection('None')
     # identify W1, W2, and H from the three valid jet candidates
-    selection.ApplyWPick('Trijet_particleNetMD_WvsQCD', invert=False)
+    if massWindow:
+	selection.ApplyWPick('Trijet_particleNetMD_WvsQCD', invert=False, WMass='Trijet_mregressed_corr', massWindow=massWindow)
+    else:
+	selection.ApplyWPick('Trijet_particleNetMD_WvsQCD', invert=False)
     # Get the normalization
     norm = selection.GetXsecScale()
     selection.a.Define('norm','genWeight*%s'%norm)
@@ -67,6 +70,8 @@ if __name__ == "__main__":
 
     era = 18
 
+    massWindow = [60.,110.]
+
     histgroups = {}
     varnames = []
     setnames = [
@@ -86,7 +91,7 @@ if __name__ == "__main__":
 
     for setname in setnames:
 	print('Analyzing {} for 20{}'.format(setname,era))
-	rootfile_name = 'rootfiles/WMassCut_Nminus1_{}_{}.root'.format(setname,era)
+	rootfile_name = 'rootfiles/WMassCut_Nminus1{}_{}_{}.root'.format('_WMassSelection' if massWindow else '',setname,era)
 
 	if not os.path.isfile(rootfile_name):
 	    print('Must run analysis first...')
@@ -149,7 +154,7 @@ if __name__ == "__main__":
 	colors[sig] = ROOT.kCyan-int((int(sig[10:-4])-1200)/600)
 	names[sig] = '({},{}) [GeV]'.format(sig.split('-')[2],sig.split('-')[3])
     for varname in varnames:
-	plot_filename = 'plots/WMassCut_Nminus1_{}_{}.png'.format(varname,era)
+	plot_filename = 'plots/WMassCut_Nminus1{}_{}_{}.png'.format('_WMassSelection' if massWindow else '',varname,era)
 	# ordered dicts to plot processes in the specified order
 	bkg_hists, signal_hists = OrderedDict(),OrderedDict()
 	for bkg in bkgnames:

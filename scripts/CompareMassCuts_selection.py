@@ -35,10 +35,10 @@ for mass in ['regressed','softdrop']:
 		    names[sig+'_'+case]  = 'm_{H} cut'
 		elif case == case3:
 		    colors[sig+'_'+case] = ROOT.kGreen
-		    names[sig+'_'+case]  = 'm_{W} cut'
+		    names[sig+'_'+case]  = 'm_{W} requirement'
 		else:
 		    colors[sig+'_'+case] = ROOT.kBlack
-		    names[sig+'_'+case]  = 'm_{H} and m_{W} cut'
+		    names[sig+'_'+case]  = 'm_{H} cut and m_{W} requirement'
 	latex_varname = 'm_{%s}'%proj
 	print('Plotting %s mass - projection %s'%(mass, proj))
 	CompareShapes(

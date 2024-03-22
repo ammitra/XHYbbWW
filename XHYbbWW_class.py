@@ -120,13 +120,9 @@ class XHYbbWW:
 	self.NETA = self.getNweighted()
 	self.AddCutflowColumn(self.NETA, "NETA")
 
-	''' 
-	Wait to perform the mass cut until we have selected which mass method to use (softdrop vs regressed)
-	'''
-        #self.a.Cut('msoftdrop_cut','FatJet_msoftdrop[0] > 50 && FatJet_msoftdrop[1] > 40 && FatJet_msoftdrop[2] > 40') # should always use softdrop mass
-	#self.a.Cut('regressedmass_cut','FatJet_particleNet_mass[0] > 50 && FatJet_particleNet_mass[1] > 40 && FatJet_particleNet_mass[2] > 40')
-	#self.NMSD = self.getNweighted()
-	#self.AddCutflowColumn(self.NMSD, "NMSD")
+        self.a.Cut('msoftdrop_cut','FatJet_msoftdrop[0] > 50 && FatJet_msoftdrop[1] > 40 && FatJet_msoftdrop[2] > 40') # should always use softdrop mass
+	self.NMSD = self.getNweighted()
+	self.AddCutflowColumn(self.NMSD, "NMSD")
 
         self.a.Define('TrijetIdxs','ROOT::VecOps::RVec({0,1,2})')   # create a vector of the three jets - assume Higgs & Ws will be 3 leading jets
 	# now we make a subcollection, which maps all branches with "FatJet" to a new subcollection named "Trijet", in this case
@@ -150,9 +146,9 @@ class XHYbbWW:
 
     # corrections - used in both snapshots and selection
     def ApplyStandardCorrections(self, snapshot=False):
-	# first apply corrections for snapshot phase
-	
+	# first apply corrections for snapshot phase	
 	if snapshot:
+	    # DATA - only filter valid lumi blocks and drop HEM-affected events
 	    if self.a.isData:
 		# NOTE: LumiFilter requires the year as an integer 
 		lumiFilter = ModuleWorker('LumiFilter','TIMBER/Framework/include/LumiFilter.h',[int(self.year) if 'APV' not in self.year else 16])    # defaults to perform "eval" method 
@@ -160,30 +156,70 @@ class XHYbbWW:
 		if self.year == '18':
 		    HEM_worker = ModuleWorker('HEM_drop','TIMBER/Framework/include/HEM_drop.h',[self.setname if 'Muon' not in self.setname else self.setname[10:]])
 		    self.a.Cut('HEM','%s[0] > 0'%(HEM_worker.GetCall(evalArgs={"FatJet_eta":"Trijet_eta","FatJet_phi":"Trijet_phi"})))
+	    # MC - apply corrections
 	    else:
+		# Parton shower weights 
+		#	- https://twiki.cern.ch/twiki/bin/viewauth/CMS/TopSystematics#Parton_shower_uncertainties
+		#	- "Default" variation: https://twiki.cern.ch/twiki/bin/view/CMS/HowToPDF#Which_set_of_weights_to_use
+		#	- https://github.com/mroguljic/Hgamma/blob/409622121e8ab28bc1072c6d8981162baf46aebc/templateMaker.py#L210
+		self.a.Define("ISR__up","PSWeight[2]")
+		self.a.Define("ISR__down","PSWeight[0]")
+		self.a.Define("FSR__up","PSWeight[3]")
+		self.a.Define("FSR__down","PSWeight[1]")
+		genWCorr    = Correction('genW','TIMBER/Framework/TopPhi_modules/BranchCorrection.cc',corrtype='corr',mainFunc='evalCorrection') # workaround so we can have multiple BCs
+		self.a.AddCorrection(genWCorr, evalArgs={'val':'genWeight'})
+		#ISRcorr = Correction('ISRunc', 'TIMBER/Framework/TopPhi_modules/BranchCorrection.cc', mainFunc='evalUncert', corrtype='uncert')
+		#FSRcorr = Correction('FSRunc', 'TIMBER/Framework/TopPhi_modules/BranchCorrection.cc', mainFunc='evalUncert', corrtype='uncert')
+		ISRcorr = genWCorr.Clone("ISRunc",newMainFunc="evalUncert",newType="uncert")
+		FSRcorr = genWCorr.Clone("FSRunc",newMainFunc="evalUncert",newType="uncert")
+		self.a.AddCorrection(ISRcorr, evalArgs={'valUp':'ISR__up','valDown':'ISR__down'})
+		self.a.AddCorrection(FSRcorr, evalArgs={'valUp':'FSR__up','valDown':'FSR__down'})
+		# Pileup reweighting
 		self.a = ApplyPU(self.a, 'XHYbbWWpileup.root', '20{}'.format(self.year), ULflag=True, histname='{}_{}'.format(self.setname,self.year))
+		# QCD factorization and renormalization corrections (only to non-signal MC)
+		if 'NMSSM' not in self.setname:
+		    # First instatiate a correction module for the factorization correction
+		    facCorr = Correction('QCDscale_factorization','LHEScaleWeights.cc',corrtype='weight',mainFunc='evalFactorization')
+		    self.a.AddCorrection(facCorr, evalArgs={'LHEScaleWeights':'LHEScaleWeight'})
+		    # Now clone it and call evalRenormalization for the renormalization correction
+		    renormCorr = facCorr.Clone('QCDscale_renormalization',newMainFunc='evalRenormalization',newType='weight')
+		    self.a.AddCorrection(renormCorr, evalArgs={'LHEScaleWeights':'LHEScaleWeight'})
+		    # Now do one for the combined correction
+		    combCorr = facCorr.Clone('QCDscale_combined',newMainFunc='evalCombined',newType='weight')
+		    self.a.AddCorrection(combCorr, evalArgs={'LHEScaleWeights':'LHEScaleWeight'})
+		# PDF weight correction - https://twiki.cern.ch/twiki/bin/viewauth/CMS/TopSystematics#PDF
 		if self.a.lhaid != -1:
 		    print('PDFweight correction: LHAid = {}'.format(self.a.lhaid))
 		    self.a.AddCorrection(
 		    	Correction('Pdfweight','TIMBER/Framework/include/PDFweight_uncert.h',[self.a.lhaid],corrtype='uncert')
 		    )
+		# Level-1 prefire corrections
 		if self.year == '16' or self.year == '17' or 'APV' in self.year:
 		    #self.a.AddCorrection(Correction("Prefire","TIMBER/Framework/include/Prefire_weight.h",[self.year],corrtype='weight'))
-		    L1PreFiringWeight = Correction("L1PreFiringWeight","TIMBER/Framework/TopPhi_modules/BranchCorrection.cc",constructor=[],mainFunc='evalWeight',corrtype='weight',columnList=['L1PreFiringWeight_Nom','L1PreFiringWeight_Up','L1PreFiringWeight_Dn'])
+		    #L1PreFiringWeight = Correction("L1PreFiringWeight","TIMBER/Framework/TopPhi_modules/BranchCorrection.cc",constructor=[],mainFunc='evalWeight',corrtype='weight',columnList=['L1PreFiringWeight_Nom','L1PreFiringWeight_Up','L1PreFiringWeight_Dn'])
+		    L1PreFiringWeight = genWCorr.Clone('L1PreFireCorr',newMainFunc='evalWeight',newType='weight')
 		    self.a.AddCorrection(L1PreFiringWeight, evalArgs={'val':'L1PreFiringWeight_Nom','valUp':'L1PreFiringWeight_Up','valDown':'L1PreFiringWeight_Dn'})
+		# HEM drop to 2018 MC
 		elif self.year == '18':
 		    self.a.AddCorrection(Correction('HEM_drop','TIMBER/Framework/include/HEM_drop.h',[self.setname],corrtype='corr'))
 
 	    # AutoJME rewritten to automatically do softdrop and regressed mass
 	    self.a = AutoJME.AutoJME(self.a, 'Trijet', '20{}'.format(self.year), self.setname if 'Muon' not in self.setname else self.setname[10:])
 
-	    self.a.MakeWeightCols(extraNominal='genWeight' if not self.a.isData else '')
+	    #self.a.MakeWeightCols(extraNominal='genWeight' if not self.a.isData else '')
+	    self.a.MakeWeightCols() # since we added genWcorr we do not have to do anything else with extraNominal genWeight correction
 
 	# now for selection
 	else:
 	    if not self.a.isData:
 		self.a.AddCorrection(Correction('Pileup',corrtype='weight'))
+		self.a.AddCorrection(Correction('ISRunc',corrtype='uncert'))
+		self.a.AddCorrection(Correction('FSRunc',corrtype='uncert'))
 		if self.a.lhaid != -1: self.a.AddCorrection(Correction('Pdfweight',corrtype='uncert'))
+		if 'NMSSM' not in self.setname:
+		    self.a.AddCorrection(Correction('QCDscale_factorization',corrtype='weight'))
+		    self.a.AddCorrection(Correction('QCDscale_renormalization',corrtype='weight'))
+		    self.a.AddCorrection(Correction('QCDscale_combined',corrtype='weight'))
                 if self.year == '16' or self.year == '17' or 'APV' in self.year:
 		    # Instead, instantiate ModuleWorker to handle the C++ code via clang. This uses the branches already existing in NanoAODv9
 		    self.a.AddCorrection(Correction('L1PreFiringWeight',corrtype='weight'))
@@ -261,11 +297,12 @@ class XHYbbWW:
         'Trijet_particleNet_WvsQCD','HLT_PFHT.*', 'HLT_PFJet.*', 'HLT_AK8.*', 'HLT_Mu50',
         'event', 'eventWeight', 'luminosityBlock', 'run',
 	'jet0','jet1','jet2','dR01','dR02','dR12',
-	'NPROC', 'NJETS', 'NPT', 'NETA', 'NMSD'] # NMSD might have to be removed/renamed
+	'NPROC', 'NJETS', 'NPT', 'NETA', 'NMSD'] # cutflow information
         
         # append to columns list if not Data
         if not self.a.isData:
-            columns.extend(['GenPart_.*', 'nGenPart', 'genWeight', 'GenModel*'])	
+            columns.extend(['GenPart_.*', 'nGenPart', 'genWeight', 'GenModel*'])
+	    columns.extend(['PSWeight', 'LHEScaleWeight']) # for parton shower (ISR+FSR) and QCD renormalization and factorization scale uncertainties
 	    columns.extend(['Trijet_JES_up','Trijet_JES_down',
 			    'Trijet_JER_nom','Trijet_JER_up','Trijet_JER_down',
 			    'Trijet_JMS_nom','Trijet_JMS_up','Trijet_JMS_down', # no longer exists
@@ -274,7 +311,11 @@ class XHYbbWW:
 			    'Trijet_JMR_regressed_nom','Trijet_JMR_regressed_up','Trijet_JMR_regressed_down',
 			    'Trijet_JMS_softdrop_nom','Trijet_JMS_softdrop_up','Trijet_JMS_softdrop_down',
 			    'Trijet_JMR_softdrop_nom','Trijet_JMR_softdrop_up','Trijet_JMR_softdrop_down'])
-	    columns.extend(['Pileup__nom','Pileup__up','Pileup__down','Pdfweight__nom','Pdfweight__up','Pdfweight__down'])
+	    columns.extend(['Pileup__nom','Pileup__up','Pileup__down','Pdfweight__nom','Pdfweight__up','Pdfweight__down','ISR__up','ISR__down','FSR__up','FSR__down'])
+	    if 'NMSSM' not in self.setname: # QCD scale variations
+		columns.extend(['QCDscale_factorization__nom','QCDscale_factorization__up','QCDscale_factorization__down'])
+		columns.extend(['QCDscale_renormalization__nom','QCDscale_renormalization__up','QCDscale_renormalization__down'])
+		columns.extend(['QCDscale_combined__nom','QCDscale_combined__up','QCDscale_combined__down'])
 	    if self.year == '16' or self.year == '17' or 'APV' in self.year:
 		#columns.extend(['Prefire__nom','Prefire__up','Prefire__down'])
 		columns.extend(['L1PreFiringWeight_Nom', 'L1PreFiringWeight_Up', 'L1PreFiringWeight_Dn'])	# these are the default columns in NanoAODv9
@@ -328,7 +369,7 @@ class XHYbbWW:
 
 
     # ------------------------------------------------------------- For selection -------------------------------------------------------------------------
-    def ApplyWPick_Signal(self, WTagger, HTagger, pt, WScoreCut, eff0, eff1, eff2, year, WVariation, invert, massCut=[]):
+    def ApplyWPick_Signal(self, WTagger, HTagger, pt, WScoreCut, eff0, eff1, eff2, year, WVariation, invert, WMass='', massWindow=[]):
 	''' For use in selection - picks the 2 W jets from the 3 candidate jets after performing jet-by-jet updating of W tag status according to SF and pT
 	Args:
 	    WTagger    (str): The name of the original W tag branch in the DF ('Trijet_particleNetMD_WvsQCD')
@@ -339,13 +380,21 @@ class XHYbbWW:
 	    year       (str): 16, 16APV, 17, 18
 	    WVariation (int): 0: nominal, 1: up, 2: down
 	    invert    (bool): True if CR, False if SR
-	    massCut [float,float]: lower and upper bounds on W mass window cut. If empty list, no cut is made
+	    WMass      (str): Name of the column containing the (corrected) mass
+	    massWindow [float,float]: lower and upper bounds on W mass window requirement. If empty list, no such requirement is made
 	'''
-	objIdxs = 'ObjIdxs_{}{}{}'.format('Not' if invert else '', WTagger,'_WMassCut' if massCut else '_noWMassCut')
+	objIdxs = 'ObjIdxs_{}{}{}'.format('Not' if invert else '', WTagger,'_WMassWindow' if massWindow else '_noWMassWindow')
 	if objIdxs not in [str(cname) for cname in self.a.DataFrame.GetColumnNames()]:
-	    self.a.Define(objIdxs, 'PickWWithSFs(%s, %s, %s, {0, 1, 2}, %f, %f, %f, %f, "20%s", %i, %s)'%(WTagger, HTagger, pt, WScoreCut, 
-													 eff0, eff1, eff2, year, WVariation, 
-													 'true' if invert else 'false'))
+	    if massWindow:
+		self.a.Define(objIdxs, 'PickWWithSFs_massWindow(%s, %s, %s, {0, 1, 2}, %s, {%f, %f}, %f, %f, %f, %f, "20%s", %i, %s)'%(
+								WTagger, HTagger, pt,
+								WMass, massWindow[0], massWindow[1], 
+								WScoreCut,
+								eff0, eff1, eff2,
+								year, WVariation,
+								'true' if invert else 'false'))
+	    else:
+	    	self.a.Define(objIdxs, 'PickWWithSFs(%s, %s, %s, {0, 1, 2}, %f, %f, %f, %f, "20%s", %i, %s)'%(WTagger, HTagger, pt, WScoreCut, eff0, eff1, eff2, year, WVariation, 'true' if invert else 'false'))
 	    # At this point, we'll have a column named ObjIdxs_(NOT)_particleNetMD_WvsQCD containing the indices of 
 	    # which of the three jets are the Ws and the Higgs (W1_idx, W2_idx, H_idx). Or {-1, -1, -1} if two jets didn't pass W tagging
 	    self.a.Define('w1Idx','{}[0]'.format(objIdxs))
@@ -365,23 +414,25 @@ class XHYbbWW:
         self.a.ObjectFromCollection('W2','Trijet','w2Idx')#,skip=['msoftdrop_corrH'])
         self.a.ObjectFromCollection('H','Trijet','hIdx')#,skip=['msoftdrop_corrH'])
 
+	'''
 	# Now add the W mass window cut, if applicable (only use regressed mass, since reg/SD are mostly compatible in this range)
 	if massCut and not invert: # only do this in SR
 	    print('Applying W-mass window cut b/w [{0},{1}] GeV'.format(*massCut))
 	    self.a.Cut('W1_massCut','W1_mregressed_corr > {0} && W1_mregressed_corr < {1}'.format(*massCut))
 	    self.a.Cut('W2_massCut','W2_mregressed_corr > {0} && W2_mregressed_corr < {1}'.format(*massCut))
+	'''
 
         # Cutflow info
         if (invert == True):
             self.nWTag_CR = self.getNweighted()
             self.AddCutflowColumn(self.nWTag_CR, 'nWTag_CR')
         else:
-            if not massCut:
+            if not massWindow:
                 self.nWTag_SR = self.getNweighted()
                 self.AddCutflowColumn(self.nWTag_SR, 'nWTag_SR')
             else:
-                self.nWTag_SR_massCut = self.getNweighted()
-                self.AddCutflowColumn(self.nWTag_SR_massCut, 'nWTag_SR_massCut')
+                self.nWTag_SR_massWindow = self.getNweighted()
+                self.AddCutflowColumn(self.nWTag_SR_massWindow, 'nWTag_SR_massWindow')
 
 	# in order to avoid column naming duplicates, call these LeadW, SubleadW, Higgs
 	self.a.Define('LeadW_vect_softdrop','hardware::TLvector(W1_pt_corr, W1_eta, W1_phi, W1_msoftdrop_corr)')
@@ -399,17 +450,20 @@ class XHYbbWW:
 
 	return self.a.GetActiveNode()
 
-    def ApplyWPick(self, tagger, invert, massCut=[]):
+    def ApplyWPick(self, tagger, invert, WMass='', massWindow=[]):
 	'''For use in selection with all non-signal samples
 	Args:
 	    tagger (str): The name of the original W tag branch in the DF ('Trijet_particleNetMD_WvsQCD')
 	    invert (bool): True if CR, False if SR
-	    massCut [float,float]: lower and upper bounds on W mass window cut. If empty list, no cut is made
+	    massWindow [float,float]: lower and upper bounds on W mass window requirement. If empty list, no requirement is made
 	'''
-	objIdxs = 'ObjIdxs_{}{}{}'.format('Not' if invert else '', tagger, '_WMassCut' if massCut else '_noWMassCut')
+	objIdxs = 'ObjIdxs_{}{}{}'.format('Not' if invert else '', tagger, '_WMassWindow' if massWindow else '_noWMassWindow')
 	if objIdxs not in [str(cname) for cname in self.a.DataFrame.GetColumnNames()]:
 	    # first option is tagger, second is W score cut threshold (0.8), third is invert boolean
-	    self.a.Define(objIdxs,'PickW(%s, {0, 1, 2}, %s, %s)'%(tagger, 0.8, 'true' if invert else 'false'))
+	    if massWindow:
+		self.a.Define(objIdxs,'PickW_massWindow(%s, {0, 1, 2}, {%f, %f}, %s, %s, %s)'%(tagger,massWindow[0], massWindow[1], WMass, 0.8, 'true' if invert else 'false'))
+	    else:
+		self.a.Define(objIdxs,'PickW(%s, {0, 1, 2}, %s, %s)'%(tagger, 0.8, 'true' if invert else 'false'))
             self.a.Define('w1Idx','{}[0]'.format(objIdxs))
             self.a.Define('w2Idx','{}[1]'.format(objIdxs))
             self.a.Define('hIdx', '{}[2]'.format(objIdxs))
@@ -418,22 +472,24 @@ class XHYbbWW:
         self.a.ObjectFromCollection('W1','Trijet','w1Idx')
         self.a.ObjectFromCollection('W2','Trijet','w2Idx')
         self.a.ObjectFromCollection('H','Trijet','hIdx')
+	'''
 	# add mass window cut, if applicable
 	if massCut and not invert:
 	    print('Applying W-mass window cut b/w [{0},{1}] GeV'.format(*massCut))
             self.a.Cut('W1_massCut','W1_mregressed_corr > {0} && W1_mregressed_corr < {1}'.format(*massCut))
             self.a.Cut('W2_massCut','W2_mregressed_corr > {0} && W2_mregressed_corr < {1}'.format(*massCut))
+	'''
         # Cutflow info
         if (invert == True):
             self.nWTag_CR = self.getNweighted()
             self.AddCutflowColumn(self.nWTag_CR, 'nWTag_CR')
         else:
-            if not massCut:
+            if not massWindow:
                 self.nWTag_SR = self.getNweighted()
                 self.AddCutflowColumn(self.nWTag_SR, 'nWTag_SR')
             else:
-                self.nWTag_SR_massCut = self.getNweighted()
-                self.AddCutflowColumn(self.nWTag_SR_massCut, 'nWTag_SR_massCut')
+                self.nWTag_SR_massWindow = self.getNweighted()
+                self.AddCutflowColumn(self.nWTag_SR_massWindow, 'nWTag_SR_massWindow')
 	# softdrop mass
         self.a.Define('LeadW_vect_softdrop','hardware::TLvector(W1_pt_corr, W1_eta, W1_phi, W1_msoftdrop_corr)')
         self.a.Define('SubleadW_vect_softdrop','hardware::TLvector(W2_pt_corr, W2_eta, W2_phi, W2_msoftdrop_corr)')

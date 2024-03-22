@@ -1,3 +1,6 @@
+'''
+Script to generate plots of the signal efficiency after selection
+'''
 import ROOT
 import glob
 from array import array
@@ -25,6 +28,9 @@ def GetEfficiencies(year):
 	print('processing ({},{})'.format(xmass,ymass))
 	f = ROOT.TFile.Open(selection,'READ')
 	h = f.Get('cutflow')
+	if not h: 
+	    print('WARNING: Cutflow not found for ({},{})'.format(xmass,ymass))
+	    continue
         start = h.GetBinContent(5) # preselection
         end   = h.GetBinContent(8) # final cut on tight Hbb (SR pass)
 	if start == 0.0:
