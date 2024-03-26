@@ -3,7 +3,8 @@
  * See:
  * 	- https://twiki.cern.ch/twiki/bin/viewauth/CMS/TopSystematics#Factorization_and_renormalizatio
  * 	- https://git.rwth-aachen.de/3pia/cms_analyses/common/-/blob/11e0c5225416a580d27718997a11dc3f1ec1e8d1/processor/generator.py#L93
- *
+ *	- https://indico.cern.ch/event/494682/contributions/1172505/attachments/1223578/1800218/mcaod-Feb15-2016.pdf
+ *	- https://indico.cern.ch/event/938672/contributions/3943718/attachments/2073936/3482265/MC_ContactReport_v3.pdf
  * The LHEScaleWeight branch in NanoAOD can be 8 or 9 indices long depending on the generator.
  * For Factorization uncertainty we are interested in indices (up,down):
  *	- 4, 3 		(8 indices)
@@ -20,6 +21,7 @@
  * Each of the three methods returns a vector of floats containing {nom, up, down} variations
  */
 #include <ROOT/RVec.hxx>
+#include <initializer_list>
 using namespace ROOT::VecOps;
 
 class QCDScaleWeight {
@@ -30,13 +32,50 @@ class QCDScaleWeight {
 	 */
 	QCDScaleWeight(){};
 	~QCDScaleWeight(){};
+
+	//---------------------------------------------------------------------------------------------
+	// Functions to creatre the QCD factorization, renormalization, and combined event weights
+	//---------------------------------------------------------------------------------------------
 	// Function to handle the Factorization scale uncertainties
 	RVec<float> evalFactorization(RVec<float> LHEScaleWeights);
 	// Function to handle the Renormalization scale uncertainties
 	RVec<float> evalRenormalization(RVec<float> LHEScaleWeights);
 	// Function to handle the combined variation (simultaneously varying uR and uF)
 	RVec<float> evalCombined(RVec<float> LHEScaleWeights);
+
+        //---------------------------------------------------------------------------------------------
+        // Functions to create the QCD scale uncertainty. Following the prescription in the final link above,
+	// slide 27
+        //---------------------------------------------------------------------------------------------
+	RVec<float> evalUncert(RVec<float> LHEScaleWeights);
 };
+
+RVec<float> QCDScaleWeight::evalUncert(RVec<float> LHEScaleWeights) {
+    int size = LHEScaleWeights.size();
+    RVec<float> out(2);
+    if (size == 0) {
+        throw "LHEScaleWeight vector empty.\n";
+    }
+    else if (size == 8) {
+	throw "Not applicable to this process\n";
+    }
+    else if (size == 9) {
+	float center = LHEScaleWeights[4];
+	float deviation = -1.0;
+	float scale;
+	for (int i : {0,1,2,3,5,6,7,8}) {
+	    float temp = abs(center-LHEScaleWeights[i]);
+	    if (temp > deviation) { deviation = temp; }
+	}
+	scale = deviation/center;
+	out[0] = center + scale;
+	out[1] = center - scale;
+    }
+    else {
+        throw "LHEScaleWeight vector has size other than 0,8,9.\n";
+    }
+    return out;
+}
 
 RVec<float> QCDScaleWeight::evalFactorization(RVec<float> LHEScaleWeights) {
     int size = LHEScaleWeights.size();

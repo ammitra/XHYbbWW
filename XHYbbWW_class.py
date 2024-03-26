@@ -187,6 +187,11 @@ class XHYbbWW:
 		    # Now do one for the combined correction
 		    combCorr = facCorr.Clone('QCDscale_combined',newMainFunc='evalCombined',newType='weight')
 		    self.a.AddCorrection(combCorr, evalArgs={'LHEScaleWeights':'LHEScaleWeight'})
+		    # And finally, do one for the uncertainty
+		    # See: https://indico.cern.ch/event/938672/contributions/3943718/attachments/2073936/3482265/MC_ContactReport_v3.pdf (slide 27)
+		    QCDScaleUncert = facCorr.Clone('QCDscale_uncert',newMainFunc='evalUncert',newType='uncert')
+		    self.a.AddCorrection(QCDScaleUncert, evalArgs={'LHEScaleWeights':'LHEScaleWeight'})
+
 		# PDF weight correction - https://twiki.cern.ch/twiki/bin/viewauth/CMS/TopSystematics#PDF
 		if self.a.lhaid != -1:
 		    print('PDFweight correction: LHAid = {}'.format(self.a.lhaid))

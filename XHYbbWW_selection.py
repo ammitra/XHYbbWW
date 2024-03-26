@@ -103,7 +103,10 @@ def XHYbbWW_selection(args):
             HVar = 0
             WVar = 0
 
-    kinOnly = selection.a.MakeWeightCols(extraNominal='' if selection.a.isData else 'genWeight*%s'%selection.GetXsecScale())
+    # Since we have already created the genWCorr, we don't need to multiply by the genWeight anymore, 
+    # it is already factored into the MakeWeightCols() calculation as a correction
+    #kinOnly = selection.a.MakeWeightCols(extraNominal='' if selection.a.isData else 'genWeight*%s'%selection.GetXsecScale())
+    kinOnly = selection.a.MakeWeightCols(extraNominal='' if selection.a.isData else selection.GetXsecScale())
 
     out = ROOT.TFile.Open('rootfiles/XHYbbWWselection_HT{}_{}_{}{}.root'.format(args.HT, args.setname, args.era, '_'+args.variation if args.variation != 'None' else ''), 'RECREATE')
     out.cd()
