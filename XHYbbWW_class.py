@@ -222,9 +222,11 @@ class XHYbbWW:
 		self.a.AddCorrection(Correction('FSRunc',corrtype='uncert'))
 		if self.a.lhaid != -1: self.a.AddCorrection(Correction('Pdfweight',corrtype='uncert'))
 		if 'NMSSM' not in self.setname:
+		    # perhaps the first three should be uncert types, but because nominal = 1.0, it's functionally equivalent
 		    self.a.AddCorrection(Correction('QCDscale_factorization',corrtype='weight'))
 		    self.a.AddCorrection(Correction('QCDscale_renormalization',corrtype='weight'))
 		    self.a.AddCorrection(Correction('QCDscale_combined',corrtype='weight'))
+		    self.a.AddCorrection(Correction('QCDscale_uncert',corrtype='uncert'))
                 if self.year == '16' or self.year == '17' or 'APV' in self.year:
 		    # Instead, instantiate ModuleWorker to handle the C++ code via clang. This uses the branches already existing in NanoAODv9
 		    self.a.AddCorrection(Correction('L1PreFiringWeight',corrtype='weight'))
