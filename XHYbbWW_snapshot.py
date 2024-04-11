@@ -28,6 +28,13 @@ filename = 'raw_nano/{}_{}.txt'.format(args.setname, args.era)
 selection = XHYbbWW(filename, args.era, args.ijob, args.njobs)
 selection.ApplyKinematicsSnap()
 out = selection.ApplyStandardCorrections(snapshot=True)
+
+# execute all of the GetValue() calls to access the cutflow information
+for cut in ['NPROC','NFLAGS','NJETS','NPT','NETA','NMSD']:
+    #getattr(selection,cut).GetValue()
+    print('Doing cutflow for: %s'%cut)
+    selection.AddCutflowColumn(getattr(selection,cut).GetValue(), cut)
+
 selection.Snapshot(out)
 
 print('%s sec'%(time.time()-start))

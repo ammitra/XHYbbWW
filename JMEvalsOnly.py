@@ -34,15 +34,15 @@ def JMEvalsOnly(a, jetCollection, year, dataEra=''):
 
     dataEraLetter = dataEra.lower().replace('data','').upper().replace('1','').replace('2','')
     if jetCollection == "FatJet" or jetCollection == 'Trijet':
-	jetType = "AK8PFPuppi"
-	genJetColl = "GenJetAK8"
-	doMass = True
+        jetType     = 'AK8PFPuppi'
+        genJetColl  = "GenJetAK8"
+        doMass      = True
     elif jetCollection == "Jet":
-	jetType = "AK4PFCHS"
-	genJetColl = "GenJet"
-	doMass = False
+        jetType = "AK4PFCHS"
+        genJetColl = "GenJet"
+        doMass = False
     else:
-	raise ValueError("Jet collection name `%s` not supported. Only FatJet or Jet."%jetCollection)
+        raise ValueError("Jet collection name `%s` not supported. Only FatJet or Jet."%jetCollection)
 
     if not a.isData:
         jes = Calibration("%s_JES"%jetCollection,"TIMBER/Framework/include/JES_weight.h",

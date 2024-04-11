@@ -1,0 +1,40 @@
+ * Signal SFs                                                                                                       *      - Wqq: https://indico.cern.ch/event/1152827/contributions/4840404/attachments/2428856/4162159/ParticleNet_SFs_ULNanoV9_JMAR_25April2022_PK.pdf
+ *      - Hbb: https://coli.web.cern.ch/coli/.cms/btv/boohft-calib/20220623_bb_TprimeB_useExpr_2016/
+ *-----------------------------------------------------------------------------
+ */
+// HIGGS JET SF'S: pT cats are [400, 600), [600, 800), [800, +inf) across all years
+std::vector<std::vector<float>> SF2016APV_h = {{1.163,1.437,0.949},{1.206,1.529,0.924},{1.491,2.083,0.909}};
+std::vector<std::vector<float>> SF2016_h    = {{1.012,1.180,0.899},{1.247,1.509,0.999},{1.188,1.424,0.960}};
+std::vector<std::vector<float>> SF2017_h    = {{0.946,1.075,0.830},{1.027,1.158,0.880},{0.900,1.026,0.752}};
+std::vector<std::vector<float>> SF2018_h    = {{1.020,1.146,0.894},{1.013,1.110,0.912},{1.082,1.240,0.961}};
+
+/*-----------------------------------------------------------------------------
+ * mistagging scale factors, to be applied to TTbar MC
+ * Derived by Michael Hesford
+ *-----------------------------------------------------------------------------
+ */
+// Hbb mistag TOP merge JET SF'S: pT cats are [300, 450), [450, 600), [600, +inf)
+std::vector<std::vector<float>> SF2016APV_topMerge_HbbMistag = {{0.807,0.942,0.679},{0.763,0.871,0.657},{0.664,0.816,0.523}};
+std::vector<std::vector<float>> SF2016_topMerge_HbbMistag    = {{0.920,1.075,0.775},{0.930,1.056,0.810},{1.045,1.242,0.864}};
+std::vector<std::vector<float>> SF2017_topMerge_HbbMistag    = {{0.691,0.807,0.580},{1.055,1.144,0.969},{1.143,1.278,1.014}};
+std::vector<std::vector<float>> SF2018_topMerge_HbbMistag    = {{0.738,0.819,0.660},{0.977,1.040,0.917},{1.014,1.123,0.910}};
+// Hbb mistag BQ merge JET SF'S: pT cats are [300, 450), [450, 600), [600, +inf)
+std::vector<std::vector<float>> SF2016APV_bqMerge_HbbMistag = {{1.284,1.428,1.154},{1.261,1.442,1.097},{0.879,1.309,0.531}};
+std::vector<std::vector<float>> SF2016_bqMerge_HbbMistag    = {{1.154,1.302,1.022},{0.962,1.152,0.797},{1.116,1.634,0.708}};
+std::vector<std::vector<float>> SF2017_bqMerge_HbbMistag    = {{1.275,1.395,1.165},{1.333,1.475,1.202},{1.440,1.773,1.170}};
+std::vector<std::vector<float>> SF2018_bqMerge_HbbMistag    = {{1.558,1.682,1.442},{1.349,1.476,1.233},{1.555,1.933,1.242}};
+// Wqq mistag WMerged SFs, pt cats: [300,450), [450,600), [600,+inf)
+std::vector<std::vector<float>> SF2016APV_wMerge_WqqMistag = {{1.004,1.091,0.928},{1.247,1.425,1.103},{0.723,0.952,0.546}};
+std::vector<std::vector<float>> SF2016_wMerge_WqqMistag = {{1.035,1.160,0.933},{0.869,1.003,0.758},{1.301,1.696,1.014}};
+std::vector<std::vector<float>> SF2017_wMerge_WqqMistag = {{1.019,1.101,0.947},{0.800,0.847,0.756},{0.877,1.018,0.750}};                                                                                                              std::vector<std::vector<float>> SF2018_wMerge_WqqMistag = {{0.784,0.829,0.743},{0.783,0.826,0.743},{0.755,0.855,0.670}};
+// Wqq mistag TOP merge JET SF'S: pT cats are [300, 450), [450, 600), [600, +inf)
+std::vector<std::vector<float>> SF2016APV_topMerge_WqqMistag = {{0.807,0.942,0.679},{0.763,0.871,0.657},{0.664,0.816,0.523}};
+std::vector<std::vector<float>> SF2016_topMerge_WqqMistag    = {{0.920,1.075,0.775},{0.930,1.056,0.810},{1.045,1.242,0.864}};
+std::vector<std::vector<float>> SF2017_topMerge_WqqMistag    = {{0.691,0.807,0.580},{1.055,1.144,0.969},{1.143,1.278,1.014}};
+std::vector<std::vector<float>> SF2018_topMerge_WqqMistag    = {{0.738,0.819,0.660},{0.977,1.040,0.917},{1.014,1.123,0.910}};
+// Wqq mistag BQ merge JET SF'S: pT cats are [300, 450), [450, 600), [600, +inf)
+std::vector<std::vector<float>> SF2016APV_bqMerge_WqqMistag = {{1.284,1.428,1.154},{1.261,1.442,1.097},{0.879,1.309,0.531}};
+std::vector<std::vector<float>> SF2016_bqMerge_WqqMistag    = {{1.154,1.302,1.022},{0.962,1.152,0.797},{1.116,1.634,0.708}};
+std::vector<std::vector<float>> SF2017_bqMerge_WqqMistag    = {{1.275,1.395,1.165},{1.333,1.475,1.202},{1.440,1.773,1.170}};
+std::vector<std::vector<float>> SF2018_bqMerge_WqqMistag    = {{1.558,1.682,1.442},{1.349,1.476,1.233},{1.555,1.933,1.242}};
+
