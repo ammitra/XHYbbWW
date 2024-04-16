@@ -16,11 +16,11 @@ using namespace ROOT::VecOps;
 class PNetHbbSFHandler {
     private:
 	// Internal variables
-	std::string _year;	// "16", "16APV", "17", "18"
+	std::string _year;	    // "16", "16APV", "17", "18"
 	std::string _category;	// "signal", "ttbar", "other"
 	TFile* 	    _effroot;	// store pointer to efficiency file
-	float	    _wp;	// tagger working point
-	TRandom3*   _rand;	// random number generator
+	float	    _wp;	    // tagger working point
+	TRandom3*   _rand;	    // random number generator
 
 	// Higgs tagging scale factors ---------------------------------------------------------------------------------------
 	// pt categories: [400, 600), [600, 800), [800, +inf)		{nom, up, down}
@@ -74,11 +74,13 @@ int PNetHbbSFHandler::GetPtBin(float pt) {
         if      (pt >= 400 && pt < 600) { ptBin=0; }
         else if (pt >= 600 && pt < 800) { ptBin=1; }
         else if (pt >= 800) { ptBin=2; }
+        else    { ptBin = 0; }
     }
     else {
         if      (pt >= 300 && pt < 450) { ptBin=0; }
         else if (pt >= 450 && pt < 600) { ptBin=1; }
         else if (pt >= 600) { ptBin=2; }
+        else    { ptBin = 0; }
     }
     return ptBin;
 };
@@ -183,36 +185,33 @@ float PNetHbbSFHandler::GetEff(float pt, float eta, int jetCat) {
     // Obtain the efficiency for the given jet based on its top merging category (if ttbar) or H matching if signal
     // Efficiency map binned in pT: [60,0,3000], eta: [12,-2.4,2.4]
     float eff;
-    /*
-    int xbin = (int)(pt*30./3000.);
-    int ybin = (int)((eta+2.4)*12/4.8);
-    */
-    TH2F* _effmap;
+    TEfficiency* _effmap;
     // only used for ttbar:
     // 0:other, 1: qq, 2: bq, 3:bqq
     int cat = jetCat;
 
     if (_category == "signal") {
-        _effmap = (TH2F*)_effroot->Get("Higgs-matched_Trijet_particleNetMD_HbbvsQCD_WP0p98_eff");
+        _effmap = (TEfficiency*)_effroot->Get("Higgs-matched_Trijet_particleNetMD_HbbvsQCD_WP0p98_TEff");
+        _effmap = (TEfficiency*)_effroot->Get("Higgs-matched_Trijet_particleNetMD_HbbvsQCD_WP0p98_TEff");
     }
     else if (_category == "ttbar") {
         if (cat == 0) {
-            _effmap = (TH2F*)_effroot->Get("other-matched_Trijet_particleNetMD_HbbvsQCD_WP0p98_eff");
+            _effmap = (TEfficiency*)_effroot->Get("other-matched_Trijet_particleNetMD_HbbvsQCD_WP0p98_TEff");
         }
         else if (cat == 1) {
-            _effmap = (TH2F*)_effroot->Get("top_qq-matched_Trijet_particleNetMD_HbbvsQCD_WP0p98_eff");
+            _effmap = (TEfficiency*)_effroot->Get("top_qq-matched_Trijet_particleNetMD_HbbvsQCD_WP0p98_TEff");
         }
         else if (cat == 2) {
-            _effmap = (TH2F*)_effroot->Get("top_bq-matched_Trijet_particleNetMD_HbbvsQCD_WP0p98_eff");
+            _effmap = (TEfficiency*)_effroot->Get("top_bq-matched_Trijet_particleNetMD_HbbvsQCD_WP0p98_TEff");
         }
         else if (cat == 3) {
-            _effmap = (TH2F*)_effroot->Get("top_bqq-matched_Trijet_particleNetMD_HbbvsQCD_WP0p98_eff");
+            _effmap = (TEfficiency*)_effroot->Get("top_bqq-matched_Trijet_particleNetMD_HbbvsQCD_WP0p98_TEff");
         }
         else { // 4, 5 correspond to Higgs, W (not from top), so just make these other?
-            _effmap = (TH2F*)_effroot->Get("other-matched_Trijet_particleNetMD_HbbvsQCD_WP0p98_eff");
+            _effmap = (TEfficiency*)_effroot->Get("other-matched_Trijet_particleNetMD_HbbvsQCD_WP0p98_TEff");
         }
     }
-    //eff = _effmap->GetBinContent(xbin, ybin);
+
     int globalbin = _effmap->FindFixBin(pt, eta);
     eff = _effmap->GetEfficiency(globalbin);
     return eff;
@@ -254,7 +253,8 @@ int PNetHbbSFHandler::GetNewHCat(float HbbDiscriminantValue, float pt, float eta
     SF = GetSF(pt, variation, jetCat);
     // calculate efficiency for this jet
     eff = GetEff(pt, eta, jetCat);
-    if (eff == 1.0) { eff = 0.99; }	// avoid division by zero if SF > 1
+    if (eff == 1.0) { eff = 0.99; }	    // avoid division by zero if SF > 1
+    if (eff == 0.0) { eff = 0.00001; }  // avoid division by zero
     // Main logic
     if (SF == 1) { return newTag; }	// no correction needed
     float rand = _rand->Uniform(1.0);
@@ -266,7 +266,7 @@ int PNetHbbSFHandler::GetNewHCat(float HbbDiscriminantValue, float pt, float eta
             if (rand < mistagPercent) {
                 newTag = 1;
             }
-	}
+        }
     }
     else {
         // downgrade tagged to untagged

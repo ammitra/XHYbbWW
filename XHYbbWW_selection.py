@@ -11,24 +11,6 @@ def selection(args):
 
     # Gather the snapshots
     selection = XHYbbWW('trijet_nano/{}_{}_snapshot.txt'.format(args.setname,args.year),args.year,1,1)
-    #selection.OpenForSelection(args.variation) # automatically applies corrections
-
-    # nToRun = 1000
-    # small_rdf = selection.a.GetActiveNode().DataFrame.Range(nToRun) # makes an RDF with only the first nentries considered
-    # small_node = Node('small',small_rdf) # makes a node out of the dataframe
-    # selection.a.SetActiveNode(small_node) # tell analyzer about the node by setting it as 
-    print(selection.a.DataFrame.GetColumnNames())
-    print(selection.a.DataFrame.Display(["nGenPart"]).Print())
-    exit()
-
-
-
-
-    print('PROCESSING: {} {}'.format(args.setname, args.year))
-    start = time.time()
-
-    # Gather the snapshots
-    selection = XHYbbWW('trijet_nano/{}_{}_snapshot.txt'.format(args.setname,args.year),args.year,1,1)
 
     # If debugging, run on smaller number of events
     if args.nevents == 'all':
@@ -44,9 +26,7 @@ def selection(args):
     selection.OpenForSelection(args.variation) # automatically applies corrections
 
     # apply HT cut due to improved trigger effs (OUTDATED, HT CUT SHOULD ALWAYS BE ZERO)
-    before = selection.a.DataFrame.Count()
     selection.a.Cut('HT_cut','HT > {}'.format(args.HT))
-    after = selection.a.DataFrame.Count()
 
     # Apply trigger efficiencies
     selection.ApplyTrigs(args.trigEff)
@@ -132,7 +112,17 @@ def selection(args):
         # At this point we will have identified the two (anti-)W candidates and the Higgs candidate (by proxy).
         # The above method defines new TIMBER SubCollections for the H/W/W candidates using H, W1, W2 as prefixes.
         # We must now apply the pass and fail Hbb tagging cuts to create the signal and control regions for the final search.
-        selection.a.DataFrame.Sum("genWeight").GetValue()
+
+        #print(selection.a.DataFrame.Display("ObjIdxs_%s"%region,100).Print())
+        #print(selection.a.DataFrame.Display('Trijet_pt_corr',1).Print())
+        #print(selection.a.DataFrame.Display('nGenPart',15).Print())
+        #print(selection.a.DataFrame.Display('w1Idx',15).Print())
+        #print(selection.a.DataFrame.Display('w2Idx',15).Print())
+        #print(selection.a.DataFrame.Display('hIdx',15).Print())
+        #selection.a.Cut("test_hIdx_cut","hIdx>=0")
+        #selection.a.DataFrame.Sum("genWeight").GetValue()
+
+
         print('Defining Fail and Pass categories based on Higgs candidate score in %s...'%region)
         # NOTE: it is important to pass in dummy value for the GenMatch category for any non-signal/ttbar processes
         PassFail = selection.ApplyHiggsTag(
@@ -146,7 +136,11 @@ def selection(args):
             invert           = False if region == 'SR' else True,
             mass_window      = [110., 145.]
         )
-        selection.a.DataFrame.Sum("genWeight").GetValue()
+
+        #print(selection.a.DataFrame.Display("HiggsTagStatus", 10).Print())
+        #selection.a.DataFrame.Sum("genWeight").GetValue()
+
+
         # We now have an ordered dictionary of Pass/Fail regions and the associated TIMBER nodes. We will use this 
         # to construct the 2D templates for each region and systematic variation.
         binsX = [45, 0, 4500]

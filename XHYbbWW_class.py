@@ -392,10 +392,10 @@ class XHYbbWW:
         # At this point, we'll have a column named ObjIdxs_SR/CR containing the indices of
         # which of the three jets are the Ws and the Higgs (W1_idx, W2_idx, H_idx). 
         # Or {-1, -1, -1} if at least two jets didn't pass W tagging
-        self.a.Cut('Has2Ws','(w1Idx > -1) && (w2Idx > -1)') # cut to ensure the event has the two requisite Ws
         self.a.Define('w1Idx','{}[0]'.format(objIdxs))
         self.a.Define('w2Idx','{}[1]'.format(objIdxs))
         self.a.Define('hIdx', '{}[2]'.format(objIdxs))
+        self.a.Cut('Has2Ws','(w1Idx > -1) && (w2Idx > -1) && (hIdx > -1)') # cut to ensure the event has the two requisite Ws
         # at this point, rename Trijet -> W1/W2/Higgs based on its index determined above
         self.a.ObjectFromCollection('W1','Trijet','w1Idx')#,skip=['msoftdrop_corrH'])
         self.a.ObjectFromCollection('W2','Trijet','w2Idx')#,skip=['msoftdrop_corrH'])
@@ -446,7 +446,7 @@ class XHYbbWW:
         # We will now be able to define the Fail and Pass regions and return them.
         out = OrderedDict()
         checkpoint = self.a.GetActiveNode()
-
+        '''
         print('DEBUG 1 ------------')
         print('\t%s: %s'%(Hbb_discriminant,self.a.DataFrame.GetColumnType(Hbb_discriminant)))
         print('\t%s: %s'%(corrected_pt,self.a.DataFrame.GetColumnType(corrected_pt)))
@@ -454,7 +454,7 @@ class XHYbbWW:
         print('\t%s: %s'%(genMatchCat,self.a.DataFrame.GetColumnType(genMatchCat)))
 
         self.a.DataFrame.Sum("genWeight").GetValue()
-
+        '''
 	    # Begin loop over analysis regions
 	    # First, don't require Higgs mass cut:
         for region in ['fail','pass']:
@@ -462,9 +462,11 @@ class XHYbbWW:
             self.a.SetActiveNode(checkpoint)
             # 0 indicates Higgs jet failed tagging, 1 indicates it passed tagging requirement
             out[region] = self.a.Cut('HbbTag_%s'%region, 'HiggsTagStatus == %s'%(0 if region == 'fail' else 1))
-            print('DEBUG %s'%region)
-            print('\t%s: %s'%('HiggsTagStatus',self.a.DataFrame.GetColumnType('HiggsTagStatus')))
-            self.a.DataFrame.Sum("genWeight").GetValue()
+            #print('DEBUG %s'%region)
+            #print('\t%s: %s'%('HiggsTagStatus',self.a.DataFrame.GetColumnType('HiggsTagStatus')))
+            #print('End DEBUG %s'%region)
+            #self.a.DataFrame.Sum("genWeight").GetValue()
+            #print('test')
 
         # Now, do the same but require a Higgs mass window cut
         mreg_cut_SR = '{0} >= 110 && {0} < 145'.format(corrected_mass)
