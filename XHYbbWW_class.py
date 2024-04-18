@@ -5,6 +5,7 @@ from TIMBER.Tools.AutoPU import ApplyPU
 from JMEvalsOnly import JMEvalsOnly
 from collections import OrderedDict
 import TIMBER.Tools.AutoJME as AutoJME
+from memory_profiler import profile
 
 AutoJME.AK8collection = 'Trijet'
 
@@ -147,6 +148,7 @@ class XHYbbWW:
         return self.a.GetActiveNode()
 
     # corrections - used in both snapshots and selection
+    #@profile
     def ApplyStandardCorrections(self, snapshot=False):
         # first apply corrections for snapshot phase	
         if snapshot:
@@ -219,6 +221,14 @@ class XHYbbWW:
         # now for selection
         else:
             if not self.a.isData:
+                # I forgot to add the `genW` branch in snapshots, so just redo it here...
+                # In the end it doesn't really matter, since the correction just uses genWeight.
+                # One could also opt to add genWeight*GetXsecScale() in the MakeWeightCols() call as well..
+                # This is EXTREMELY IMPORTANT for getting the event weighting correct
+                genWCorr = Correction('genW','TIMBER/Framework/TopPhi_modules/BranchCorrection.cc',corrtype='corr',mainFunc='evalCorrection')
+                #self.a.AddCorrection(Correction('genW',corrtype='corr'))
+                self.a.AddCorrection(genWCorr, evalArgs={'val':'genWeight'})
+
                 self.a.AddCorrection(Correction('Pileup',corrtype='weight'))
                 self.a.AddCorrection(Correction('ISRunc',corrtype='uncert'))
                 self.a.AddCorrection(Correction('FSRunc',corrtype='uncert'))
@@ -360,6 +370,7 @@ class XHYbbWW:
     # factors, and the data is subject to neither. The following two methods are meant  #
     # to handle each of the cases separately.                                           #
     #####################################################################################
+    #@profile
     def Pick_W_candidates(
         self,
         WqqSFHandler_obj    = 'WqqSFHandler',               # instance of the Wqq SF handler class
@@ -396,10 +407,19 @@ class XHYbbWW:
         self.a.Define('w2Idx','{}[1]'.format(objIdxs))
         self.a.Define('hIdx', '{}[2]'.format(objIdxs))
         self.a.Cut('Has2Ws','(w1Idx > -1) && (w2Idx > -1) && (hIdx > -1)') # cut to ensure the event has the two requisite Ws
+        # Now perform the mass window cut in the SR
+        if not invert:
+            # ensure both W candidates are within the mW window
+            mW1 = '%s[w1Idx]'%corrected_mass
+            mW2 = '%s[w2Idx]'%corrected_mass
+            mWcut = '({0} >= {2}) && ({0} <= {3}) && ({1} >= {2}) && ({1} <= {3})'.format(mW1,mW2,mass_window[0],mass_window[1])
+            self.a.Cut('mW_window',mWcut)
         # at this point, rename Trijet -> W1/W2/Higgs based on its index determined above
-        self.a.ObjectFromCollection('W1','Trijet','w1Idx')#,skip=['msoftdrop_corrH'])
-        self.a.ObjectFromCollection('W2','Trijet','w2Idx')#,skip=['msoftdrop_corrH'])
-        self.a.ObjectFromCollection('H','Trijet','hIdx')#,skip=['msoftdrop_corrH'])
+        cols_to_skip = ['vect_msoftdrop','vect_mregressed','vect_msoftdrop_corr','vect_mregressed_corr','tau2','tau3','tau1','tau4','particleNetMD_QCD','deepTagMD_HbbvsQCD','particleNet_TvsQCD','particleNetMD_Xcc','deepTagMD_WvsQCD','particleNet_QCD','jetId','particleNetMD_Xbb','particleNet_WvsQCD','deepTagMD_ZHbbvsQCD','deepTag_TvsQCD','rawFactor','particleNetMD_Xqq']
+        cols = ['Trijet_%s'%i for i in cols_to_skip]
+        self.a.ObjectFromCollection('W1','Trijet','w1Idx',skip=cols)#,skip=['msoftdrop_corrH'])
+        self.a.ObjectFromCollection('W2','Trijet','w2Idx',skip=cols)#,skip=['msoftdrop_corrH'])
+        self.a.ObjectFromCollection('H','Trijet','hIdx',skip=cols)#,skip=['msoftdrop_corrH'])
         # in order to avoid column naming duplicates, call these LeadW, SubleadW, Higgs
         self.a.Define('LeadW_vect_softdrop','hardware::TLvector(W1_pt_corr, W1_eta, W1_phi, W1_msoftdrop_corr)')
         self.a.Define('SubleadW_vect_softdrop','hardware::TLvector(W2_pt_corr, W2_eta, W2_phi, W2_msoftdrop_corr)')
@@ -415,6 +435,7 @@ class XHYbbWW:
         self.a.Define('mww_regressed','hardware::InvariantMass({LeadW_vect_regressed,SubleadW_vect_regressed})')
         return self.a.GetActiveNode()
 
+    #@profile
     def ApplyHiggsTag(
 	    self, 
         HbbSFHandler_obj    = 'HbbSFHandler',               # instance of the Hbb SF handler class

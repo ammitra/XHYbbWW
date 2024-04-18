@@ -281,6 +281,9 @@ RVec<int> PNetWqqSFHandler::Pick_W_candidates(RVec<float> Wqq_discriminant, RVec
     int idx1 = idxs[1];
     int idx2 = idxs[2];
     bool isW0, isW1, isW2;
+    // just so compiler doesn't complain about unused
+    float massLo = massWindow[0];
+    float massHi = massWindow[1];
 
     // Split the logic based on which sample we're running on
     if ((_category == "signal") || (_category == "ttbar")) {
@@ -294,10 +297,10 @@ RVec<int> PNetWqqSFHandler::Pick_W_candidates(RVec<float> Wqq_discriminant, RVec
         int new_score1 = GetNewWCat(orig_score1, corrected_pt[idx1], trijet_eta[idx1], WqqSFVariation, jetCats[idx1]);
         int new_score2 = GetNewWCat(orig_score2, corrected_pt[idx2], trijet_eta[idx2], WqqSFVariation, jetCats[idx2]);
 	// logic to determine W selection using the new tagger "scores" (categories - 0:not tagged, 1:tagged)
-	if (!invert) { // SIGNAL REGION - tagged and within mass window
-	    isW0 = (new_score0 == 1) && (corrected_mass[idx0] >= massWindow[0]) && (corrected_mass[idx0] <= massWindow[1]);
-            isW1 = (new_score1 == 1) && (corrected_mass[idx1] >= massWindow[0]) && (corrected_mass[idx1] <= massWindow[1]);
-            isW2 = (new_score2 == 1) && (corrected_mass[idx2] >= massWindow[0]) && (corrected_mass[idx2] <= massWindow[1]);
+	if (!invert) { // SIGNAL REGION - tagged (BUT APPLY MASS WINDOW LATER)
+	    isW0 = (new_score0 == 1);
+            isW1 = (new_score1 == 1);
+            isW2 = (new_score2 == 1);
 	}
 	else { // CONTROL REGION
             isW0 = (new_score0 == 0);
@@ -309,9 +312,9 @@ RVec<int> PNetWqqSFHandler::Pick_W_candidates(RVec<float> Wqq_discriminant, RVec
 	// If not ttbar or signal, running on data or V+jets (or some non-dominant bkg where mistagging doesn't really matter.
 	// Therefore, just do normal W identification based on the tagger score and the W mass window
 	if (!invert) {	// SIGNAL REGION - tagged and within mass window
-            isW0 = (Wqq_discriminant[idx0] > _wp) && (corrected_mass[idx0] >= massWindow[0]) && (corrected_mass[idx0] <= massWindow[1]);
-            isW1 = (Wqq_discriminant[idx1] > _wp) && (corrected_mass[idx1] >= massWindow[0]) && (corrected_mass[idx1] <= massWindow[1]);
-            isW2 = (Wqq_discriminant[idx2] > _wp) && (corrected_mass[idx2] >= massWindow[0]) && (corrected_mass[idx2] <= massWindow[1]);
+            isW0 = (Wqq_discriminant[idx0] > _wp);
+            isW1 = (Wqq_discriminant[idx1] > _wp);
+            isW2 = (Wqq_discriminant[idx2] > _wp);
 	}
 	else {	// CONTROL REGION
 	    isW0 = (Wqq_discriminant[idx0] > 0.05) && (Wqq_discriminant[idx0] < _wp);	// > 0.05 to avoid huge statistics

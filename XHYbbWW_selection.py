@@ -4,6 +4,8 @@ from TIMBER.Tools.Common import CompileCpp
 from collections import OrderedDict
 import TIMBER.Tools.AutoJME as AutoJME
 from XHYbbWW_class import XHYbbWW
+from memory_profiler import profile
+
 
 def selection(args):
     print('PROCESSING: {} {}'.format(args.setname, args.year))
@@ -34,6 +36,8 @@ def selection(args):
     # Perform gen matching to each of the three candidate jets to determine H/W or top(merging) status of each
     # By prepending 'Trijet_' to the name, it will get picked up by TIMBER.Analyzer.SubCollection() and we can 
     # then save the gen matching category status alongside any H/W/W candidates produced later.
+    # This is to be done only for signal and ttbar, we will just use dummy values for other processes, which 
+    # will tell the underlying code just to use raw tagger scores for all selection.
     selection.a.Define('Trijet_GenMatchCats','classifyProbeJets({0,1,2}, Trijet_phi, Trijet_eta, nGenPart, GenPart_phi, GenPart_eta, GenPart_pdgId, GenPart_genPartIdxMother)')
 
     # Tagger defintions and WPs
