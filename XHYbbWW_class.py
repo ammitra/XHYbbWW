@@ -385,21 +385,32 @@ class XHYbbWW:
     ):
         # Column names for the W (anti)candidate indices
         objIdxs = 'ObjIdxs_%s'%('CR' if invert else 'SR')
-        # Create the column containing the indices of the three jets after matching
-        self.a.Define(objIdxs,
-            '%s.Pick_W_candidates(%s, %s, %s, %s, %s, %s, %s, {%f, %f}, {0, 1, 2})'%(
-                WqqSFHandler_obj, # we are calling this instance's method
-                Wqq_discriminant,
-                corrected_pt,
-                trijet_eta,
-                corrected_mass,
-                genMatchCats,
-                Wqq_variation,
-                'true' if invert else 'false',
-                mass_window[0],
-                mass_window[1]
+        # Create the column containing the indices of the three jets after matching.
+        # This is done separately for the ttbar+signal and data/otherMC
+        if ('ttbar' in self.setname) or ('NMSSM' in self.setname):
+            self.a.Define(objIdxs,
+                '%s.Pick_W_candidates(%s, %s, %s, %s, %s, %s, %s, {%f, %f}, {0, 1, 2})'%(
+                    WqqSFHandler_obj, # we are calling this instance's method
+                    Wqq_discriminant,
+                    corrected_pt,
+                    trijet_eta,
+                    corrected_mass,
+                    genMatchCats,
+                    Wqq_variation,
+                    'true' if invert else 'false',
+                    mass_window[0],
+                    mass_window[1]
+                )
             )
-        )
+        else:
+            # This assumes that `HWWmodules.cc` has been compiled already
+            self.a.Define(objIdxs, 
+                'Pick_W_candidates_standard(%s, %s, %s, {0, 1, 2})'%(
+                    Wqq_discriminant,
+                    0.8,
+                    'true' if invert else 'false'
+                )
+            )
         # At this point, we'll have a column named ObjIdxs_SR/CR containing the indices of
         # which of the three jets are the Ws and the Higgs (W1_idx, W2_idx, H_idx). 
         # Or {-1, -1, -1} if at least two jets didn't pass W tagging
@@ -449,16 +460,21 @@ class XHYbbWW:
         mass_window         = [60., 110]                    # H mass window for selection
     ):
         # Create the column determining whether or not the H candidate passes the H tagger wp (0.98)
-        self.a.Define('HiggsTagStatus',
-            '%s.GetNewHCat(%s, %s, %s, %s, %s)'%(
-                HbbSFHandler_obj,
-                Hbb_discriminant,
-                corrected_pt,
-                jet_eta,
-                Hbb_variation,
-                genMatchCat
+        if ('ttbar' in self.setname) or ('NMSSM' in self.setname):
+            self.a.Define('HiggsTagStatus',
+                '%s.GetNewHCat(%s, %s, %s, %s, %s)'%(
+                    HbbSFHandler_obj,
+                    Hbb_discriminant,
+                    corrected_pt,
+                    jet_eta,
+                    Hbb_variation,
+                    genMatchCat
+                )
             )
-        )
+        else:
+            # This assumes that `HWWmodules.cc` has been compiled already
+            self.a.Define('HiggsTagStatus','Pick_H_candidate_standard(%s, %s)'%(Hbb_discriminant, 0.98))
+
         out = OrderedDict()
         # At this point, we have a column describing whether or not the Higgs candidate is Higgs-tagged.
         #   - For ttbar, mistagging SFs will have been applied to account for the fact that a gen top may be mistagged.
@@ -496,7 +512,7 @@ class XHYbbWW:
             print('Performing Higgs tagging in %s of %s WITH Higgs mass window...'%(region, 'CR' if invert else 'SR'))
             self.a.SetActiveNode(checkpoint)
             self.a.Cut('HbbTag_%s_massreq_cut'%region,mreg_cut_CR if invert else mreg_cut_SR) # perform the mass requirement
-            out[region] = self.a.Cut('HbbTag_%s'%region, 'HiggsTagStatus == %s'%(0 if region == 'fail' else 1))
+            out[region] = self.a.Cut('HbbTag_%s'%region, 'HiggsTagStatus == %s'%(0 if 'fail' in region else 1))
 
         # Send out the ordered dictionary
         return out

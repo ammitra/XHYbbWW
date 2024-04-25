@@ -243,14 +243,22 @@ int PNetWqqSFHandler::GetNewWCat(int isTagged, float pt, float eta, int variatio
             // upgrade to tagged
             if (rand < mistagPercent) {
                 newTag = 1;
+                //std::cout << "untagged jet promoted\n";
             }
+            //else {
+                //std::cout << "untagged jet stays the same\n";
+            //}
         }
     }
     else {
         // downgrade tagged to untagged
-        if ( isTagged == 0 && rand > SF) {
+        if ( isTagged == 1 && rand > SF) {
             newTag = 0;
+            //std::cout << "tagged jet demoted\n";
         }
+        //else {
+            //std::cout << "tagged jet stays the same\n";
+        //}
     }
     return newTag;
 };

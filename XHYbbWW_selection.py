@@ -5,40 +5,47 @@ from collections import OrderedDict
 import TIMBER.Tools.AutoJME as AutoJME
 from XHYbbWW_class import XHYbbWW
 from memory_profiler import profile
+from multiprocessing import Process, Queue
 
+def ranges(num_entries, chunks):
+    chunks = int(chunks)
+    step = num_entries / chunks
+    l_out = [[round(step*i),round(step*(i+1))] for i in range(chunks)]
+    # get remainder
+    nMinus1 = l_out[-1][-1]
+    if nMinus1 == num_entries:
+        return l_out
+    else:
+        final_chunk = [nMinus1, num_entries]
+        l_out.append(final_chunk)
+        return l_out
 
 def selection(args):
     print('PROCESSING: {} {}'.format(args.setname, args.year))
     start = time.time()
 
-    # Gather the snapshots
     selection = XHYbbWW('trijet_nano/{}_{}_snapshot.txt'.format(args.setname,args.year),args.year,1,1)
 
-    # If debugging, run on smaller number of events
-    if args.nevents == 'all':
-        pass
+    if args.nchunks == 'all':
+        outFileName = 'rootfiles/XHYbbWWselection_HT{}_{}_{}{}.root'.format(args.HT, args.setname, args.year, '_'+args.variation if args.variation != 'None' else '')
     else:
-        print('DEBUG: Running only on the first %s events'%args.nevents)
-        nevents = int(args.nevents)
-        # makes an RDF with only the first nentries considered
-        small_rdf = selection.a.GetActiveNode().DataFrame.Range(nevents)
-        small_node = Node('small',small_rdf)
+        assert(int(args.ijob) < int(args.nchunks))
+        nEntries = selection.a.DataFrame.Count().GetValue()
+        chunk_ranges = ranges(nEntries, int(args.nchunks))
+        chunk = chunk_ranges[args.ijob]
+        print('Running only on events %s-%s'%(chunk[0],chunk[-1]))
+        small_rdf = selection.a.GetActiveNode().DataFrame.Range(chunk[0],chunk[-1])
+        small_node = Node('chunk_%s-%s'%(chunk[0],chunk[-1]),small_rdf)
         selection.a.SetActiveNode(small_node)
+        outFileName = 'rootfiles/XHYbbWWselection_HT{}_{}_{}{}_CHUNK{}.root'.format(args.HT, args.setname, args.year, '_'+args.variation if args.variation != 'None' else '',args.ijob)
 
     selection.OpenForSelection(args.variation) # automatically applies corrections
 
-    # apply HT cut due to improved trigger effs (OUTDATED, HT CUT SHOULD ALWAYS BE ZERO)
+    # Apply HT cut due to improved trigger effs (OUTDATED, HT CUT SHOULD ALWAYS BE ZERO)
     selection.a.Cut('HT_cut','HT > {}'.format(args.HT))
 
     # Apply trigger efficiencies
     selection.ApplyTrigs(args.trigEff)
-
-    # Perform gen matching to each of the three candidate jets to determine H/W or top(merging) status of each
-    # By prepending 'Trijet_' to the name, it will get picked up by TIMBER.Analyzer.SubCollection() and we can 
-    # then save the gen matching category status alongside any H/W/W candidates produced later.
-    # This is to be done only for signal and ttbar, we will just use dummy values for other processes, which 
-    # will tell the underlying code just to use raw tagger scores for all selection.
-    selection.a.Define('Trijet_GenMatchCats','classifyProbeJets({0,1,2}, Trijet_phi, Trijet_eta, nGenPart, GenPart_phi, GenPart_eta, GenPart_pdgId, GenPart_genPartIdxMother)')
 
     # Tagger defintions and WPs
     w_tagger = 'particleNetMD_WvsQCD'
@@ -46,54 +53,70 @@ def selection(args):
     h_tagger = 'particleNetMD_HbbvsQCD'
     h_wp = 0.98
 
-    # Instantiate PNetWqqSFHandler object.
-    # This will be used to perform the algorithm that picks the two W candidates (and thus also the Higgs).
-    # The main routine automatically handles SF application for signal and ttbar samples, and performs 
-    # the normal W selection (using only W mass window and raw MD_WvsQCD score) for anything else. 
-
-    # If signal or ttbar, apply tagging SFs. If data, apply no SFs.
-    if 'NMSSM' in args.setname:   category = 'signal'
-    elif 'ttbar' in args.setname: category = 'ttbar'
-    else: category = 'other'
-    # determine which PNet variations we will be doing 
-    if (category != 'other'):
-        if (args.variation == 'PNetHbb_up'):
-            HbbVar = 1	# vary Hbb (mis)tag SFs up
-            WqqVar = 0  # keep Wqq (mis)tag SFs nominal
-        elif (args.variation == 'PNetHbb_down'):
-                HbbVar = 2  # vary Hbb (mis)tag SFs down
-                WqqVar = 0  # keep Wqq (mis)tag SFs nominal
-        elif (args.variation == 'PNetWqq_up'):
-                HbbVar = 0  # keep Hbb (mis)tag SFs nominal
-                WqqVar = 1  # vary Wqq (mis)tag SFs up
-        elif (args.variation == 'PNetWqq_down'):
-                HbbVar = 0  # keep Hbb (mis)tag SFs nominal
-                WqqVar = 2  # vary Wqq (mis)tag SFs up
-        else:
-            # Keep both nominal
-            HbbVar = 0
-            WqqVar = 0
-
-    # Path to efficiency file
-    effpath = 'ParticleNetSFs/EfficiencyMaps/%s_%s_Efficiencies.root'%(args.setname, args.year)
-
-    # Instantiate the PNet SF helpers. This is mandatory, even for non-signal/ttbar processes.
-    # They will automatically handle the application of (mis)tagging SFs to (ttbar)signal processes, and will apply 
-    # normal H/W/W selection otherwise.  
-    WqqSFHandler_args = 'PNetWqqSFHandler WqqSFHandler = PNetWqqSFHandler("%s", "%s", "%s", %f, 12345);'%(args.year, category, effpath, w_wp)
-    HbbSFHandler_args = 'PNetHbbSFHandler HbbSFHandler = PNetHbbSFHandler("%s", "%s", "%s", %f, 12345);'%(args.year, category, effpath, h_wp)
-
-    print('Instantiating PNetWqqSFHandler object:\n\t%s'%WqqSFHandler_args)
-    CompileCpp(WqqSFHandler_args)
-    print('Instantiating PNetHbbSFHandler object:\n\t%s'%HbbSFHandler_args)
-    CompileCpp(HbbSFHandler_args)
-
-    # create a checkpoint with the proper event weights
+    # Create a checkpoint with the proper event weights
     kinOnly = selection.a.MakeWeightCols(extraNominal='' if selection.a.isData else str(selection.GetXsecScale()))
 
-    out = ROOT.TFile.Open('rootfiles/XHYbbWWselection_HT{}_{}_{}{}.root'.format(args.HT, args.setname, args.year, '_'+args.variation if args.variation != 'None' else ''), 'RECREATE')
+    # Prepare a root file to save the templates
+    out = ROOT.TFile.Open(outFileName, 'RECREATE')
     out.cd()
 
+    ########################################################################################################################
+    # Logic to determine whether to apply (mis)tagging SFs to pick the H/W/W candidates or just use the raw tagging scores #
+    ########################################################################################################################
+    if ('NMSSM' in args.setname) or ('ttbar' in args.setname):
+        # Code to perform gen matching
+        CompileCpp('ParticleNetSFs/TopMergingFunctions.cc')
+        # The classes implemented in these files will apply PNet tagging factors to signal
+        # and mistagging SFs to ttbar MC in order to perform the H/W/W selection. For data
+        # and other MC processes, the functions in HWWmodules.cc will perform the same
+        # selection, using just the raw tagger scores instead.
+        CompileCpp('ParticleNetSFs/PNetWqqSFHandler.cc')
+        CompileCpp('ParticleNetSFs/PNetHbbSFHandler.cc')
+        # Perform gen matching to each of the three candidate jets to determine H/W or top(merging) status of each
+        # By prepending 'Trijet_' to the name, it will get picked up by TIMBER.Analyzer.SubCollection() and we can
+        # then save the gen matching category status alongside any H/W/W candidates produced later.
+        selection.a.Define('Trijet_GenMatchCats','classifyProbeJets({0,1,2}, Trijet_phi, Trijet_eta, nGenPart, GenPart_phi, GenPart_eta, GenPart_pdgId, GenPart_genPartIdxMother)')
+        # Determine which variations should be applied
+        if 'NMSSM' in args.setname:   category = 'signal'
+        elif 'ttbar' in args.setname: category = 'ttbar'
+        else: category = 'other'    # will not happen here 
+        if (category != 'other'):
+            if (args.variation == 'PNetHbb_up'):
+                HbbVar = 1  # vary Hbb (mis)tag SFs up
+                WqqVar = 0  # keep Wqq (mis)tag SFs nominal
+            elif (args.variation == 'PNetHbb_down'):
+                HbbVar = 2  # vary Hbb (mis)tag SFs down
+                WqqVar = 0  # keep Wqq (mis)tag SFs nominal
+            elif (args.variation == 'PNetWqq_up'):
+                HbbVar = 0  # keep Hbb (mis)tag SFs nominal
+                WqqVar = 1  # vary Wqq (mis)tag SFs up
+            elif (args.variation == 'PNetWqq_down'):
+                HbbVar = 0  # keep Hbb (mis)tag SFs nominal
+                WqqVar = 2  # vary Wqq (mis)tag SFs up
+            else:
+                HbbVar = 0  # keep both (mis)tag SFs nominal
+                WqqVar = 0
+        # Path to efficiency file
+        effpath = 'ParticleNetSFs/EfficiencyMaps/%s_%s_Efficiencies.root'%(args.setname, args.year)
+        # Instantiate the PNet SF helpers. This is mandatory, even for non-signal/ttbar processes.
+        # They will automatically handle the application of (mis)tagging SFs to (ttbar)signal processes, and will apply
+        # normal H/W/W selection otherwise.
+        WqqSFHandler_args = 'PNetWqqSFHandler WqqSFHandler = PNetWqqSFHandler("%s", "%s", "%s", %f, 12345);'%(args.year, category, effpath, w_wp)
+        HbbSFHandler_args = 'PNetHbbSFHandler HbbSFHandler = PNetHbbSFHandler("%s", "%s", "%s", %f, 12345);'%(args.year, category, effpath, h_wp)
+        print('Instantiating PNetWqqSFHandler object:\n\t%s'%WqqSFHandler_args)
+        CompileCpp(WqqSFHandler_args)
+        print('Instantiating PNetHbbSFHandler object:\n\t%s'%HbbSFHandler_args)
+        CompileCpp(HbbSFHandler_args)
+
+
+    else:
+        # Define variables here so script doesn't complain later
+        category = 'other'
+        HbbVar = 0
+        WqqVar = 0
+        # Used to pick Ws, H for non-ttbar/signal files (V+jets, data, single-top, etc)
+        CompileCpp('HWWmodules.cc')
+   
     # Now define the SR and CR
     for region in ['SR', 'CR']:	# here, CR really represents the QCD control region used for making SR toys.
         print('------------------------------------------------------------------------------------------------')
@@ -117,6 +140,7 @@ def selection(args):
         # The above method defines new TIMBER SubCollections for the H/W/W candidates using H, W1, W2 as prefixes.
         # We must now apply the pass and fail Hbb tagging cuts to create the signal and control regions for the final search.
 
+        #print(selection.a.DataFrame.Sum("genWeight").GetValue())
         #print(selection.a.DataFrame.Display("ObjIdxs_%s"%region,100).Print())
         #print(selection.a.DataFrame.Display('Trijet_pt_corr',1).Print())
         #print(selection.a.DataFrame.Display('nGenPart',15).Print())
@@ -141,7 +165,7 @@ def selection(args):
             mass_window      = [110., 145.]
         )
 
-        #print(selection.a.DataFrame.Display("HiggsTagStatus", 10).Print())
+        print(selection.a.DataFrame.Display("HiggsTagStatus", 10).Print())
         #selection.a.DataFrame.Sum("genWeight").GetValue()
 
 
@@ -162,7 +186,7 @@ def selection(args):
                 mY = 'mww_%s'%mass
                 templates = selection.a.MakeTemplateHistos(ROOT.TH2F('MXvMY_%s'%mod_name, 'MXvMY %s with %s'%(mod_title,'particleNet'),binsX[0],binsX[1],binsX[2],binsY[0],binsY[1],binsY[2]),[mX,mY])
                 templates.Do('Write')
-
+   
     out.Close()
 
 if __name__ == '__main__':
@@ -181,11 +205,17 @@ if __name__ == '__main__':
                         action='store', default='0',
                          help='Value of HT to cut on')
     # FOR DEBUGGING
-    parser.add_argument('-n', type=str, dest='nevents',
+    parser.add_argument('-n', type=str, dest='nchunks',
 			action='store', default='all',
-			help='number of events to run on - strictly for debugging')
+			help='Number of chunks to split the total dataframe into (for debugging memory usage)')
+    parser.add_argument('-j', type=int, dest='ijob',
+                        action='store', default=0,
+                        help='Which chunk to run on')
+
 
     args = parser.parse_args()
+
+    #verbosity = ROOT.Experimental.RLogScopedVerbosity(ROOT.Detail.RDF.RDFLogChannel(), ROOT.Experimental.ELogLevel.kDebug+10)
 
     # We must apply the 2017B triffer efficiency to ~12% of the 2017 MC
     # This trigEff correction is passed to ApplyTrigs() in the XHYbbWW_selection() function
@@ -200,15 +230,5 @@ if __name__ == '__main__':
             args.trigEff = Correction("TriggerEff17",'TIMBER/Framework/include/EffLoader.h',['triggers/HWWtrigger2D_HT{}_17.root'.format(args.HT),'Pretag'],corrtype='weight')
     else:
         args.trigEff = Correction("TriggerEff"+args.year,'TIMBER/Framework/include/EffLoader.h',['triggers/HWWtrigger2D_HT{}_{}.root'.format(args.HT,args.year if 'APV' not in args.year else 16),'Pretag'], corrtype='weight')
-
-    # Gen matching code for ttbar and signal
-    if ('NMSSM' in args.setname) or ('ttbar' in args.setname):
-        CompileCpp('ParticleNetSFs/TopMergingFunctions.cc')
-    
-    # Though named PNetWqqSFHandler and PNetHbbSFHandler, the classes here are necessary for all processes. 
-    # These classes perform the selection of the two W candidates and then the H candidate. They will apply 
-    # (mis)tagging SFs to ttbar and signal, or just use the raw scores and/or masses for data and non-dominant bkgs
-    CompileCpp('ParticleNetSFs/PNetWqqSFHandler.cc')
-    CompileCpp('ParticleNetSFs/PNetHbbSFHandler.cc')
 
     selection(args)
