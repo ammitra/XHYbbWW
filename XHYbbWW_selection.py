@@ -4,7 +4,7 @@ from TIMBER.Tools.Common import CompileCpp
 from collections import OrderedDict
 import TIMBER.Tools.AutoJME as AutoJME
 from XHYbbWW_class import XHYbbWW
-from memory_profiler import profile
+#from memory_profiler import profile
 from multiprocessing import Process, Queue
 
 def ranges(num_entries, chunks):
@@ -52,13 +52,6 @@ def selection(args):
     w_wp = 0.8
     h_tagger = 'particleNetMD_HbbvsQCD'
     h_wp = 0.98
-
-    # Create a checkpoint with the proper event weights
-    kinOnly = selection.a.MakeWeightCols(extraNominal='' if selection.a.isData else str(selection.GetXsecScale()))
-
-    # Prepare a root file to save the templates
-    out = ROOT.TFile.Open(outFileName, 'RECREATE')
-    out.cd()
 
     ########################################################################################################################
     # Logic to determine whether to apply (mis)tagging SFs to pick the H/W/W candidates or just use the raw tagging scores #
@@ -116,7 +109,14 @@ def selection(args):
         WqqVar = 0
         # Used to pick Ws, H for non-ttbar/signal files (V+jets, data, single-top, etc)
         CompileCpp('HWWmodules.cc')
-   
+
+    # Create a checkpoint with the proper event weights
+    kinOnly = selection.a.MakeWeightCols(extraNominal='' if selection.a.isData else str(selection.GetXsecScale()))
+
+    # Prepare a root file to save the templates
+    out = ROOT.TFile.Open(outFileName, 'RECREATE')
+    out.cd()
+
     # Now define the SR and CR
     for region in ['SR', 'CR']:	# here, CR really represents the QCD control region used for making SR toys.
         print('------------------------------------------------------------------------------------------------')
@@ -126,6 +126,7 @@ def selection(args):
         print('Selecting candidate %sWs in %s...'%('(anti-)' if region == 'CR' else '', region))
         # NOTE: it is important to pass in dummy vector for the genMatch categories for any non-signal/ttbar processes.
         selection.Pick_W_candidates(
+                SRorCR           = region,
                 WqqSFHandler_obj = 'WqqSFHandler',                      # instance of the Wqq SF handler class
                 Wqq_discriminant = 'Trijet_particleNetMD_WvsQCD',       # raw MD_WvsQCD tagger score from PNet
                 corrected_pt     = 'Trijet_pt_corr',                    # corrected pt
@@ -154,6 +155,7 @@ def selection(args):
         print('Defining Fail and Pass categories based on Higgs candidate score in %s...'%region)
         # NOTE: it is important to pass in dummy value for the GenMatch category for any non-signal/ttbar processes
         PassFail = selection.ApplyHiggsTag(
+            SRorCR           = region,
             HbbSFHandler_obj = 'HbbSFHandler',
             Hbb_discriminant = 'H_particleNetMD_HbbvsQCD',
             corrected_pt     = 'H_pt_corr',
@@ -165,7 +167,7 @@ def selection(args):
             mass_window      = [110., 145.]
         )
 
-        print(selection.a.DataFrame.Display("HiggsTagStatus", 10).Print())
+        #print(selection.a.DataFrame.Display("HiggsTagStatus", 10).Print())
         #selection.a.DataFrame.Sum("genWeight").GetValue()
 
 
@@ -186,7 +188,21 @@ def selection(args):
                 mY = 'mww_%s'%mass
                 templates = selection.a.MakeTemplateHistos(ROOT.TH2F('MXvMY_%s'%mod_name, 'MXvMY %s with %s'%(mod_title,'particleNet'),binsX[0],binsX[1],binsX[2],binsY[0],binsY[1],binsY[2]),[mX,mY])
                 templates.Do('Write')
-   
+
+    # Save out cutflow information from selection
+    cuts = ['NBEFORE_W_PICK_SR','NBEFORE_W_PICK_CR','NAFTER_W_PICK_SR','NAFTER_W_PICK_CR','NAFTER_W_MASS_REQ_SR','NBEFORE_H_PICK_SR','NBEFORE_H_PICK_CR','NAFTER_H_PICK_SR_FAIL','NAFTER_H_PICK_SR_PASS','NAFTER_H_PICK_CR_FAIL','NAFTER_H_PICK_CR_PASS','NAFTER_H_PICK_SR_FAIL_MHCUT','NAFTER_H_PICK_SR_PASS_MHCUT','NAFTER_H_PICK_CR_FAIL_MHCUT','NAFTER_H_PICK_CR_FAIL_MHCUT']
+    hCutflow = ROOT.TH1F('cutflow', 'Number of events after each cut', len(cuts), 0.5, len(cuts)+0.5)
+    nBin = 1
+    for cut in cuts:
+        print('Obtaining cutflow for %s'%cut)
+        nCut = getattr(selection, cut).GetValue()
+        print('\t%s \t= %s'%(cut,nCut))
+        hCutflow.GetXaxis().SetBinLabel(nBin, cut)
+        hCutflow.AddBinContent(nBin, nCut)
+        nBin += 1
+    hCutflow.Write()
+
+    # Done!
     out.Close()
 
 if __name__ == '__main__':
