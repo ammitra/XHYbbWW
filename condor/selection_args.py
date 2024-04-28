@@ -7,6 +7,9 @@ parser.add_argument('--HT', type=str, dest='HT',
                     help='Value of HT to cut on')
 args = parser.parse_args()
 
+# make the args for Condor jobs with all variations in one job
+out_multi = open('condor/selection_args_HT{}_all_variations.txt'.format(args.HT),'w')
+# make the args for one variation per job
 out = open('condor/selection_args_HT{}.txt'.format(args.HT),'w')
 for f in glob.glob('raw_nano/*.txt'):
     # filename format is "setname_year.txt" or "XYH_WWbb_MX_XMASS_MY_YMASSloc.txt"
@@ -26,4 +29,8 @@ for f in glob.glob('raw_nano/*.txt'):
     else:
         out.write('-s {} -y {} -v None --HT {}\n'.format(setname, year, args.HT))
 
+    out_multi.write('-s %s -y %s --HT %s\n'%(setname, year, args.HT))
+
 out.close()
+out_multi.close()
+
