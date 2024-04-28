@@ -5,7 +5,7 @@ from TIMBER.Tools.AutoPU import ApplyPU
 from JMEvalsOnly import JMEvalsOnly
 from collections import OrderedDict
 import TIMBER.Tools.AutoJME as AutoJME
-from memory_profiler import profile
+#from memory_profiler import profile
 
 AutoJME.AK8collection = 'Trijet'
 
@@ -181,7 +181,8 @@ class XHYbbWW:
                 # Pileup reweighting
                 self.a = ApplyPU(self.a, 'XHYbbWWpileup.root', '20{}'.format(self.year), ULflag=True, histname='{}_{}'.format(self.setname,self.year))
                 # QCD factorization and renormalization corrections (only to non-signal MC)
-                if 'NMSSM' not in self.setname:
+                # For some reason, diboson processes don't have the LHEScaleWeight branch, so don't apply to those either.
+                if ('NMSSM' not in self.setname) and (('WW' not in self.setname) and ('WZ' not in self.setname) and ('ZZ' not in self.setname)):
                     # First instatiate a correction module for the factorization correction
                     facCorr = Correction('QCDscale_factorization','LHEScaleWeights.cc',corrtype='weight',mainFunc='evalFactorization')
                     self.a.AddCorrection(facCorr, evalArgs={'LHEScaleWeights':'LHEScaleWeight'})
@@ -373,6 +374,7 @@ class XHYbbWW:
     #@profile
     def Pick_W_candidates(
         self,
+        SRorCR              = 'SR',                         # whether in SR or CR for cutflow
         WqqSFHandler_obj    = 'WqqSFHandler',               # instance of the Wqq SF handler class
         Wqq_discriminant    = 'Trijet_particleNetMD_WvsQCD',# raw MD_WvsQCD tagger score from PNet
         corrected_pt	    = 'Trijet_pt_corr',		        # corrected pt
@@ -383,6 +385,12 @@ class XHYbbWW:
         invert		        = False,				        # False: SR, True: CR
         mass_window	        = [60., 110]				    # w mass window for selection
     ):
+        # Cutflow - before W selection
+        if SRorCR == 'SR':
+            self.NBEFORE_W_PICK_SR = self.getNweighted()
+        else:
+            self.NBEFORE_W_PICK_CR = self.getNweighted()
+
         # Column names for the W (anti)candidate indices
         objIdxs = 'ObjIdxs_%s'%('CR' if invert else 'SR')
         # Create the column containing the indices of the three jets after matching.
@@ -418,6 +426,13 @@ class XHYbbWW:
         self.a.Define('w2Idx','{}[1]'.format(objIdxs))
         self.a.Define('hIdx', '{}[2]'.format(objIdxs))
         self.a.Cut('Has2Ws','(w1Idx > -1) && (w2Idx > -1) && (hIdx > -1)') # cut to ensure the event has the two requisite Ws
+
+        # Cutflow - after W selection
+        if SRorCR == 'SR':
+            self.NAFTER_W_PICK_SR = self.getNweighted()
+        else:
+            self.NAFTER_W_PICK_CR = self.getNweighted()
+
         # Now perform the mass window cut in the SR
         if not invert:
             # ensure both W candidates are within the mW window
@@ -425,6 +440,9 @@ class XHYbbWW:
             mW2 = '%s[w2Idx]'%corrected_mass
             mWcut = '({0} >= {2}) && ({0} <= {3}) && ({1} >= {2}) && ({1} <= {3})'.format(mW1,mW2,mass_window[0],mass_window[1])
             self.a.Cut('mW_window',mWcut)
+            # Cutflow - after W mass window (SR only)
+            self.NAFTER_W_MASS_REQ_SR = self.getNweighted()
+
         # at this point, rename Trijet -> W1/W2/Higgs based on its index determined above
         cols_to_skip = ['vect_msoftdrop','vect_mregressed','vect_msoftdrop_corr','vect_mregressed_corr','tau2','tau3','tau1','tau4','particleNetMD_QCD','deepTagMD_HbbvsQCD','particleNet_TvsQCD','particleNetMD_Xcc','deepTagMD_WvsQCD','particleNet_QCD','jetId','particleNetMD_Xbb','particleNet_WvsQCD','deepTagMD_ZHbbvsQCD','deepTag_TvsQCD','rawFactor','particleNetMD_Xqq']
         cols = ['Trijet_%s'%i for i in cols_to_skip]
@@ -446,9 +464,10 @@ class XHYbbWW:
         self.a.Define('mww_regressed','hardware::InvariantMass({LeadW_vect_regressed,SubleadW_vect_regressed})')
         return self.a.GetActiveNode()
 
-    #@profile
+    #@#profile
     def ApplyHiggsTag(
-	    self, 
+	self,
+        SRorCR              = 'SR', 
         HbbSFHandler_obj    = 'HbbSFHandler',               # instance of the Hbb SF handler class
         Hbb_discriminant    = 'H_particleNetMD_HbbvsQCD',	# raw MD_HbbvsQCD tagger score from PNet
         corrected_pt        = 'H_pt_corr',                  # corrected pt
@@ -456,9 +475,16 @@ class XHYbbWW:
         corrected_mass      = 'H_mregressed_corr',          # corrected softdrop mass for mass window req
         genMatchCat         = 'H_GenMatchCats',             # gen matching jet cat from `TopMergingFunctions.cc`
         Hbb_variation       = 0,                            # 0: nominal, 1: up, 2:down
-	    invert		        = False,			            # False: SR, True: QCD CR
+	invert		    = False,			            # False: SR, True: QCD CR
         mass_window         = [60., 110]                    # H mass window for selection
     ):
+
+        # Cutflow - before Higgs selection
+        if SRorCR == 'SR':
+            self.NBEFORE_H_PICK_SR = self.getNweighted()
+        else:
+            self.NBEFORE_H_PICK_CR = self.getNweighted()
+
         # Create the column determining whether or not the H candidate passes the H tagger wp (0.98)
         if ('ttbar' in self.setname) or ('NMSSM' in self.setname):
             self.a.Define('HiggsTagStatus',
@@ -475,7 +501,6 @@ class XHYbbWW:
             # This assumes that `HWWmodules.cc` has been compiled already
             self.a.Define('HiggsTagStatus','Pick_H_candidate_standard(%s, %s)'%(Hbb_discriminant, 0.98))
 
-        out = OrderedDict()
         # At this point, we have a column describing whether or not the Higgs candidate is Higgs-tagged.
         #   - For ttbar, mistagging SFs will have been applied to account for the fact that a gen top may be mistagged.
         #   - For signal, tagging SFs will have been applied to match the performance of the tagger in data.
@@ -492,8 +517,8 @@ class XHYbbWW:
 
         self.a.DataFrame.Sum("genWeight").GetValue()
         '''
-	    # Begin loop over analysis regions
-	    # First, don't require Higgs mass cut:
+	# Begin loop over analysis regions
+	# First, don't require Higgs mass cut:
         for region in ['fail','pass']:
             print('Performing Higgs tagging in %s of %s...'%(region, 'CR' if invert else 'SR'))
             self.a.SetActiveNode(checkpoint)
@@ -505,6 +530,18 @@ class XHYbbWW:
             #self.a.DataFrame.Sum("genWeight").GetValue()
             #print('test')
 
+            # Cutflow
+            if SRorCR == 'SR':
+                if region == 'fail':
+                    self.NAFTER_H_PICK_SR_FAIL = self.getNweighted()
+                else:
+                    self.NAFTER_H_PICK_SR_PASS = self.getNweighted()
+            else:
+                if region == 'fail':
+                    self.NAFTER_H_PICK_CR_FAIL = self.getNweighted()
+                else:
+                    self.NAFTER_H_PICK_CR_PASS = self.getNweighted()
+
         # Now, do the same but require a Higgs mass window cut
         mreg_cut_SR = '{0} >= 110 && {0} < 145'.format(corrected_mass)
         mreg_cut_CR = '(({0} >= 92.5 && {0} < 110) || ({0} >= 145 && {0} < 162))'.format(corrected_mass)
@@ -513,6 +550,17 @@ class XHYbbWW:
             self.a.SetActiveNode(checkpoint)
             self.a.Cut('HbbTag_%s_massreq_cut'%region,mreg_cut_CR if invert else mreg_cut_SR) # perform the mass requirement
             out[region] = self.a.Cut('HbbTag_%s'%region, 'HiggsTagStatus == %s'%(0 if 'fail' in region else 1))
+            if SRorCR == 'SR':
+                if 'fail' in region:
+                    self.NAFTER_H_PICK_SR_FAIL_MHCUT = self.getNweighted()
+                else:
+                    self.NAFTER_H_PICK_SR_PASS_MHCUT = self.getNweighted()
+            else:
+                if 'fail' in region:
+                    self.NAFTER_H_PICK_CR_FAIL_MHCUT = self.getNweighted()
+                else:
+                    self.NAFTER_H_PICK_CR_PASS_MHCUT = self.getNweighted()
+
 
         # Send out the ordered dictionary
         return out
