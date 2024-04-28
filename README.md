@@ -211,8 +211,15 @@ Since there are many setnames, years, and variations, this is best done in paral
 python CondorHelper.py -r condor/run_selection.sh -a condor/selection_args.txt -i "XHYbbWW_class.py XHYbbWW_selection.py"
 ```
 
-The finished files will reside on the EOS, so use `scripts/get_selection.sh` to recover the selection directory, then just move those files to the `rootfiles/` directory
+### NOTE - Update 4/27/2024
 
+Since updating the analysis to `el8` on the FNAL LPC and updating the PNet (mis)tagging systematics, selection job submission has been overhauled. Instead of running one job per-year, per-process, per-variation (which results in almost 20k jobs), I am trying to run one job per-year and per-process, and all systematic variations are performed within the job. To do so, just run 
+```
+python CondorHelper.py -r condor/run_selection_multiple.sh -a condor/selection_args_HT0_all_variations.txt -i "XHYbbWW_class.py XHYbbWW_selection.py"
+```
+
+
+The finished files will reside on the EOS, so use `scripts/get_selection.sh` to recover the selection directory, then just move those files to the `rootfiles/` directory
 
 There is an additional directory `twoD_fits` which holds the JSON config file and python script for use with 2DAlphabat to perform the background estimation. These files are not for use with this repository, but the background estimation depends on the selection files generated in step 8.  
 
