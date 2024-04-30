@@ -110,8 +110,11 @@ def selection(args):
         # Used to pick Ws, H for non-ttbar/signal files (V+jets, data, single-top, etc)
         CompileCpp('HWWmodules.cc')
 
+    # Check which corrections are being tracked
+    print('Tracking corrections: \n%s'%('\n\t- '.join(list(selection.a.GetCorrectionNames()))))
+
     # Create a checkpoint with the proper event weights
-    kinOnly = selection.a.MakeWeightCols(extraNominal='' if selection.a.isData else str(selection.GetXsecScale()))
+    kinOnly = selection.a.MakeWeightCols(correctionNames=list(selection.a.GetCorrectionNames()), extraNominal='' if selection.a.isData else str(selection.GetXsecScale()))
 
     # Prepare a root file to save the templates
     out = ROOT.TFile.Open(outFileName, 'RECREATE')

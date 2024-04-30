@@ -180,9 +180,9 @@ class XHYbbWW:
                 self.a.AddCorrection(FSRcorr, evalArgs={'valUp':'FSR__up','valDown':'FSR__down'})
                 # Pileup reweighting
                 self.a = ApplyPU(self.a, 'XHYbbWWpileup.root', '20{}'.format(self.year), ULflag=True, histname='{}_{}'.format(self.setname,self.year))
-                # QCD factorization and renormalization corrections (only to non-signal MC)
+                # QCD factorization and renormalization corrections (only apply to non-signal MC in fit, but generate signal w this variation just in case..)
                 # For some reason, diboson processes don't have the LHEScaleWeight branch, so don't apply to those either.
-                if ('NMSSM' not in self.setname) and (('WW' not in self.setname) and ('WZ' not in self.setname) and ('ZZ' not in self.setname)):
+                if (('WW' not in self.setname) and ('WZ' not in self.setname) and ('ZZ' not in self.setname)):
                     # First instatiate a correction module for the factorization correction
                     facCorr = Correction('QCDscale_factorization','LHEScaleWeights.cc',corrtype='weight',mainFunc='evalFactorization')
                     self.a.AddCorrection(facCorr, evalArgs={'LHEScaleWeights':'LHEScaleWeight'})
@@ -207,7 +207,7 @@ class XHYbbWW:
                 if self.year == '16' or self.year == '17' or 'APV' in self.year:
                     #self.a.AddCorrection(Correction("Prefire","TIMBER/Framework/include/Prefire_weight.h",[self.year],corrtype='weight'))
                     #L1PreFiringWeight = Correction("L1PreFiringWeight","TIMBER/Framework/TopPhi_modules/BranchCorrection.cc",constructor=[],mainFunc='evalWeight',corrtype='weight',columnList=['L1PreFiringWeight_Nom','L1PreFiringWeight_Up','L1PreFiringWeight_Dn'])
-                    L1PreFiringWeight = genWCorr.Clone('L1PreFireCorr',newMainFunc='evalWeight',newType='weight')
+                    L1PreFiringWeight = genWCorr.Clone('L1PreFireWeight',newMainFunc='evalWeight',newType='weight')
                     self.a.AddCorrection(L1PreFiringWeight, evalArgs={'val':'L1PreFiringWeight_Nom','valUp':'L1PreFiringWeight_Up','valDown':'L1PreFiringWeight_Dn'})
                 # HEM drop to 2018 MC
                 elif self.year == '18':
@@ -233,16 +233,17 @@ class XHYbbWW:
                 self.a.AddCorrection(Correction('Pileup',corrtype='weight'))
                 self.a.AddCorrection(Correction('ISRunc',corrtype='uncert'))
                 self.a.AddCorrection(Correction('FSRunc',corrtype='uncert'))
-                if self.a.lhaid != -1: self.a.AddCorrection(Correction('Pdfweight',corrtype='uncert'))
-                if 'NMSSM' not in self.setname:
-                    # perhaps the first three should be uncert types, but because nominal = 1.0, it's functionally equivalent
-                    self.a.AddCorrection(Correction('QCDscale_factorization',corrtype='weight'))
-                    self.a.AddCorrection(Correction('QCDscale_renormalization',corrtype='weight'))
-                    self.a.AddCorrection(Correction('QCDscale_combined',corrtype='weight'))
-                    self.a.AddCorrection(Correction('QCDscale_uncert',corrtype='uncert'))
+                self.a.AddCorrection(Correction('Pdfweight',corrtype='uncert'))
+
+                # Perhaps the first three should be uncert types, but because nominal = 1.0, it's functionally equivalent
+                self.a.AddCorrection(Correction('QCDscale_factorization',corrtype='weight'))
+                self.a.AddCorrection(Correction('QCDscale_renormalization',corrtype='weight'))
+                self.a.AddCorrection(Correction('QCDscale_combined',corrtype='weight'))
+                self.a.AddCorrection(Correction('QCDscale_uncert',corrtype='uncert'))
+
                 if self.year == '16' or self.year == '17' or 'APV' in self.year:
                     # Instead, instantiate ModuleWorker to handle the C++ code via clang. This uses the branches already existing in NanoAODv9
-                    self.a.AddCorrection(Correction('L1PreFiringWeight',corrtype='weight'))
+                    self.a.AddCorrection(Correction('L1PreFireWeight',corrtype='weight'))
                 elif self.year == '18':
                     self.a.AddCorrection(Correction('HEM_drop',corrtype='corr'))
 
@@ -332,8 +333,9 @@ class XHYbbWW:
 			    'Trijet_JMR_regressed_nom','Trijet_JMR_regressed_up','Trijet_JMR_regressed_down',
 			    'Trijet_JMS_softdrop_nom','Trijet_JMS_softdrop_up','Trijet_JMS_softdrop_down',
 			    'Trijet_JMR_softdrop_nom','Trijet_JMR_softdrop_up','Trijet_JMR_softdrop_down'])
-            columns.extend(['Pileup__nom','Pileup__up','Pileup__down','Pdfweight__nom','Pdfweight__up','Pdfweight__down','ISR__up','ISR__down','FSR__up','FSR__down'])
-        if 'NMSSM' not in self.setname: # QCD scale variations
+            # The format of these is <TIMBER correction name>__up/nom/down
+            columns.extend(['Pileup__nom','Pileup__up','Pileup__down','Pdfweight__nom','Pdfweight__up','Pdfweight__down','ISRunc__up','ISRunc__down','FSRunc__up','FSRunc__down'])
+            # QCD scale variations
             columns.extend(['QCDscale_factorization__nom','QCDscale_factorization__up','QCDscale_factorization__down'])
             columns.extend(['QCDscale_renormalization__nom','QCDscale_renormalization__up','QCDscale_renormalization__down'])
             columns.extend(['QCDscale_combined__nom','QCDscale_combined__up','QCDscale_combined__down'])
@@ -341,7 +343,7 @@ class XHYbbWW:
         if self.year == '16' or self.year == '17' or 'APV' in self.year:
 		    #columns.extend(['Prefire__nom','Prefire__up','Prefire__down'])
             columns.extend(['L1PreFiringWeight_Nom', 'L1PreFiringWeight_Up', 'L1PreFiringWeight_Dn'])	# these are the default columns in NanoAODv9
-            columns.extend(['L1PreFiringWeight__nom','L1PreFiringWeight__up','L1PreFiringWeight__down'])    # these are the weight columns created by the BranchCorrection module
+            columns.extend(['L1PreFireWeight__nom','L1PreFireWeight__up','L1PreFireWeight__down'])    # these are the weight columns created by the BranchCorrection module
         elif self.year == '18':
             columns.append('HEM_drop__nom')
             

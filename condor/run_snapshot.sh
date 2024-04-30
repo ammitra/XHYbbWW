@@ -38,6 +38,9 @@ source setup.sh
 echo "FINISHED TIMBER SETUP......."
 cd ../XHYbbWW
 
+# xrootd debug
+export XRD_LOGLEVEL=Debug
+
 # MAIN FUNCTION
 echo python XHYbbWW_snapshot.py $*
 python XHYbbWW_snapshot.py $*

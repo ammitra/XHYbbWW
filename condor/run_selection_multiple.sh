@@ -40,6 +40,8 @@ source setup.sh
 echo "FINISHED TIMBER SETUP......."
 cd ../XHYbbWW
 
+export XRD_LOGLEVEL=Debug
+
 ##########################################################################################
 # Main loop - we will run all variations in one job instead of in separate jobs.         #
 # The arguments sent to this shell script will have the format:                          #
