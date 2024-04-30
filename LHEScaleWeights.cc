@@ -57,19 +57,29 @@ RVec<float> QCDScaleWeight::evalUncert(RVec<float> LHEScaleWeights) {
         throw "LHEScaleWeight vector empty.\n";
     }
     else if (size == 8) {
-	throw "Not applicable to this process\n";
+        float center = LHEScaleWeights[1];      // element 6 also works, both are 1.0
+        float deviation = -1.0;
+        float scale;
+        for (int i : {0,2,3,4,5,6,7}) {
+            float temp = abs(center - LHEScaleWeights[i]);
+            if (temp > deviation) { deviation = temp; }
+        }
+        scale = deviation/center;
+        out[0] = center + scale;
+        out[1] = ((center-scale) > 0) ? center - scale : 0;
     }
     else if (size == 9) {
-	float center = LHEScaleWeights[4];
-	float deviation = -1.0;
+	float center = LHEScaleWeights[4];      // uR = uF = 1
+	float deviation = -1;                   // initialize it to -1                 
 	float scale;
 	for (int i : {0,1,2,3,5,6,7,8}) {
+            // choose the largest of abs(weight - center) as deviation
 	    float temp = abs(center-LHEScaleWeights[i]);
 	    if (temp > deviation) { deviation = temp; }
 	}
 	scale = deviation/center;
 	out[0] = center + scale;
-	out[1] = center - scale;
+	out[1] = ((center-scale) > 0) ? center - scale : 0; // prevent neg. weights
     }
     else {
         throw "LHEScaleWeight vector has size other than 0,8,9.\n";
