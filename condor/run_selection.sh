@@ -40,6 +40,10 @@ source setup.sh
 echo "FINISHED TIMBER SETUP......."
 cd ../XHYbbWW
 
+# xrootd debug & certs
+#export XRD_LOGLEVEL=Debug
+export X509_CERT_DIR=/cvmfs/grid.cern.ch/etc/grid-security/certificates/
+
 # Generate the chunking arguments
 nchunks=10
 # Loop over chunks

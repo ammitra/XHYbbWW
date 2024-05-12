@@ -40,7 +40,9 @@ source setup.sh
 echo "FINISHED TIMBER SETUP......."
 cd ../XHYbbWW
 
-export XRD_LOGLEVEL=Debug
+# xrootd debug & certs
+#export XRD_LOGLEVEL=Debug
+export X509_CERT_DIR=/cvmfs/grid.cern.ch/etc/grid-security/certificates/
 
 ##########################################################################################
 # Main loop - we will run all variations in one job instead of in separate jobs.         #

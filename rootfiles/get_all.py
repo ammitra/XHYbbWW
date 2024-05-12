@@ -19,11 +19,8 @@ def GetProcYearFromTxt(filename):
 
 def CombineCommonSets(groupname,doStudies=False,modstr='',HT='',remote=False):
     '''Which stitch together either QCD or ttbar (ttbar-allhad+ttbar-semilep)
-    @param groupname (str, optional): "QCD" or "ttbar".
+    @param groupname (str, optional): QCD/ttbar/W/Z/ST.
     '''
-
-    if groupname not in ["QCD","ttbar","W","Z"]:
-        raise ValueError('Can only combine QCD or ttbar or W/Z')
     
     for y in ['16','16APV','17','18']:
 	if not remote:
@@ -55,6 +52,28 @@ def CombineCommonSets(groupname,doStudies=False,modstr='',HT='',remote=False):
                 baseStr.format('QCDHT1500',y,modstr,''),
                 baseStr.format('QCDHT2000',y,modstr,''))
             )
+
+	elif groupname == 'ST':
+	    to_loop = [''] if doStudies else ['','JES','JER','JMS','JMR']
+	    for v in to_loop:
+		if v == '':
+		    ExecuteCmd('hadd -f -k %s %s %s %s %s'%(
+			baseStr.format('ST',y,modstr,''),
+                        baseStr.format('ST-antitop4f',y,modstr,''),
+                        baseStr.format('ST-top4f',y,modstr,''),
+                        baseStr.format('ST-tW-antitop5f',y,modstr,''),
+                        baseStr.format('ST-tW-top5f',y,modstr,''))
+		    )
+		else:
+		    for v2 in ['up','down']:
+			v3 = '_%s_%s'%(v,v2)
+			ExecuteCmd('hadd -f -k %s %s %s %s %s'%(
+			    baseStr.format('ST',y,modstr,v3),
+                            baseStr.format('ST-antitop4f',y,modstr,v3),
+                            baseStr.format('ST-top4f',y,modstr,v3),
+                            baseStr.format('ST-tW-antitop5f',y,modstr,v3),
+                            baseStr.format('ST-tW-antitop5f',y,modstr,v3))
+			)
 
         elif groupname == 'W' or 'Z':
             to_loop = [''] if doStudies else ['','JES','JER','JMS','JMR']
@@ -111,6 +130,8 @@ if __name__ == '__main__':
     '''
 
     # combine the ttbar on EOS as well, using the remote flag 
-    #CombineCommonSets('ttbar',doStudies=False,HT=args.HT,remote=True)
+    CombineCommonSets('ttbar',doStudies=False,HT=args.HT,remote=True)
     CombineCommonSets('W',doStudies=False,HT=args.HT,remote=True)
     CombineCommonSets('Z',doStudies=False,HT=args.HT,remote=True)
+    CombineCommonSets('QCD',doStudies=False,HT=args.HT,remote=True)
+    CombineCommonSets('ST',doStudies=False,HT=args.HT,remote=True)

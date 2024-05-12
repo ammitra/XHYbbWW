@@ -6,7 +6,6 @@ echo "System software: `cat /etc/redhat-release`"
 # Set up pre-compiled CMSSW env
 source /cvmfs/cms.cern.ch/cmsset_default.sh
 xrdcp root://cmseos.fnal.gov//store/user/ammitra/XHYbbWW.tgz ./
-xrdcp root://cmseos.fnal.gov//store/user/ammitra/XHYbbWW.tgz ./
 export SCRAM_ARCH=el8_amd64_gcc10
 scramv1 project CMSSW CMSSW_12_3_5
 echo "Unpacking compiled CMSSW environment tarball..."
@@ -38,8 +37,9 @@ source setup.sh
 echo "FINISHED TIMBER SETUP......."
 cd ../XHYbbWW
 
-# xrootd debug
-export XRD_LOGLEVEL=Debug
+# xrootd debug & certs
+#export XRD_LOGLEVEL=Debug
+export X509_CERT_DIR=/cvmfs/grid.cern.ch/etc/grid-security/certificates/
 
 # MAIN FUNCTION
 echo python XHYbbWW_snapshot.py $*
