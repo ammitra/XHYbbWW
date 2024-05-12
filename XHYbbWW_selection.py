@@ -90,7 +90,8 @@ def selection(args):
                 HbbVar = 0  # keep both (mis)tag SFs nominal
                 WqqVar = 0
         # Path to efficiency file
-        effpath = 'ParticleNetSFs/EfficiencyMaps/%s_%s_Efficiencies.root'%(args.setname, args.year)
+        eosdir = 'root://cmsxrootd.fnal.gov//store/user/ammitra/XHYbbWW/TaggerEfficiencies'
+        effpath = '%s/%s_%s_Efficiencies.root'%(eosdir, args.setname, args.year)
         # Instantiate the PNet SF helpers. This is mandatory, even for non-signal/ttbar processes.
         # They will automatically handle the application of (mis)tagging SFs to (ttbar)signal processes, and will apply
         # normal H/W/W selection otherwise.
