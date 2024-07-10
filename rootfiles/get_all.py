@@ -15,7 +15,7 @@ def GetProcYearFromTxt(filename):
     elif '.root' in filename:
         return pieces[1], pieces[2]
     else:
-	print('ERROR')
+        print('ERROR')
 
 def CombineCommonSets(groupname,doStudies=False,modstr='',HT='',remote=False):
     '''Which stitch together either QCD or ttbar (ttbar-allhad+ttbar-semilep)
@@ -23,11 +23,11 @@ def CombineCommonSets(groupname,doStudies=False,modstr='',HT='',remote=False):
     '''
     
     for y in ['16','16APV','17','18']:
-	if not remote:
+        if not remote:
             baseStr = 'rootfiles/XHYbbWW%s_HT%s_{0}{2}_{1}{3}.root'%('studies' if doStudies else 'selection',HT)
-	else:
-	    baseStr = 'root://cmseos.fnal.gov//store/user/ammitra/XHYbbWW/selection/XHYbbWW%s_HT%s_{0}{2}_{1}{3}.root'%('studies' if doStudies else 'selection',HT)
-        if groupname == 'ttbar':
+        else:
+            baseStr = 'root://cmseos.fnal.gov//store/user/ammitra/XHYbbWW/selection/XHYbbWW%s_HT%s_{0}{2}_{1}{3}.root'%('studies' if doStudies else 'selection',HT)
+        if groupname == 'TT':
             to_loop = [''] if doStudies else ['','JES','JER','JMS','JMR']
             for v in to_loop:
                 if v == '':
@@ -53,27 +53,27 @@ def CombineCommonSets(groupname,doStudies=False,modstr='',HT='',remote=False):
                 baseStr.format('QCDHT2000',y,modstr,''))
             )
 
-	elif groupname == 'ST':
-	    to_loop = [''] if doStudies else ['','JES','JER','JMS','JMR']
-	    for v in to_loop:
-		if v == '':
-		    ExecuteCmd('hadd -f -k %s %s %s %s %s'%(
-			baseStr.format('ST',y,modstr,''),
+        elif groupname == 'ST':
+            to_loop = [''] if doStudies else ['','JES','JER','JMS','JMR']
+            for v in to_loop:
+                if v == '':
+                    ExecuteCmd('hadd -f -k %s %s %s %s %s'%(
+                        baseStr.format('ST',y,modstr,''),
                         baseStr.format('ST-antitop4f',y,modstr,''),
                         baseStr.format('ST-top4f',y,modstr,''),
                         baseStr.format('ST-tW-antitop5f',y,modstr,''),
                         baseStr.format('ST-tW-top5f',y,modstr,''))
-		    )
-		else:
-		    for v2 in ['up','down']:
-			v3 = '_%s_%s'%(v,v2)
-			ExecuteCmd('hadd -f -k %s %s %s %s %s'%(
-			    baseStr.format('ST',y,modstr,v3),
+                    )
+                else:
+                    for v2 in ['up','down']:
+                        v3 = '_%s_%s'%(v,v2)
+                        ExecuteCmd('hadd -f -k %s %s %s %s %s'%(
+                            baseStr.format('ST',y,modstr,v3),
                             baseStr.format('ST-antitop4f',y,modstr,v3),
                             baseStr.format('ST-top4f',y,modstr,v3),
                             baseStr.format('ST-tW-antitop5f',y,modstr,v3),
                             baseStr.format('ST-tW-antitop5f',y,modstr,v3))
-			)
+                        )
 
         elif groupname == 'W' or 'Z':
             to_loop = [''] if doStudies else ['','JES','JER','JMS','JMR']
@@ -105,8 +105,8 @@ if __name__ == '__main__':
     from argparse import ArgumentParser
     parser = ArgumentParser()
     parser.add_argument('--HT', type=str, dest='HT',
-			action='store', default='0',
-			 help='Value of HT to cut on')
+                        action='store', default='0',
+                        help='Value of HT to cut on')
     args = parser.parse_args()
 
     redirector = 'root://cmseos.fnal.gov/'
@@ -130,7 +130,7 @@ if __name__ == '__main__':
     '''
 
     # combine the ttbar on EOS as well, using the remote flag 
-    CombineCommonSets('ttbar',doStudies=False,HT=args.HT,remote=True)
+    CombineCommonSets('TT',doStudies=False,HT=args.HT,remote=True)
     CombineCommonSets('W',doStudies=False,HT=args.HT,remote=True)
     CombineCommonSets('Z',doStudies=False,HT=args.HT,remote=True)
     CombineCommonSets('QCD',doStudies=False,HT=args.HT,remote=True)

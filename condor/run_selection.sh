@@ -44,25 +44,16 @@ cd ../XHYbbWW
 #export XRD_LOGLEVEL=Debug
 export X509_CERT_DIR=/cvmfs/grid.cern.ch/etc/grid-security/certificates/
 
-# Generate the chunking arguments
-nchunks=10
-# Loop over chunks
-for j in $(seq 0 $((nchunks - 1)));
-do 
-    echo python XHYbbWW_selection.py $* -n $nchunks -j $j
-    python XHYbbWW_selection.py $* -n $nchunks -j $j
-done
-
-# Get the output file name. The format is:
+# Get the info from the arguments. The format is:
 #       $1    $2     $3   $4   $5     $6       $7   $8  $9   $10     $11   $12
 #       -s <SETNAME> -y <YEAR> -v <VARIATION> --HT <HT> -n <NCHUNKS> -j <CHUNK #>
-if [ $6 == "None" ]; then 
-    filename='XHYbbWWselection_HT'"$8"'_'"$2"'_'"$4"'.root'
-else
-    filename='XHYbbWWselection_HT'"$8"'_'"$2"'_'"$4"'_'"$6"'.root'
+# First, get the efficiency map
+filename="$2"'_'"$4"'_Efficiencies.root'
+xrdcp root://cmseos.fnal.gov//store/user/ammitra/XHYbbWW/TaggerEfficiencies/"$filename" ParticleNetSFs/EfficiencyMaps/
 
-# hadd the output chinks
-hadd -fk rootfiles/"$filename" rootfiles/*CHUNK*.root
+# Now run the script
+echo python XHYbbWW_selection.py $*
+python XHYbbWW_selection.py $*
 
 # move all final selection histos to the EOS
-xrdcp -f rootfiles/"$filename" root://cmseos.fnal.gov//store/user/ammitra/XHYbbWW/selection/
+xrdcp -f rootfiles/*.root root://cmseos.fnal.gov//store/user/ammitra/XHYbbWW/selection/

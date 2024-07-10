@@ -70,7 +70,8 @@ if __name__ == "__main__":
 
     era = 18
 
-    massWindow = [60.,110.]
+    #massWindow = [60.,110.]
+    massWindow = []
 
     histgroups = {}
     varnames = []
@@ -95,7 +96,7 @@ if __name__ == "__main__":
 
 	if not os.path.isfile(rootfile_name):
 	    print('Must run analysis first...')
-	    histgroup = NMinus1(setname, era)
+	    histgroup = NMinus1(setname, era, massWindow)
 	    f = ROOT.TFile.Open(rootfile_name,'RECREATE')
 	    f.cd()
 	    print('Writing histograms...')
@@ -223,7 +224,7 @@ if __name__ == "__main__":
 
     # now just plot the signal only, under the influence of the softdrop vs regressed mass reconstrution 
     for var in ['mW1','mW2','mY','mX','mH']:
-	plot_filename =  'plots/WMassCut_Nminus1_SigOnly_{}_{}.png'.format(var,era)
+	plot_filename =  'plots/WMassCut_Nminus1_SigOnly{}_{}_{}.png'.format('_WMassSelection' if massWindow else '',var,era)
 	signal_hists, names, colors = OrderedDict(), OrderedDict(), OrderedDict()
         for sig in signames:
 	    for mass in ['sd','reg']:

@@ -203,7 +203,7 @@ float PNetWqqSFHandler::GetEff(float pt, float eta, int jetCat) {
             _effmap = (TEfficiency*)_effroot->Get("top_qq-matched_Trijet_particleNetMD_WvsQCD_WP0p8_TEff");
         }
         else if (cat == 2) {
-            _effmap = (TEfficiency*)_effroot->Get("top_bq-matched_Trijet_particleNetMD_HbbvsQCD_WP0p98_TEff");
+            _effmap = (TEfficiency*)_effroot->Get("top_bq-matched_Trijet_particleNetMD_WvsQCD_WP0p8_TEff");
         }
         else if (cat == 3) {
             _effmap = (TEfficiency*)_effroot->Get("top_bqq-matched_Trijet_particleNetMD_WvsQCD_WP0p8_TEff");

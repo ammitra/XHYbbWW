@@ -12,6 +12,11 @@ tar --exclude-vcs --exclude-caches-all -cvzf XHYbbWW.tgz \
     --exclude=CMSSW_12_3_5/src/TIMBER/TIMBER/data/JE*/backup_* \
     --exclude=CMSSW_12_3_5/src/TIMBER/bin/libtimber_* \
     --exclude=CMSSW_12_3_5/src/XHYbbWW/triggers/backup_* \
+    --exclude=CMSSW_12_3_5/src/XHYbbWW/raw_nano/backup* \
+    --exclude=CMSSW_12_3_5/src/XHYbbWW/raw_nano/private* \
+    --exclude=CMSSW_12_3_5/src/XHYbbWW/ParticleNetSFs/EfficiencyMaps/*.root \
+    --exclude=CMSSW_12_3_5/src/XHYbbWW/HWWsnapshot*.root \
+    --exclude=CMSSW_12_3_5/src/XHYbbWW/rootfiles/old* \
     --exclude=CMSSW_12_3_5/src/TIMBER/TIMBER/data_backup_15Apr24 \
     --exclude=CMSSW_12_3_5/src/XHYbbWW/logs \
     CMSSW_12_3_5
