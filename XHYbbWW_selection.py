@@ -81,13 +81,7 @@ def selection(args):
     cuts     = OrderedDict()
     PassFail = OrderedDict()
 
-    lowerbounds = ['0p1', '0p2', '0p3', '0p4', '0p5']
-    regions = ['SR']
-    for lb in lowerbounds:
-        regions.append(f'CR_{lb}')
-
-    #for region in ['SR','CR']:
-    for region in regions:
+    for region in ['SR','CR']:
         print('-----------------------------------------------------------------------------------------------------')
         print(f'Selecting candidate %sWs in {region}...............'%('(anti-)' if 'CR' in region else ''))
         print('-----------------------------------------------------------------------------------------------------')
@@ -97,9 +91,9 @@ def selection(args):
 
         # lower bound for CR Wtag inversion
         if 'CR' in region:
-            lowerBound = region.split('_')[-1].replace('p','.')
+            lowerBound = 0.5 
         else:
-            lowerBound = '0xdeadbeef'   # not used for SR 
+            lowerBound = 0.123456   # not used for SR 
 
         selection.a.Define(
             objIdxs,
@@ -147,7 +141,18 @@ def selection(args):
         for pf in ['fail','pass']: # without higgs mass cut
             selection.a.SetActiveNode(checkpoint)
             print(f'Tagging Higgs candidate in {region} {pf}....')
-            hCut = f'H_{h_tagger} %s {h_wp}'%('>' if pf == 'pass' else '<')
+            # NOTE: "fail" is really just the former "loose" region.
+            # Originally, we used:
+            #   fail  : Hbb < 0.8
+            #   loose : 0.8 < Hbb < 0.98
+            #   pass  : Hbb > 0.98
+            #
+            # But now we just use Fail=Loose and Pass.
+            if pf == 'fail': # really the "loose" region
+                hCut = f'H_{h_tagger} >= 0.8 && H_{h_tagger} < {h_wp}'
+            else:
+                hCut = f'H_{h_tagger} >= {h_wp}'
+
             PassFail[f'{region}_{pf}'] = selection.a.Cut(f'{region}_{pf}_cut',hCut)
             cuts[f'N_AFTER_HIGGS_PICK_{region}_{pf}'] = selection.getNweighted()
 
@@ -216,18 +221,17 @@ if __name__ == "__main__":
                         help='Which job to run on')
     parser.add_argument('--verbose', dest='verbose',
                         action='store_true', help='Enable RDF verbosity')
-    parser.add_argument('--plot', dest='plot',
-                        action='store_true', help='Plot the template uncertainty histograms')
 
     args = parser.parse_args()
     if args.verbose:
         verbosity = ROOT.Experimental.RLogScopedVerbosity(ROOT.Detail.RDF.RDFLogChannel(), ROOT.Experimental.ELogLevel.kDebug+10)
+
     if ('Data' not in args.setname):
         trigyear = args.year if 'APV' not in args.setname else '16'
         args.trigEff = Correction(
             name        = f'TriggerEff{trigyear}',
             script      = 'TIMBER/Framework/include/EffLoader.h',
-            constructor = ['triggers/HWWtrigger2D_HT0_17B.root', 'Pretag'],
+            constructor = [f'triggers/HWWtrigger2D_HT0_{trigyear}.root', 'Pretag'],
             corrtype    = 'weight'
         )
     else:
