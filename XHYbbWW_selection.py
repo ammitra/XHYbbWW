@@ -4,9 +4,9 @@ from TIMBER.Tools.Common import CompileCpp
 from collections import OrderedDict
 import TIMBER.Tools.AutoJME as AutoJME
 from XHYbbWW_class import XHYbbWW
-from memory_profiler import profile
+#from memory_profiler import profile
 
-@profile
+#@profile
 def selection(args):
     print(f'Processing {args.setname} {args.year} for selection and 2D histogram creation.....')
     start = time.time()
@@ -15,7 +15,7 @@ def selection(args):
     selection.ApplyTrigs(args.trigEff)
 
     # Apply tagging (signal) or mistagging (ttbar) scale factors
-    eosdir  = 'root://cmseos.fnal.gov//store/user/ammitra/XHYbbWW/TaggerEfficiencies'
+    #eosdir  = 'root://cmseos.fnal.gov//store/user/ammitra/XHYbbWW/TaggerEfficiencies'
     #effpath = f'{eosdir}/{args.setname}_{args.year}_Efficiencies.root'
     effpath = f'ParticleNetSFs/EfficiencyMaps/{args.setname}_{args.year}_Efficiencies.root'
     w_tagger = 'particleNetMD_WvsQCD'
@@ -60,7 +60,8 @@ def selection(args):
 
         selection.a.DataFrame.Display(['PNet_W_%stag__nom'%('mis' if category=='ttbar' else '')]).Print()
 
-    selection.a.DataFrame.Display(['genW__nom']).Print()
+    if not selection.a.isData:
+        selection.a.DataFrame.Display(['genW__nom']).Print()
     # Having added the tagging and mistagging SFs to the appropriate processes, make uncertainty columns
     print('Tracking corrections: \n%s'%('\n\t- '.join(list(selection.a.GetCorrectionNames()))))
     kinOnly = selection.a.MakeWeightCols(
@@ -71,7 +72,7 @@ def selection(args):
     if (args.njobs == 1):
         outFileName = f'rootfiles/XHYbbWWselection_{args.setname}_{args.year}%s.root'%('_'+args.variation if args.variation != 'None' else '')
     else:
-        outFileName = f'rootfiles/XHYbbWWselection_{args.setname}_{args.year}%s_{args.ijob}of{args.njobs}'%('_'+args.variation if args.variation != 'None' else '')
+        outFileName = f'rootfiles/XHYbbWWselection_{args.setname}_{args.year}%s_{args.ijob}of{args.njobs}.root'%('_'+args.variation if args.variation != 'None' else '')
     out = ROOT.TFile.Open(outFileName,'RECREATE')
     out.cd()
     # -----------------------------------------------------------------------------------------------------
@@ -79,19 +80,34 @@ def selection(args):
     # -----------------------------------------------------------------------------------------------------
     cuts     = OrderedDict()
     PassFail = OrderedDict()
-    for region in ['SR','CR']:
+
+    lowerbounds = ['0p1', '0p2', '0p3', '0p4', '0p5']
+    regions = ['SR']
+    for lb in lowerbounds:
+        regions.append(f'CR_{lb}')
+
+    #for region in ['SR','CR']:
+    for region in regions:
         print('-----------------------------------------------------------------------------------------------------')
-        print(f'Selecting candidate %sWs in {region}...............'%('(anti-)' if region == 'CR' else ''))
+        print(f'Selecting candidate %sWs in {region}...............'%('(anti-)' if 'CR' in region else ''))
         print('-----------------------------------------------------------------------------------------------------')
         selection.a.SetActiveNode(kinOnly)
         cuts[f'N_BEFORE_W_PICK_{region}'] = selection.getNweighted()
         objIdxs = f'ObjIdxs_{region}'
+
+        # lower bound for CR Wtag inversion
+        if 'CR' in region:
+            lowerBound = region.split('_')[-1].replace('p','.')
+        else:
+            lowerBound = '0xdeadbeef'   # not used for SR 
+
         selection.a.Define(
             objIdxs,
-            'Pick_W_candidates_standard(%s, %s, %s, {0, 1, 2})'%(
+            'Pick_W_candidates_standard(%s, %s, %s, {0, 1, 2}, %s)'%(
                 'Trijet_'+w_tagger,
                 w_wp,
-                'true' if region == 'CR' else 'false'
+                'true' if region == 'CR' else 'false',
+                lowerBound
             )
         )
         selection.a.Define(f'w1Idx','{}[0]'.format(objIdxs))
@@ -143,7 +159,7 @@ def selection(args):
             else:
                 mreg_cut = f'(H_mregressed_corr >= 90 && H_mregressed_corr < 110) || (H_mregressed_corr >= 150 && H_mregressed_corr < 200)'
             selection.a.Cut(f'Higgs_mass_window_cut_{region}_{pf}',mreg_cut)
-            hCut = f'H_{h_tagger} %s {h_wp}'%('>' if pf == 'pass' else '<')
+            hCut = f'H_{h_tagger} %s {h_wp}'%('>' if 'pass' in pf else '<')
             PassFail[f'{region}_{pf}'] = selection.a.Cut(f'{region}_{pf}_cut',hCut)
             cuts[f'N_AFTER_HIGGS_PICK_{region}_{pf}'] = selection.getNweighted()
 
@@ -214,5 +230,7 @@ if __name__ == "__main__":
             constructor = ['triggers/HWWtrigger2D_HT0_17B.root', 'Pretag'],
             corrtype    = 'weight'
         )
+    else:
+        args.trigEff = None
     CompileCpp('HWWmodules.cc')
     selection(args)
