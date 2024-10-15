@@ -227,7 +227,11 @@ if __name__ == "__main__":
         verbosity = ROOT.Experimental.RLogScopedVerbosity(ROOT.Detail.RDF.RDFLogChannel(), ROOT.Experimental.ELogLevel.kDebug+10)
 
     if ('Data' not in args.setname):
-        trigyear = args.year if 'APV' not in args.setname else '16'
+        #trigyear = args.year if 'APV' not in args.setname else '16'
+        if 'APV' in args.year:
+            trigyear = '16'
+        else:
+            trigyear = args.year
         args.trigEff = Correction(
             name        = f'TriggerEff{trigyear}',
             script      = 'TIMBER/Framework/include/EffLoader.h',

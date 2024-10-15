@@ -217,6 +217,16 @@ There is an additional directory `twoD_fits` which holds the JSON config file an
 
 ## **NOTES**
 
+* **July 11, 2024** For some reason some of the ttbar and W+jets samples don't work when making an analyzer using all files. Something to do with the TTreeReader and TChain. Who knows. A workaround is to run selection for every snapshot file for these problematic sets individually then `hadd` the results together. To do so:
+
+1. Run `python condor/redo_failed_selection_args.py` to generate the args for the jobs that failed automatically
+2. Make a directory `/store/user/$USER/XHYbbWW/selection_redo` on EOS to store the individual files
+3. Run `python CondorHelper.py -r condor/run_selection_redo.sh -a condor/redo_failed_selection_args.txt -i "XHYbbWW_class.py XHYbbWW_selection.py"`
+4. Hadd the individual files into their proper location using `python rootfiles/get_all_failed.py`
+5. You can check that all files in the selection dir on EOS are good by doing `eosls -l /store/user/ammitra/XHYbbWW/selection | awk '{if ($5 < 1000) print $9}'` and checking that there is no output.
+6. All files can be hadded appropriately using `python rootfiles/get_all.py`
+
+
 * **DEPRECATED AS OF 5/16/24** When running over raw signal files (located in `raw_nano/XYH_WWBB_MX_XMASS_MY_YMASS_loc.txt`) with an analyzer module, then you have to specify the parameter `multiSampleStr` in the analyzer constructor, where the `multiSampleStr` is the desired Y mass associated with the X mass of the file. This is because there are multiple Y masses associated with the X mass, so this ensures that the proper `genEventWeight_Sum` branch is captured by the analyzer.
 
 * The script `scripts/get_snapshots.sh` populates the directory `trijet_nano_files/` one directory above this on the LPC with the snapshots directory on the EOS. This is then used in the trigger efficiency script 

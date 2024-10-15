@@ -115,7 +115,7 @@ class XHYbbWW:
         self.NJETS = self.getNweighted()
         #self.AddCutflowColumn(self.NJETS, "NJETS")
 
-        self.a.Cut('pt_cut', 'FatJet_pt[0] > 400 && FatJet_pt[1] > 200 && FatJet_pt[2] > 200')      # jets ordered by pt
+        self.a.Cut('pt_cut', 'FatJet_pt[0] > 300 && FatJet_pt[1] > 300 && FatJet_pt[2] > 300')      # jets ordered by pt
         self.NPT = self.getNweighted()
         #self.AddCutflowColumn(self.NPT, "NPT")
 
@@ -123,7 +123,7 @@ class XHYbbWW:
         self.NETA = self.getNweighted()
         #self.AddCutflowColumn(self.NETA, "NETA")
 
-        self.a.Cut('msoftdrop_cut','FatJet_msoftdrop[0] > 50 && FatJet_msoftdrop[1] > 40 && FatJet_msoftdrop[2] > 40') # should always use softdrop mass
+        self.a.Cut('msoftdrop_cut','(FatJet_msoftdrop[0] > 50 || FatJet_particleNet_mass[0] > 50) && (FatJet_msoftdrop[1] > 50 || FatJet_particleNet_mass[1] > 50) && (FatJet_msoftdrop[2] > 50 || FatJet_particleNet_mass[2] > 50)')
         self.NMSD = self.getNweighted()
         #self.AddCutflowColumn(self.NMSD, "NMSD")
 
@@ -217,7 +217,7 @@ class XHYbbWW:
             self.a = AutoJME.AutoJME(self.a, 'Trijet', '20{}'.format(self.year), self.setname if 'Muon' not in self.setname else self.setname[10:])
 
             #self.a.MakeWeightCols(extraNominal='genWeight' if not self.a.isData else '')
-            self.a.MakeWeightCols() # since we added genWcorr we do not have to do anything else with extraNominal genWeight correction
+            self.a.MakeWeightCols(extraNominal=f'{self.GetXsecScale()}') # since we added genWcorr we only have to add lumi*xsec/genEventSumW weight
 
         # now for selection
         else:
@@ -246,6 +246,8 @@ class XHYbbWW:
                     self.a.AddCorrection(Correction('L1PreFireWeight',corrtype='weight'))
                 elif self.year == '18':
                     self.a.AddCorrection(Correction('HEM_drop',corrtype='corr'))
+
+                self.a.MakeWeightCols(extraNominal=f'{self.GetXsecScale()}') # since we added genWcorr we only have to add lumi*xsec/genEventSumW weight
 
         return self.a.GetActiveNode()
 
@@ -308,16 +310,15 @@ class XHYbbWW:
             node = self.a.GetActiveNode()
         
         columns = [
-            #'FatJet_J*',	# this will collect all the JME variations created during snapshotting and used in selection 
+            'nJet','Jet_*',
             'Trijet_eta','Trijet_msoftdrop','Trijet_pt','Trijet_phi','Trijet_particleNet_mass',
             'Trijet_deepTagMD_HbbvsQCD', 'Trijet_deepTagMD_ZHbbvsQCD',
             'Trijet_deepTagMD_WvsQCD', 'Trijet_deepTag_TvsQCD', 'Trijet_particleNet_HbbvsQCD',
             'Trijet_particleNet_TvsQCD', 'Trijet_particleNetMD.*', 'Trijet_rawFactor', 'Trijet_tau*',
             'Trijet_jetId', 'nTrijet', 'Trijet_JES_nom','Trijet_particleNetMD_Xqq',
             'Trijet_particleNetMD_Xcc', 'Trijet_particleNet_QCD',
-            'Trijet_particleNet_WvsQCD','HLT_PFHT.*', 'HLT_PFJet.*', 'HLT_AK8.*', 'HLT_Mu50',
+            'Trijet_particleNet_WvsQCD','HLT_PFHT.*', 'HLT_PFJet.*', 'HLT_AK8.*', 'HLT_Mu50', 'HLT_IsoMu*', 'HLT_IsoTkMu*',
             'event', 'eventWeight', 'luminosityBlock', 'run',
-            #'jet0','jet1','jet2','dR01','dR02','dR12',
             'NPROC', 'NJETS', 'NPT', 'NETA', 'NMSD'
         ]
         
@@ -325,27 +326,8 @@ class XHYbbWW:
         if not self.a.isData:
             columns.extend(['GenPart_.*', 'nGenPart', 'genWeight', 'GenModel*'])
             columns.extend(['PSWeight', 'LHEScaleWeight']) # for parton shower (ISR+FSR) and QCD renormalization and factorization scale uncertainties
-            columns.extend(['Trijet_JES_up','Trijet_JES_down',
-			    'Trijet_JER_nom','Trijet_JER_up','Trijet_JER_down',
-			    'Trijet_JMS_nom','Trijet_JMS_up','Trijet_JMS_down', # no longer exists
-			    'Trijet_JMR_nom','Trijet_JMR_up','Trijet_JMR_down', # no longer exists
-			    'Trijet_JMS_regressed_nom','Trijet_JMS_regressed_up','Trijet_JMS_regressed_down',
-			    'Trijet_JMR_regressed_nom','Trijet_JMR_regressed_up','Trijet_JMR_regressed_down',
-			    'Trijet_JMS_softdrop_nom','Trijet_JMS_softdrop_up','Trijet_JMS_softdrop_down',
-			    'Trijet_JMR_softdrop_nom','Trijet_JMR_softdrop_up','Trijet_JMR_softdrop_down'])
-            # The format of these is <TIMBER correction name>__up/nom/down
-            columns.extend(['Pileup__nom','Pileup__up','Pileup__down','Pdfweight__nom','Pdfweight__up','Pdfweight__down','ISRunc__up','ISRunc__down','FSRunc__up','FSRunc__down'])
-            # QCD scale variations
-            columns.extend(['QCDscale_factorization__nom','QCDscale_factorization__up','QCDscale_factorization__down'])
-            columns.extend(['QCDscale_renormalization__nom','QCDscale_renormalization__up','QCDscale_renormalization__down'])
-            columns.extend(['QCDscale_combined__nom','QCDscale_combined__up','QCDscale_combined__down'])
-            columns.extend(['QCDscale_uncert__up','QCDscale_uncert__down'])
         if self.year == '16' or self.year == '17' or 'APV' in self.year:
-		    #columns.extend(['Prefire__nom','Prefire__up','Prefire__down'])
             columns.extend(['L1PreFiringWeight_Nom', 'L1PreFiringWeight_Up', 'L1PreFiringWeight_Dn'])	# these are the default columns in NanoAODv9
-            columns.extend(['L1PreFireWeight__nom','L1PreFireWeight__up','L1PreFireWeight__down'])    # these are the weight columns created by the BranchCorrection module
-        elif self.year == '18':
-            columns.append('HEM_drop__nom')
             
         # get ready to send out snapshot
         #self.a.SetActiveNode(node)
