@@ -40,7 +40,8 @@ class PNetXbbSF_weight {
     public:
         PNetXbbSF_weight(std::string year, std::string category, std::string effpath, float wp);
         ~PNetXbbSF_weight();
-        RVec<float> eval(RVec<float> pt, RVec<float> eta, RVec<float> PNetXbb_score, RVec<int> jetCat);
+        RVec<float> eval_mistag(RVec<float> pt, RVec<float> eta, RVec<float> PNetXbb_score, RVec<int> jetCat);
+        RVec<float> eval_tag(RVec<float> pt, RVec<float> eta, RVec<float> PNetXbb_score, RVec<int> jetCat);
 };
 
 PNetXbbSF_weight::PNetXbbSF_weight(std::string year, std::string category, std::string effpath, float wp) : _year(year), _category(category), _wp(wp) {
@@ -199,7 +200,8 @@ float PNetXbbSF_weight::GetEff(float pt, float eta, int jetCat) {
     return eff;
 };
 
-RVec<float> PNetXbbSF_weight::eval(RVec<float> pt, RVec<float> eta, RVec<float> PNetXbb_score, RVec<int> jetCat) {
+// Used for mistagging (ttbar) - requires MC efficiencies
+RVec<float> PNetXbbSF_weight::eval_mistag(RVec<float> pt, RVec<float> eta, RVec<float> PNetXbb_score, RVec<int> jetCat) {
     RVec<float> out(3);
     for (int var : {0,1,2}) {
         float MC_tagged = 1.0, MC_notTagged = 1.0;
@@ -229,4 +231,21 @@ RVec<float> PNetXbbSF_weight::eval(RVec<float> pt, RVec<float> eta, RVec<float> 
     return out;
 };
 
+
+// For tagging (signal), we can apply a much simpler algorithm (as per JMAR)
+RVec<float> PNetXbbSF_weight::eval_tag(RVec<float> pt, RVec<float> eta, RVec<float> PNetXbb_score, RVec<int> jetCat) {
+    RVec<float> out(3);
+    for (int var : {0,1,2}) {
+        float weight = 1.0; // begin with a nominal weight of 1
+        for (int i=0; i<PNetXbb_score.size(); i++) {
+            // first check if the jet is tagged and gen-matched to a H (jetCat==4)
+            if ( (PNetXbb_score[i] >= _wp) && (jetCat[i]==4) ) {
+                float SF = GetSF(pt[i], var, jetCat[i]);
+                weight *= SF;
+            }// check if jet is tagged && matched
+        }// loop over jets
+    out[var] = weight;
+    }// loop over variations
+    return out;
+};
 

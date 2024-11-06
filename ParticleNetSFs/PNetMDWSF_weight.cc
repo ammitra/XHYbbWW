@@ -45,7 +45,8 @@ class PNetMDWSF_weight {
     public:
         PNetMDWSF_weight(std::string year, std::string category, std::string effpath, float wp);
         ~PNetMDWSF_weight();
-        RVec<float> eval(RVec<float> pt, RVec<float> eta, RVec<float> PNetWqq_score, RVec<int> jetCat);
+        RVec<float> eval_mistag(RVec<float> pt, RVec<float> eta, RVec<float> PNetWqq_score, RVec<int> jetCat);
+        RVec<float> eval_tag(RVec<float> pt, RVec<float> eta, RVec<float> PNetWqq_score, RVec<int> jetCat);
 };
 
 PNetMDWSF_weight::PNetMDWSF_weight(std::string year, std::string category, std::string effpath, float wp) : _year(year), _category(category), _wp(wp) {
@@ -100,7 +101,7 @@ float PNetMDWSF_weight::GetSF(float pt, int variation, int jetCat) {
             if (jetCat == 0) {
                 SF = 1.0;//= SF2016APV_o[ptBin][var];
             }
-            else if (jetCat == 1) {
+            else if (jetCat == 1 || jetCat == 5) {
                 SF = SF2016APV_w[ptBin][var];
             }
             else if (jetCat == 2) {
@@ -117,7 +118,7 @@ float PNetMDWSF_weight::GetSF(float pt, int variation, int jetCat) {
             if (jetCat == 0) {
                 SF = 1.0;//= SF2016_o[ptBin][var];
             }
-            else if (jetCat == 1) {
+            else if (jetCat == 1 || jetCat == 5) {
                 SF = SF2016_w[ptBin][var];
             }
             else if (jetCat == 2) {
@@ -134,7 +135,7 @@ float PNetMDWSF_weight::GetSF(float pt, int variation, int jetCat) {
             if (jetCat == 0) {
                 SF = 1.0;//= SF2017_o[ptBin][var];
             }
-            else if (jetCat == 1) {
+            else if (jetCat == 1 || jetCat == 5) {
                 SF = SF2017_w[ptBin][var];
             }
             else if (jetCat == 2) {
@@ -151,7 +152,7 @@ float PNetMDWSF_weight::GetSF(float pt, int variation, int jetCat) {
             if (jetCat == 0) {
                 SF = 1.0;//= SF2018_o[ptBin][var];
             }
-            else if (jetCat == 1) {
+            else if (jetCat == 1 || jetCat == 5) {
                 SF = SF2018_w[ptBin][var];
             }
             else if (jetCat == 2) {
@@ -206,7 +207,8 @@ float PNetMDWSF_weight::GetEff(float pt, float eta, int jetCat) {
     return eff;
 };
 
-RVec<float> PNetMDWSF_weight::eval(RVec<float> pt, RVec<float> eta, RVec<float> PNetWqq_score, RVec<int> jetCat) {
+// Used only for mis-tagging (ttbar), which requires mis-tagging eff maps.
+RVec<float> PNetMDWSF_weight::eval_mistag(RVec<float> pt, RVec<float> eta, RVec<float> PNetWqq_score, RVec<int> jetCat) {
     RVec<float> out(3);
     for (int var : {0,1,2}) {
         float MC_tagged = 1.0, MC_notTagged = 1.0;
@@ -216,7 +218,7 @@ RVec<float> PNetMDWSF_weight::eval(RVec<float> pt, RVec<float> eta, RVec<float> 
             float SF, eff;
             SF  = GetSF(pt[i], var, jetCat[i]);
             eff = GetEff(pt[i], eta[i], jetCat[i]);
-            if (PNetWqq_score[i] > _wp) {
+            if (PNetWqq_score[i] >= _wp) {
                 MC_tagged *= eff;
                 data_tagged *= SF*eff;
             }
@@ -233,6 +235,23 @@ RVec<float> PNetMDWSF_weight::eval(RVec<float> pt, RVec<float> eta, RVec<float> 
         }
         out[var] = PNetWqq_event_weight;
     }
+    return out;
+};
+
+// For tagging (signal), we can apply a much simpler algorithm (as per JMAR)
+RVec<float> PNetMDWSF_weight::eval_tag(RVec<float> pt, RVec<float> eta, RVec<float> PNetWqq_score, RVec<int> jetCat) {
+    RVec<float> out(3);
+    for (int var : {0,1,2}) {
+        float weight = 1.0; // begin with a nominal weight of 1
+        for (int i=0; i<PNetWqq_score.size(); i++) {
+            // first check if the jet is tagged and gen-matched to a W (jetCat==1,5)
+            if ( (PNetWqq_score[i] >= _wp) && ((jetCat[i]==1) || (jetCat[i]==5)) ) {
+                float SF = GetSF(pt[i], var, jetCat[i]);
+                weight *= SF;
+            }// check if jet is tagged && matched
+        }// loop over jets
+    out[var] = weight;
+    }// loop over variations
     return out;
 };
 

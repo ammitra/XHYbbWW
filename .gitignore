@@ -16,3 +16,4 @@ rootfiles/*.root
 .ipynb_checkpoints/
 .root_hist
 *jdl
+*.pem

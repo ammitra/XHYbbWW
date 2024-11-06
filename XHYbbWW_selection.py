@@ -27,6 +27,53 @@ def selection(args):
     selection.ApplyTrigs(args.trigEff)
     cuts['n_after_corrections'] = selection.getNweighted()
 
+    # Apply tagging (signal) or mistagging (ttbar) scale factors 
+    eosdir  = 'root://cmseos.fnal.gov//store/user/ammitra/XHYbbWW/TaggerEfficiencies'
+    #effpath = f'{eosdir}/{args.setname}_{args.year}_Efficiencies.root'
+    effpath = f'ParticleNetSFs/EfficiencyMaps/{args.setname}_{args.year}_Efficiencies.root'
+    if ('ttbar' in args.setname) or ('NMSSM' in args.setname):
+        # Constants
+        w_tagger = 'particleNetMD_WvsQCD'
+        h_tagger = 'particleNetMD_HbbvsQCD'
+        w_wp = Wqq_WPs[args.year]
+        h_wp = 0.98
+        # Compile helper functions
+        CompileCpp('ParticleNetSFs/TopMergingFunctions.cc')
+        selection.a.Define('Trijet_GenMatchCats','classifyProbeJets({0,1,2}, Trijet_phi, Trijet_eta, nGenPart, GenPart_phi, GenPart_eta, GenPart_pdgId, GenPart_genPartIdxMother)')
+        # Pass the category to the constructor so the class can use tagging or mistagging systematics automatically
+        category = 'ttbar' if 'ttbar' in args.setname else 'signal'
+        PNet_HbbTagging_corr = Correction(
+            name        = 'PNetMD_Hbb_%stag'%('mis' if category=='ttbar' else ''),
+            script      = 'ParticleNetSFs/PNetXbbSF_weight.cc',
+            constructor = [args.year, category, effpath, h_wp],
+            mainFunc    = 'eval_tag' if category == 'signal' else 'eval_mistag',
+            corrtype    = 'weight',
+            columnList  = ['Trijet_pt_corr', 'Trijet_eta', 'Trijet_particleNetMD_HbbvsQCD', 'Trijet_GenMatchCats']
+        )
+        selection.a.AddCorrection(
+            correction  = PNet_HbbTagging_corr,
+            evalArgs    = {'pt':'Trijet_pt_corr', 'eta':'Trijet_eta', 'PNetXbb_score':'Trijet_particleNetMD_HbbvsQCD', 'jetCat':'Trijet_GenMatchCats'}
+        )
+
+        #selection.a.DataFrame.Display(['PNetMD_Hbb_%stag__nom'%('mis' if category=='ttbar' else '')]).Print()
+
+        PNet_WTagging_corr = Correction(
+            name        = 'PNet_W_%stag'%('mis' if category=='ttbar' else ''),
+            script      = 'ParticleNetSFs/PNetMDWSF_weight.cc',
+            constructor = [args.year, category, effpath, w_wp],
+            mainFunc    = 'eval_tag' if category == 'signal' else 'eval_mistag',
+            corrtype    = 'weight',
+            columnList  = ['Trijet_pt', 'Trijet_eta', 'Trijet_particleNetMD_WvsQCD', 'Trijet_GenMatchCats'],
+        )
+        selection.a.AddCorrection(
+            correction = PNet_WTagging_corr,
+            evalArgs   = {'pt':'Trijet_pt_corr', 'eta':'Trijet_eta', 'PNetWqq_score':'Trijet_particleNetMD_WvsQCD', 'jetCat':'Trijet_GenMatchCats'}
+        )
+
+        #selection.a.DataFrame.Display(['PNet_W_%stag__nom'%('mis' if category=='ttbar' else '')]).Print()
+
+
+
     # Perform H,W1,W2 candidate selection the same way for both SR/VR
     selection.a.Define(f'Higgs_candidate_idx','Pick_H_candidate(Trijet_particleNetMD_HbbvsQCD,{0,1,2})')
     selection.a.Define(f'DummyW_idx0',f'Higgs_candidate_idx[1]') # the 0th index belongs to Higgs candidate 
@@ -58,17 +105,16 @@ def selection(args):
     selection.a.Cut(f'mW_window_cut',mW_cut)
     cuts[f'n_after_WmassCut'] = selection.getNweighted()
 
-    # Apply tagging (signal) or mistagging (ttbar) scale factors 
-    '''
-    TO-DO (10/25/2024) - for now we just skip these until the new efficiency maps are made
-    and the ParticleNetSFs/PNetXbbSF_weight.cc and ParticleNetSFs/PNetMDWSF_weight.cc scripts
-    are correcetd to use the 2.5% working point
-    '''
 
     # Having added the tagging and mistagging SFs to the appropriate processes, make uncertainty cols
     print('Tracking corrections:\n\t%s'%("\n\t- ".join(list(selection.a.GetCorrectionNames()))))
+
+    # EXPERIMENTAL
+    uncerts_to_corr = {}
+
     VRSR_CHECKPOINT = selection.a.MakeWeightCols(
         correctionNames = list(selection.a.GetCorrectionNames()),
+        uncerts_to_corr=uncerts_to_corr,
         extraNominal = '' if selection.a.isData else f'{selection.GetXsecScale()}'
     )
 
@@ -92,7 +138,7 @@ def selection(args):
         - SR : [100, 150] GeV
     Both use identical Fail/Pass Hbb score requirements
     '''
-    for region in ['VR']:
+    for region in ['VR','SR']:
         print(f'-----------------------------------------------------------------')
         print(f'Creating {region} with corresponding mass window requirement')
         print(f'-----------------------------------------------------------------')
