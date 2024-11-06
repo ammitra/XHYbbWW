@@ -45,7 +45,7 @@ cd ../XHYbbWW
 export X509_CERT_DIR=/cvmfs/grid.cern.ch/etc/grid-security/certificates/
 
 # Now run the script
-echo python NewEventSelectionStudies_8Oct2024.py $*
-python NewEventSelectionStudies_8Oct2024.py $*
+echo python CR_SR_studies.py $*
+python CR_SR_studies.py $*
 
 xrdcp -f rootfiles/*.root root://cmseos.fnal.gov//store/user/ammitra/XHYbbWW/studies/

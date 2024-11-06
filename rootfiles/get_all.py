@@ -24,9 +24,9 @@ def CombineCommonSets(groupname,doStudies=False,modstr='',HT='',remote=False):
     
     for y in ['16','16APV','17','18']:
         if not remote:
-            baseStr = 'rootfiles/XHYbbWW%s_HT%s_{0}{2}_{1}{3}.root'%('studies' if doStudies else 'selection',HT)
+            baseStr = 'rootfiles/XHYbbWW%s_{0}{2}_{1}{3}.root'%('studies' if doStudies else 'selection')
         else:
-            baseStr = 'root://cmseos.fnal.gov//store/user/ammitra/XHYbbWW/selection/XHYbbWW%s_HT%s_{0}{2}_{1}{3}.root'%('studies' if doStudies else 'selection',HT)
+            baseStr = 'root://cmseos.fnal.gov//store/user/ammitra/XHYbbWW/selection/XHYbbWW%s_{0}{2}_{1}{3}.root'%('studies' if doStudies else 'selection')
         if groupname == 'TT':
             to_loop = [''] if doStudies else ['','JES','JER','JMS','JMR']
             for v in to_loop:
@@ -95,43 +95,25 @@ def CombineCommonSets(groupname,doStudies=False,modstr='',HT='',remote=False):
                             baseStr.format('{}JetsHT800'.format('W' if groupname == 'W' else 'Z'),y,modstr,v3))
                         )
 
-def MakeRun2(setname,doStudies=False,modstr='',HT=''):
-    t = 'studies' if doStudies else 'selection'
-    ExecuteCmd('hadd -f -k rootfiles/XHYbbWW{1}_HT{3}_{0}{2}_Run2.root rootfiles/XHYbbWW{1}_{0}{2}_16.root rootfiles/XHYbbWW{1}_{0}{2}_17.root rootfiles/XHYbbWW{1}_{0}{2}_18.root'.format(setname,t,modstr,HT))
+def MakeRun2(source_path):
+    target = 'root://cmseos.fnal.gov//store/user/ammitra/XHYbbWW/selection/XHYbbWWselection_Data_Run2.root'
+    sources = f'xrdfsls -u {source_path} | grep Data | grep -v Run2'
+    haddcmd = f'hadd -f -k {target} $({sources})'
+    ExecuteCmd(haddcmd,dryrun=False)
 
 
 # ------------------------------------------------------------------------------------------
 if __name__ == '__main__':
-    from argparse import ArgumentParser
-    parser = ArgumentParser()
-    parser.add_argument('--HT', type=str, dest='HT',
-                        action='store', default='0',
-                        help='Value of HT to cut on')
-    args = parser.parse_args()
-
     redirector = 'root://cmseos.fnal.gov/'
-    eos_path = '/store/user/ammitra/XHYbbWW/selection/'.format(args.HT)
+    eos_path = '/store/user/ammitra/XHYbbWW/selection/'
 
     '''
-    rawFiles = subprocess.check_output('eos {} ls {}'.format(redirector,eos_path), shell=True)
-    files = rawFiles.split('\n')
-
-    for fName in files:
-	if (fName == '') or ('Muon' in fName):
-	    pass
-	if ('NMSSM' in fName) and ('1800-800' not in fName):
-	    pass
-    	else:
-            ExecuteCmd('xrdcp {}{}{} rootfiles/'.format(redirector, eos_path, fName))
-    # now that we have all files, perform housekeeping
-    CombineCommonSets('QCD', False, HT=args.HT)
-    CombineCommonSets('ttbar', False, HT=args.HT)
-    MakeRun2('Data', False, HT=args.HT)
+    # combine common sets with different HT bins and/or decays, using the remote flag 
+    CombineCommonSets('TT',doStudies=False,HT='',remote=True)
+    CombineCommonSets('W',doStudies=False,HT='',remote=True)
+    CombineCommonSets('Z',doStudies=False,HT='',remote=True)
+    CombineCommonSets('QCD',doStudies=False,HT='',remote=True)
+    CombineCommonSets('ST',doStudies=False,HT='',remote=True)
     '''
-
-    # combine the ttbar on EOS as well, using the remote flag 
-    CombineCommonSets('TT',doStudies=False,HT=args.HT,remote=True)
-    CombineCommonSets('W',doStudies=False,HT=args.HT,remote=True)
-    CombineCommonSets('Z',doStudies=False,HT=args.HT,remote=True)
-    CombineCommonSets('QCD',doStudies=False,HT=args.HT,remote=True)
-    CombineCommonSets('ST',doStudies=False,HT=args.HT,remote=True)
+    # Combine all of the Run 2 data
+    MakeRun2(eos_path) 

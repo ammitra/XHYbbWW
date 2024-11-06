@@ -81,7 +81,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    baseFile = 'rootfiles/XHYbbWWselection_HT0_{setname}_{year}{syst}.root'
+    baseFile = 'root://cmseos.fnal.gov//store/user/ammitra/XHYbbWW/selection/XHYbbWWselection_HT0_{setname}_{year}{syst}.root'
     baseHist = 'MXvMY_%s_msoftdrop__nominal'%(args.region)
     systs = ['','_PNetWqq_up','_PNetWqq_down','_PNetHbb_up','_PNetHbb_down']
 

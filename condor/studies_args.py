@@ -6,7 +6,7 @@ for f in glob.glob('trijet_nano/*.txt'):
     setname = filename.split('_')[0]
     year = filename.split('_')[1]
     # don't run studies on data
-    if 'Data' in setname:
-        continue
+    #if 'Data' in setname:
+        #continue
 
     out.write('-s {} -y {} -v None\n'.format(setname, year))

@@ -48,12 +48,12 @@ export X509_CERT_DIR=/cvmfs/grid.cern.ch/etc/grid-security/certificates/
 #       $1    $2     $3   $4   $5     $6       $7   $8  $9   $10     $11   $12
 #       -s <SETNAME> -y <YEAR> -v <VARIATION> --HT <HT> -n <NCHUNKS> -j <CHUNK #>
 # First, get the efficiency map if signal or ttbar
-if [[ $2 == *"ttbar"* ]] || [[ $2 == *"NMSSM"* ]]
-then
-    filename="$2"'_'"$4"'_Efficiencies.root'
-    echo 'xrdcp root://cmseos.fnal.gov//store/user/ammitra/XHYbbWW/TaggerEfficiencies/'"$filename"' ParticleNetSFs/EfficiencyMaps/'
-    xrdcp root://cmseos.fnal.gov//store/user/ammitra/XHYbbWW/TaggerEfficiencies/"$filename" ParticleNetSFs/EfficiencyMaps/
-fi
+#if [[ $2 == *"ttbar"* ]] || [[ $2 == *"NMSSM"* ]]
+#then
+    #filename="$2"'_'"$4"'_Efficiencies.root'
+    #echo 'xrdcp root://cmseos.fnal.gov//store/user/ammitra/XHYbbWW/TaggerEfficiencies/'"$filename"' ParticleNetSFs/EfficiencyMaps/'
+    #xrdcp root://cmseos.fnal.gov//store/user/ammitra/XHYbbWW/TaggerEfficiencies/"$filename" ParticleNetSFs/EfficiencyMaps/
+#fi
 
 # Now run the script
 echo python XHYbbWW_selection.py $*

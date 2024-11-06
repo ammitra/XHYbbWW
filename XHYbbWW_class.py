@@ -38,13 +38,17 @@ def SplitUp(filename,npieces,nFiles=False):
     return out
 
 class XHYbbWW:
-    def __init__(self, inputfile, year, ijob, njobs):
+    def __init__(self, inputfile, year, ijob, njobs, altfilename=''):
         if inputfile.endswith('.txt'):
             infiles = SplitUp(inputfile, njobs)[ijob-1]
+            print(f'\t\t Running over {",".join(infiles)}')
+            self.setname = inputfile.split('/')[-1].split('_')[0]
+
         else:
             infiles = inputfile
+            self.setname = altfilename
 
-        self.setname = inputfile.split('/')[-1].split('_')[0]
+
         self.a = analyzer(infiles)
         
         self.year = str(year)
@@ -68,12 +72,14 @@ class XHYbbWW:
         #18:['HLT_AK8PFJet400_TrimMass30','HLT_AK8PFHT850_TrimMass50','HLT_PFHT1050','HLT_PFJet500','HLT_AK8PFJet330_TrimMass30_PFAK8BoostedDoubleB_np2','HLT_AK8PFJet400_TrimMass30']
         }
 
+        '''
         # check if data or sim
         if 'Data' in inputfile:
             self.a.isData = True
         else:
             self.a.isData = False
-           
+        '''
+
     def AddCutflowColumn(self, var, varName):
         '''
         for future reference:
@@ -115,7 +121,7 @@ class XHYbbWW:
         self.NJETS = self.getNweighted()
         #self.AddCutflowColumn(self.NJETS, "NJETS")
 
-        self.a.Cut('pt_cut', 'FatJet_pt[0] > 300 && FatJet_pt[1] > 300 && FatJet_pt[2] > 300')      # jets ordered by pt
+        self.a.Cut('pt_cut', 'FatJet_pt[0] > 200 && FatJet_pt[1] > 200 && FatJet_pt[2] > 200')      # jets ordered by pt
         self.NPT = self.getNweighted()
         #self.AddCutflowColumn(self.NPT, "NPT")
 
@@ -157,9 +163,11 @@ class XHYbbWW:
                 # NOTE: LumiFilter requires the year as an integer 
                 lumiFilter = ModuleWorker('LumiFilter','TIMBER/Framework/include/LumiFilter.h',[int(self.year) if 'APV' not in self.year else 16])    # defaults to perform "eval" method 
                 self.a.Cut('lumiFilter',lumiFilter.GetCall(evalArgs={"lumi":"luminosityBlock"}))	       # replace lumi with luminosityBlock
+
                 if self.year == '18':
-                    HEM_worker = ModuleWorker('HEM_drop','TIMBER/Framework/include/HEM_drop.h',[self.setname if 'Muon' not in self.setname else self.setname[10:]])
-                    self.a.Cut('HEM','%s[0] > 0'%(HEM_worker.GetCall(evalArgs={"FatJet_eta":"Trijet_eta","FatJet_phi":"Trijet_phi"})))
+                    HEM_worker = ModuleWorker('HEM_veto','TIMBER/Framework/include/HEM_veto.h',[self.setname if 'Muon' not in self.setname else self.setname[10:]])
+                    self.a.Cut('HEM','%s == 0'%(HEM_worker.GetCall(evalArgs={"FatJet_eta":"Trijet_eta","FatJet_phi":"Trijet_phi","run":"run"})))
+
             # MC - apply corrections
             else:
                 # Parton shower weights 
@@ -172,17 +180,20 @@ class XHYbbWW:
                 self.a.Define("FSR__down","PSWeight[1]")
                 genWCorr    = Correction('genW','TIMBER/Framework/TopPhi_modules/BranchCorrection.cc',corrtype='corr',mainFunc='evalCorrection') # workaround so we can have multiple BCs
                 self.a.AddCorrection(genWCorr, evalArgs={'val':'genWeight'})
-                #ISRcorr = Correction('ISRunc', 'TIMBER/Framework/TopPhi_modules/BranchCorrection.cc', mainFunc='evalUncert', corrtype='uncert')
-                #FSRcorr = Correction('FSRunc', 'TIMBER/Framework/TopPhi_modules/BranchCorrection.cc', mainFunc='evalUncert', corrtype='uncert')
                 ISRcorr = genWCorr.Clone("ISRunc",newMainFunc="evalUncert",newType="uncert")
                 FSRcorr = genWCorr.Clone("FSRunc",newMainFunc="evalUncert",newType="uncert")
                 self.a.AddCorrection(ISRcorr, evalArgs={'valUp':'ISR__up','valDown':'ISR__down'})
                 self.a.AddCorrection(FSRcorr, evalArgs={'valUp':'FSR__up','valDown':'FSR__down'})
+
+
                 # Pileup reweighting
                 self.a = ApplyPU(self.a, 'XHYbbWWpileup.root', '20{}'.format(self.year), ULflag=True, histname='{}_{}'.format(self.setname,self.year))
+
+
                 # QCD factorization and renormalization corrections (only apply to non-signal MC in fit, but generate signal w this variation just in case..)
                 # For some reason, diboson processes don't have the LHEScaleWeight branch, so don't apply to those either.
                 if (('WW' not in self.setname) and ('WZ' not in self.setname) and ('ZZ' not in self.setname)):
+                    '''
                     # First instatiate a correction module for the factorization correction
                     facCorr = Correction('QCDscale_factorization','LHEScaleWeights.cc',corrtype='weight',mainFunc='evalFactorization')
                     self.a.AddCorrection(facCorr, evalArgs={'LHEScaleWeights':'LHEScaleWeight'})
@@ -196,6 +207,12 @@ class XHYbbWW:
                     # See: https://indico.cern.ch/event/938672/contributions/3943718/attachments/2073936/3482265/MC_ContactReport_v3.pdf (slide 27)
                     QCDScaleUncert = facCorr.Clone('QCDscale_uncert',newMainFunc='evalUncert',newType='uncert')
                     self.a.AddCorrection(QCDScaleUncert, evalArgs={'LHEScaleWeights':'LHEScaleWeight'})
+                    '''
+                    # Just do an uncertainty as described by the GEN contact report above
+                    # See: https://indico.cern.ch/event/938672/contributions/3943718/attachments/2073936/3482265/MC_ContactReport_v3.pdf (slide 27)
+                    QCDScaleUncert = Correction('QCDscale_uncert', 'LHEScaleWeights.cc', corrtype='uncert', mainFunc='evalUncert')
+                    self.a.AddCorrection(QCDScaleUncert, evalArgs={'LHEScaleWeights':'LHEScaleWeight'})
+
 
                 # PDF weight correction - https://twiki.cern.ch/twiki/bin/viewauth/CMS/TopSystematics#PDF
                 if self.a.lhaid != -1:
@@ -205,19 +222,24 @@ class XHYbbWW:
                     )
                 # Level-1 prefire corrections
                 if self.year == '16' or self.year == '17' or 'APV' in self.year:
-                    #self.a.AddCorrection(Correction("Prefire","TIMBER/Framework/include/Prefire_weight.h",[self.year],corrtype='weight'))
-                    #L1PreFiringWeight = Correction("L1PreFiringWeight","TIMBER/Framework/TopPhi_modules/BranchCorrection.cc",constructor=[],mainFunc='evalWeight',corrtype='weight',columnList=['L1PreFiringWeight_Nom','L1PreFiringWeight_Up','L1PreFiringWeight_Dn'])
                     L1PreFiringWeight = genWCorr.Clone('L1PreFireWeight',newMainFunc='evalWeight',newType='weight')
                     self.a.AddCorrection(L1PreFiringWeight, evalArgs={'val':'L1PreFiringWeight_Nom','valUp':'L1PreFiringWeight_Up','valDown':'L1PreFiringWeight_Dn'})
+                
                 # HEM drop to 2018 MC
                 elif self.year == '18':
-                    self.a.AddCorrection(Correction('HEM_drop','TIMBER/Framework/include/HEM_drop.h',[self.setname],corrtype='corr'))
+                    HEM_worker = ModuleWorker('HEM_veto','TIMBER/Framework/include/HEM_veto.h',[self.setname]) 
+                    self.a.Cut('HEM','%s == 0'%(HEM_worker.GetCall(evalArgs={"FatJet_eta":"Trijet_eta","FatJet_phi":"Trijet_phi",}))) # don't pass in any run
+
 
             # AutoJME rewritten to automatically do softdrop and regressed mass
             self.a = AutoJME.AutoJME(self.a, 'Trijet', '20{}'.format(self.year), self.setname if 'Muon' not in self.setname else self.setname[10:])
 
-            #self.a.MakeWeightCols(extraNominal='genWeight' if not self.a.isData else '')
-            self.a.MakeWeightCols(extraNominal=f'{self.GetXsecScale()}') # since we added genWcorr we only have to add lumi*xsec/genEventSumW weight
+            '''
+            if not self.a.isData:
+                # make uncertainty columns. Apply the xsec*lumi/genEventSumw as a correction to the event weight on top of the nominal. 
+                self.a.MakeWeightCols(extraNominal=f'{self.GetXsecScale()}') # since we added genWcorr we only have to add lumi*xsec/genEventSumW weight
+            '''
+
 
         # now for selection
         else:
@@ -252,13 +274,13 @@ class XHYbbWW:
         return self.a.GetActiveNode()
 
     # for selection purposes - used for making templates for 2DAlphabet
-    def OpenForSelection(self, variation):
+    def OpenForSelection(self, variation, runCorrs=False):
         # Mass-decorrelated W tagger discriminant is defined by inclusion of X->cc 
         # See slide 16: https://indico.cern.ch/event/809820/contributions/3632617/attachments/1970786/3278138/MassDecorrelation_ML4Jets_H_Qu.pdf
         #self.a.Define('Trijet_particleNetMD_WvsQCD','Trijet_particleNetMD_Xqq/(Trijet_particleNetMD_Xqq+Trijet_particleNetMD_QCD)')
         self.a.Define('Trijet_particleNetMD_WvsQCD','(Trijet_particleNetMD_Xqq+Trijet_particleNetMD_Xcc)/(Trijet_particleNetMD_Xqq+Trijet_particleNetMD_Xcc+Trijet_particleNetMD_QCD)')
         self.a.Define('Trijet_particleNetMD_HbbvsQCD','Trijet_particleNetMD_Xbb/(Trijet_particleNetMD_Xbb+Trijet_particleNetMD_QCD)')
-        self.ApplyStandardCorrections(snapshot=False)
+        self.ApplyStandardCorrections(snapshot=runCorrs)
         # for trigger effs
         self.a.Define('Trijet_vect_msoftdrop','hardware::TLvector(Trijet_pt, Trijet_eta, Trijet_phi, Trijet_msoftdrop)')
         self.a.Define('Trijet_vect_mregressed','hardware::TLvector(Trijet_pt, Trijet_eta, Trijet_phi, Trijet_particleNet_mass)')
@@ -310,20 +332,27 @@ class XHYbbWW:
             node = self.a.GetActiveNode()
         
         columns = [
+            'fixedGridRhoFastjetAll', # all processes for JECs
             'nJet','Jet_*',
+            'Trijet_area', 'Trijet_mass', # needed for JECs
             'Trijet_eta','Trijet_msoftdrop','Trijet_pt','Trijet_phi','Trijet_particleNet_mass',
             'Trijet_deepTagMD_HbbvsQCD', 'Trijet_deepTagMD_ZHbbvsQCD',
             'Trijet_deepTagMD_WvsQCD', 'Trijet_deepTag_TvsQCD', 'Trijet_particleNet_HbbvsQCD',
             'Trijet_particleNet_TvsQCD', 'Trijet_particleNetMD.*', 'Trijet_rawFactor', 'Trijet_tau*',
             'Trijet_jetId', 'nTrijet', 'Trijet_JES_nom','Trijet_particleNetMD_Xqq',
-            'Trijet_particleNetMD_Xcc', 'Trijet_particleNet_QCD',
-            'Trijet_particleNet_WvsQCD','HLT_PFHT.*', 'HLT_PFJet.*', 'HLT_AK8.*', 'HLT_Mu50', 'HLT_IsoMu*', 'HLT_IsoTkMu*',
+            'Trijet_particleNetMD_Xcc', 'Trijet_particleNet_QCD','Trijet_particleNet_WvsQCD',
+            #'HLT_PFHT.*', 'HLT_PFJet.*', 'HLT_AK8.*', 'HLT_Mu50', 'HLT_IsoMu*', 'HLT_IsoTkMu*',
             'event', 'eventWeight', 'luminosityBlock', 'run',
             'NPROC', 'NJETS', 'NPT', 'NETA', 'NMSD'
         ]
-        
+        # append triggers for the specific year, don't wildcard...
+        #columns.append(self.trigs[int(self.year) if 'APV' not in self.year else 16])
+        for trig in self.trigs[int(self.year) if 'APV' not in self.year else 16]:
+            columns.append(trig)
+
         # append to columns list if not Data
         if not self.a.isData:
+            columns.extend(['Pileup_nTrueInt'])
             columns.extend(['GenPart_.*', 'nGenPart', 'genWeight', 'GenModel*'])
             columns.extend(['PSWeight', 'LHEScaleWeight']) # for parton shower (ISR+FSR) and QCD renormalization and factorization scale uncertainties
         if self.year == '16' or self.year == '17' or 'APV' in self.year:

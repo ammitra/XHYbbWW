@@ -5,6 +5,7 @@ import matplotlib.ticker as ticker
 import mplhep as hep
 from collections import OrderedDict
 import array
+import subprocess
 
 # Options for plotting
 stack_style = {
@@ -105,6 +106,23 @@ def plot_stack(
     plt.style.use([hep.style.CMS])
     fig, ax = plt.subplots()
 
+    '''
+    # zero out the softdrop below 50
+    if 'softdrop' in outname:
+        for key,val in bkgs.items():
+            hist  = val[0]
+            color = val[1]
+            hist[np.where(edges < 50)] = 0.0
+            print(outname,hist)
+            bkgs[key] = (hist,color)
+        for key,val in sigs.items():
+            hist  = val[0]
+            color = val[1]
+            hist[np.where(edges < 50)] = 0.0
+            print(outname,hist)
+            sigs[key] = (hist,color)
+    ''' 
+
     bkg_stack = np.vstack([val[0] for key, val in bkgs.items()])
     bkg_stack = np.hstack([bkg_stack, bkg_stack[:,-1:]])
     bkg_stack = np.hstack([bkg_stack])
@@ -123,13 +141,15 @@ def plot_stack(
     ax.set_ylabel(f'Events / {width} {units}')
     ax.set_xlabel(xtitle)
 
+    
     # plot data 
-    if (('STAGE' in outname) or ('fail' in outname)):
+    if ('preselection' in outname) or ('stage2' in histName):
         print(f'\tPlotting data in {outname}')
         lower_errors, upper_errors = poisson_conf_interval(data)
         yerr = [data - lower_errors, upper_errors - data]
         bin_centers = (edges[:-1] + edges[1:])/2
         ax.errorbar(x=bin_centers, y=data, yerr=yerr, xerr=None, label='Data', **errorbar_style)
+    
 
     # plot signals
     for key,val in sigs.items():
@@ -182,26 +202,44 @@ def rebin(inHist, newBins):
     hOut.SetDirectory(0)
     return hOut
 
+
 redir = 'root://cmsxrootd.fnal.gov/'
-fname = '{redir}/store/user/ammitra/XHYbbWW/studies/NewSelectionStudies_{proc}_{year}.root'
+fname = '{redir}/store/user/ammitra/XHYbbWW/studies/CR_SR_studies_{proc}_{year}.root'
+fname = 'rootfiles/CR_SR_studies_{proc}_{year}.root'
+print('OBTAINING TEST FILE')
+print(f'\t {fname.format(redir=redir,proc="ttbar-allhad",year="18")}')
 fTest = ROOT.TFile.Open(fname.format(redir=redir,proc='ttbar-allhad',year='18'),'READ')
+print('TEST FILE OBTAINED')
 histNames = [i.GetName() for i in fTest.GetListOfKeys()]
 histTitles = [i.GetTitle() for i in fTest.GetListOfKeys()]
 
+def fileExists(proc,year):
+    try:
+        #f = subprocess.check_output(f'eosls /store/user/ammitra/XHYbbWW/studies | grep CR | grep {proc}_{year}',shell=True,text=True)
+        f = subprocess.check_output(f'ls rootfiles/ | grep CR | grep _{proc}_{year}.root',shell=True,text=True)
+        return 1
+    except:
+        return 0
+
+print('STARTING SCRIPT')
+
 for i,histName in enumerate(histNames):
+    
+    #if ('VR_pass' not in histName) or ('ww' not in histName): continue
+    #if ('preselection' not in histName) and ('stage2' not in histName): continue
+    
 
-    if 'GenMatchStatus' in histName: continue
+    print(f'Plotting {histName}')
 
-    # at this point, we're sticking with 2.5% mistag rate on W candidates
-    if ('STAGE1' not in histName) and ('SR0' not in histName): continue
-
-    print(histName)
-
+    #print(f'Getting binings')
     # Get binnings
-    if ('particleNet_mass' in histName):
+    if ('particleNet_mass' in histName) or ('softdrop' in histName):
         edges = np.linspace(0,300,61)
         new_edges = array.array('d',np.linspace(0,300,21))
-        xtitle = r'$m_{reg}$ [GeV]'
+        if 'particleNet_mass' in histName:
+            xtitle = r'$m_{reg}$ [GeV]'
+        else: 
+            xtitle = r'$m_{SD}$ [GeV]'
 
     elif 'pt' in histName:
         edges = np.linspace(200,1200,101)
@@ -243,9 +281,16 @@ for i,histName in enumerate(histNames):
     hbb  = [np.zeros_like(testHist),'teal']
     hww = [np.zeros_like(testHist),'grey']
 
+    #print('Running over procs')
+
+    '''
     # diboson
     for proc in ['WW','ZZ','WZ']:
         for year in ['16','16APV','17','18']:
+            if not fileExists(proc,year):
+                print(f'\t\t{proc} {year} does not exist')
+                continue
+
             print(f'	Adding histogram for {proc}_{year}')
             f = ROOT.TFile.Open(fname.format(redir=redir,proc=proc,year=year),'READ')
             h = f.Get(histName)
@@ -256,7 +301,10 @@ for i,histName in enumerate(histNames):
     # hbb inclusive
     for proc in ['GluGluHToBB','VBFHToBB','ttHToBB','WplusH-HToBB-WToQQ','WminusH-HToBB-WToQQ','ZH-HToBB-ZToQQ','ggZH-HToBB-ZToQQ']:
         for year in ['16','16APV','17','18']:
-            if proc == 'VBFHToBB' and year == '16APV': continue
+            if not fileExists(proc,year):
+                print(f'\t\t{proc} {year} does not exist')
+                continue
+
             print(f'	Adding histogram for {proc}_{year}')
             f = ROOT.TFile.Open(fname.format(redir=redir,proc=proc,year=year),'READ')
             h = f.Get(histName)
@@ -268,6 +316,10 @@ for i,histName in enumerate(histNames):
     # hww inclusive
     for proc in ['GluGluHToWW-Pt-200ToInf-M-125','HWminusJ-HToWW-M-125','HWplusJ-HToWW-M-125','HZJ-HToWW-M-125','ttHToNonbb-M125']:
         for year in ['16','16APV','17','18']:
+            if not fileExists(proc,year):
+                print(f'\t\t{proc} {year} does not exist')
+                continue
+
             print(f'	Adding histogram for {proc}_{year}')
             f = ROOT.TFile.Open(fname.format(redir=redir,proc=proc,year=year),'READ')
             h = f.Get(histName)
@@ -275,9 +327,14 @@ for i,histName in enumerate(histNames):
             a = hist2array(h)
             hww[0] += a
             f.Close()
+    '''
 
     for proc in ['ttbar-allhad','ttbar-semilep']:
         for year in ['16','16APV','17','18']:
+            if not fileExists(proc,year):
+                print(f'\t\t{proc} {year} does not exist')
+                continue
+
             print(f'	Adding histogram for {proc}_{year}')
             f = ROOT.TFile.Open(fname.format(redir=redir,proc=proc,year=year),'READ')
             h = f.Get(histName)
@@ -288,6 +345,10 @@ for i,histName in enumerate(histNames):
 
     for proc in ['WJetsHT400','WJetsHT600','WJetsHT800']:
         for year in ['16','16APV','17','18']:
+            if not fileExists(proc,year):
+                print(f'\t\t{proc} {year} does not exist')
+                continue
+
             print(f'	Adding histogram for {proc}_{year}')
             f = ROOT.TFile.Open(fname.format(redir=redir,proc=proc,year=year),'READ')
             h = f.Get(histName)
@@ -298,6 +359,10 @@ for i,histName in enumerate(histNames):
 
     for proc in ['ZJetsHT400','ZJetsHT600','ZJetsHT800']:
         for year in ['16','16APV','17','18']:
+            if not fileExists(proc,year):
+                print(f'\t\t{proc} {year} does not exist')
+                continue
+
             print(f'	Adding histogram for {proc}_{year}')
             f = ROOT.TFile.Open(fname.format(redir=redir,proc=proc,year=year),'READ')
             h = f.Get(histName)
@@ -308,6 +373,10 @@ for i,histName in enumerate(histNames):
 
     for proc in ['NMSSM-XHY-1800-1200']:
         for year in ['16','16APV','17','18']:
+            if not fileExists(proc,year):
+                print(f'\t\t{proc} {year} does not exist')
+                continue
+
             print(f'	Adding histogram for {proc}_{year}')
             f = ROOT.TFile.Open(fname.format(redir=redir,proc=proc,year=year),'READ')
             h = f.Get(histName)
@@ -318,6 +387,10 @@ for i,histName in enumerate(histNames):
 
     for proc in ['QCDHT700','QCDHT1000','QCDHT1500','QCDHT2000']: # HT1000 didn't generate
         for year in ['16','16APV','17','18']:
+            if not fileExists(proc,year):
+                print(f'\t\t{proc} {year} does not exist')
+                continue
+
             print(f'	Adding histogram for {proc}_{year}')
             f = ROOT.TFile.Open(fname.format(redir=redir,proc=proc,year=year),'READ')
             h = f.Get(histName)
@@ -328,6 +401,10 @@ for i,histName in enumerate(histNames):
 
     for proc in ['ST-antitop4f','ST-tW-antitop5f','ST-tW-top5f','ST-top4f']:
         for year in ['16','16APV','17','18']:
+            if not fileExists(proc,year):
+                print(f'\t\t{proc} {year} does not exist')
+                continue
+
             print(f'	Adding histogram for {proc}_{year}')
             f = ROOT.TFile.Open(fname.format(redir=redir,proc=proc,year=year),'READ')
             h = f.Get(histName)
@@ -339,6 +416,10 @@ for i,histName in enumerate(histNames):
     for name in ['DataA_18', 'DataB_16APV', 'DataB_17', 'DataB_18', 'DataC_16APV', 'DataC_17', 'DataC_18', 'DataD_16APV', 'DataD_17', 'DataD_18', 'DataE_16APV', 'DataE_17', 'DataF_16', 'DataF_16APV', 'DataF_17', 'DataG_16', 'DataH_16']:
         proc = name.split('_')[0]
         year = name.split('_')[1]
+        if not fileExists(proc,year):
+            print(f'\t\t{proc} {year} does not exist')
+            continue
+
         print(f'	Adding histogram for {proc}_{year}')
         f = ROOT.TFile.Open(fname.format(redir=redir,proc=proc,year=year),'READ')
         h = f.Get(histName)
@@ -361,9 +442,9 @@ for i,histName in enumerate(histNames):
             (r'W+Jets',wj),
             (r'Z+Jets',zj),
             (r'Single-top',st),
-            (r'Diboson',dib),
-            (r'HWW (incl.)',hww),
-            (r'Hbb (incl.)',hbb)
+            #(r'Diboson',dib),
+            #(r'HWW (incl.)',hww),
+            #(r'Hbb (incl.)',hbb)
         ]
     )
     sigHists = OrderedDict([(r'$X_{1800}, Y_{1200}$',xy)])
@@ -382,16 +463,17 @@ for i,histName in enumerate(histNames):
         extraText=''
     )
 
+    '''
     # then do without QCD MC 
     bkgHists = OrderedDict(
         [
             (r'$t\bar{t}$',tt),
             (r'W+Jets',wj),
             (r'Z+Jets',zj),
-            (r'Single-top',st),
-            (r'Diboson',dib),
-            (r'HWW (incl.)',hww),
-            (r'Hbb (incl.)',hbb)
+            (r'ST',st),
+            #(r'Diboson',dib),
+            #(r'HWW (incl.)',hww),
+            #(r'Hbb (incl.)',hbb)
         ]
     )
     plot_stack(
@@ -406,4 +488,28 @@ for i,histName in enumerate(histNames):
         lumiText=r'$138 fb^{-1}$ (13 TeV)',
         extraText=''
     )
+    '''
 
+    # now do it with log scale
+    bkgHists = OrderedDict(
+        [
+            (r'ST',st),
+            (r'Z+Jets',zj),
+            (r'W+Jets',wj),
+            (r'$t\bar{t}$',tt),
+            ('QCD',qcd)
+        ]
+    )
+    plot_stack(
+        outname=f'plots/{histName}_logy.png',
+        data=data[0],
+        bkgs=bkgHists,
+        sigs=sigHists,
+        totalBkg=total_withQCD,
+        edges=edges,
+        title=histName,
+        xtitle=xtitle,
+        lumiText=r'$138 fb^{-1}$ (13 TeV)',
+        extraText='',
+        logyFlag=True
+    )

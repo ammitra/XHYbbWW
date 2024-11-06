@@ -38,12 +38,18 @@ def analyze(selection, args):
             score = selection.a.GetActiveNode().DataFrame.Histo1D(('GenMatched_%s_%s_score'%(matching,tagger),'GenMatched_%s_%s_score'%(matching,tagger),50,0,1),'GenMatched_%s_Jets_%s'%(matching,tagger))
             hists.Add('GenMatched_%s_Jets_%s_score'%(matching,tagger), score)
 
+    Wqq_WPs = {
+        '16APV': 0.637,
+        '16': 0.642,
+        '17': 0.579,
+        '18': 0.59
+    }
 
-    for tagger in ['Trijet_particleNetMD_HbbvsQCD','Trijet_particleNetMD_WvsQCD','Trijet_particleNet_TvsQCD']:
+    for tagger in ['Trijet_particleNetMD_HbbvsQCD','Trijet_particleNetMD_WvsQCD']:
         for matching, statuscode in statuses.items():
             if 'HbbvsQCD' in tagger: wp = 0.98
-            elif 'WvsQCD' in tagger: wp = 0.80
-            elif 'TvsQCD' in tagger: wp = 0.94
+            elif 'WvsQCD' in tagger:
+                wp = Wqq_WPs[args.year]
 
             print('Obtaining tagging efficiency for %s-matched jets using %s tagger'%(matching,tagger))
             selection.a.SetActiveNode(checkpoint)
@@ -51,8 +57,8 @@ def analyze(selection, args):
             selection.a.SubCollection('%sJets_all_%s'%(matching,tagger),'Trijet','jetCats == %s'%statuscode)
             selection.a.SubCollection('%sJets_tag_%s'%(matching,tagger),'Trijet','jetCats == %s && %s > %s'%(statuscode,tagger,wp))
 
-            denominator = selection.a.GetActiveNode().DataFrame.Histo2D(('%s_%s_d'%(matching,tagger),'denominator',4,300,1500,4,-2.4,2.4),'%sJets_all_%s_pt_corr'%(matching,tagger),'%sJets_all_%s_eta'%(matching,tagger)).GetValue()
-            numerator   = selection.a.GetActiveNode().DataFrame.Histo2D(('%s_%s_n'%(matching,tagger),'numerator',4,300,1500,4,-2.4,2.4),'%sJets_tag_%s_pt_corr'%(matching,tagger),'%sJets_tag_%s_eta'%(matching,tagger)).GetValue()
+            denominator = selection.a.GetActiveNode().DataFrame.Histo2D(('%s_%s_d'%(matching,tagger),'denominator',13,200,1500,4,-2.4,2.4),'%sJets_all_%s_pt_corr'%(matching,tagger),'%sJets_all_%s_eta'%(matching,tagger)).GetValue()
+            numerator   = selection.a.GetActiveNode().DataFrame.Histo2D(('%s_%s_n'%(matching,tagger),'numerator',13,200,1500,4,-2.4,2.4),'%sJets_tag_%s_pt_corr'%(matching,tagger),'%sJets_tag_%s_eta'%(matching,tagger)).GetValue()
 
             print('Creating TEfficiency for (jetCat == {0} && {1} > {2})/(jetCat == {0})'.format(matching,tagger,wp))
             eff = ROOT.TEfficiency(numerator,denominator)
@@ -89,7 +95,7 @@ if __name__ == '__main__':
 
     filename = 'trijet_nano/{}_{}_snapshot.txt'.format(args.setname,args.year)
     selection = XHYbbWW('trijet_nano/{}_{}_snapshot.txt'.format(args.setname,args.year),args.year,1,1)
-    selection.OpenForSelection('None')
+    selection.OpenForSelection('None', runCorrs=True)
     selection.a.MakeWeightCols(extraNominal='' if selection.a.isData else str(selection.GetXsecScale()))
 
     analyze(selection, args)

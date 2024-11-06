@@ -4,70 +4,74 @@ from TIMBER.Tools.Common import CompileCpp
 from collections import OrderedDict
 import TIMBER.Tools.AutoJME as AutoJME
 from XHYbbWW_class import XHYbbWW
-#from memory_profiler import profile
 
-#@profile
+Wqq_WPs = {
+    '16APV': 0.637,
+    '16': 0.642,
+    '17': 0.579,
+    '18': 0.59
+}
+
 def selection(args):
     print(f'Processing {args.setname} {args.year} for selection and 2D histogram creation.....')
     start = time.time()
+
+    # Prepare a dictionary to store cutflow 
+    cuts = OrderedDict()
+
+    # Basic selection and corrections applied to all processes    
     selection = XHYbbWW(f'trijet_nano/{args.setname}_{args.year}_snapshot.txt',args.year,int(args.ijob),int(args.njobs))
-    selection.OpenForSelection(args.variation)
+    cuts['n_start'] = selection.getNweighted()
+
+    selection.OpenForSelection(args.variation, runCorrs=True)
     selection.ApplyTrigs(args.trigEff)
+    cuts['n_after_corrections'] = selection.getNweighted()
 
-    # Apply tagging (signal) or mistagging (ttbar) scale factors
-    #eosdir  = 'root://cmseos.fnal.gov//store/user/ammitra/XHYbbWW/TaggerEfficiencies'
-    #effpath = f'{eosdir}/{args.setname}_{args.year}_Efficiencies.root'
-    effpath = f'ParticleNetSFs/EfficiencyMaps/{args.setname}_{args.year}_Efficiencies.root'
-    w_tagger = 'particleNetMD_WvsQCD'
-    h_tagger = 'particleNetMD_HbbvsQCD'
-    w_wp = 0.8
-    h_wp = 0.98
-    if ('ttbar' in args.setname) or ('NMSSM' in args.setname):
-        CompileCpp('ParticleNetSFs/TopMergingFunctions.cc')
-        selection.a.Define('Trijet_GenMatchCats','classifyProbeJets({0,1,2}, Trijet_phi, Trijet_eta, nGenPart, GenPart_phi, GenPart_eta, GenPart_pdgId, GenPart_genPartIdxMother)')
-        # Pass the category to the constructor so the class can use tagging or mistagging systematics automatically
-        category = 'ttbar' if 'ttbar' in args.setname else 'signal'
+    # Perform H,W1,W2 candidate selection the same way for both SR/VR
+    selection.a.Define(f'Higgs_candidate_idx','Pick_H_candidate(Trijet_particleNetMD_HbbvsQCD,{0,1,2})')
+    selection.a.Define(f'DummyW_idx0',f'Higgs_candidate_idx[1]') # the 0th index belongs to Higgs candidate 
+    selection.a.Define(f'DummyW_idx1',f'Higgs_candidate_idx[2]') # the 0th index belongs to Higgs candidate
+    selection.a.Define(f'W_candidate_idxs','Pick_W_candidates(Trijet_particleNetMD_WvsQCD, %s, {DummyW_idx0, DummyW_idx1})'%(Wqq_WPs[args.year]))
+    selection.a.Define(f'H_idx',f'Higgs_candidate_idx[0]')
+    selection.a.Define(f'W1_idx',f'W_candidate_idxs[0]')
+    selection.a.Define(f'W2_idx',f'W_candidate_idxs[1]')
+    selection.a.Cut(f'Has2Ws',f'(W1_idx >= 0) && (W2_idx >= 0)')
+    cuts[f'n_after_Has2Ws'] = selection.getNweighted()
 
-        PNet_HbbTagging_corr = Correction(
-            name        = 'PNetMD_Hbb_%stag'%('mis' if category=='ttbar' else ''),
-            #script      = 'ParticleNetSFs/PNetXbbSF_weight.cc',
-            script      = 'ParticleNetSFs/PNetXbbSF_weight.cc',
-            constructor = [args.year, category, effpath, h_wp],
-            mainFunc    = 'eval',
-            corrtype    = 'weight',
-            columnList  = ['Trijet_pt_corr', 'Trijet_eta', 'Trijet_particleNetMD_HbbvsQCD', 'Trijet_GenMatchCats']
-        )
-        selection.a.AddCorrection(
-            correction  = PNet_HbbTagging_corr,
-            evalArgs    = {'pt':'Trijet_pt_corr', 'eta':'Trijet_eta', 'PNetXbb_score':'Trijet_particleNetMD_HbbvsQCD', 'jetCat':'Trijet_GenMatchCats'}
-        )
+    # Create collections and TLVectors
+    cols_to_skip = ['vect_msoftdrop','vect_particleNet_mass','vect_msoftdrop_corr','vect_particleNet_mass','tau2','tau3','tau1','tau4','particleNetMD_QCD','deepTagMD_HbbvsQCD','particleNet_TvsQCD','particleNetMD_Xcc','deepTagMD_WvsQCD','particleNet_QCD','jetId','particleNetMD_Xbb','particleNet_WvsQCD','deepTagMD_ZHbbvsQCD','deepTag_TvsQCD','rawFactor','particleNetMD_Xqq']
+    cols = ['Trijet_%s'%i for i in cols_to_skip]
+    selection.a.ObjectFromCollection(f'H','Trijet',f'H_idx',skip=cols)
+    selection.a.ObjectFromCollection(f'W1','Trijet',f'W1_idx',skip=cols)
+    selection.a.ObjectFromCollection(f'W2','Trijet',f'W2_idx',skip=cols)
+    selection.a.Define(f'Higgs_vect',    f'hardware::TLvector(H_pt_corr, H_eta, H_phi, H_mregressed_corr)')
+    selection.a.Define(f'LeadW_vect',    f'hardware::TLvector(W1_pt_corr, W1_eta, W1_phi, W1_mregressed_corr)')
+    selection.a.Define(f'SubleadW_vect', f'hardware::TLvector(W2_pt_corr, W2_eta, W2_phi, W2_mregressed_corr)')
+    selection.a.Define(f'mhww','hardware::InvariantMass({LeadW_vect, SubleadW_vect, Higgs_vect})')
+    selection.a.Define(f'mww','hardware::InvariantMass({LeadW_vect, SubleadW_vect})')
 
-        selection.a.DataFrame.Display(['PNetMD_Hbb_%stag__nom'%('mis' if category=='ttbar' else '')]).Print()
+    # Apply W mass cuts
+    mW1 = f'W1_mregressed_corr'
+    mW2 = f'W2_mregressed_corr'
+    window = [60., 110.]
+    mW_cut = f'({mW1} >= {window[0]}) && ({mW1} <= {window[1]}) && ({mW2} >= {window[0]}) && ({mW2} <= {window[1]})'
+    selection.a.Cut(f'mW_window_cut',mW_cut)
+    cuts[f'n_after_WmassCut'] = selection.getNweighted()
 
-        PNet_WTagging_corr = Correction(
-            name        = 'PNet_W_%stag'%('mis' if category=='ttbar' else ''),
-            #script      = 'ParticleNetSFs/PNetMDWSF_weight.cc',
-            script      = 'ParticleNetSFs/PNetMDWSF_weight.cc',
-            constructor = [args.year, category, effpath, w_wp],
-            mainFunc    = 'eval',
-            corrtype    = 'weight',
-            columnList  = ['Trijet_pt', 'Trijet_eta', 'Trijet_particleNetMD_WvsQCD', 'Trijet_GenMatchCats'],
-        )
-        selection.a.AddCorrection(
-            correction = PNet_WTagging_corr,
-            evalArgs   = {'pt':'Trijet_pt_corr', 'eta':'Trijet_eta', 'PNetWqq_score':'Trijet_particleNetMD_WvsQCD', 'jetCat':'Trijet_GenMatchCats'}
-        )
+    # Apply tagging (signal) or mistagging (ttbar) scale factors 
+    '''
+    TO-DO (10/25/2024) - for now we just skip these until the new efficiency maps are made
+    and the ParticleNetSFs/PNetXbbSF_weight.cc and ParticleNetSFs/PNetMDWSF_weight.cc scripts
+    are correcetd to use the 2.5% working point
+    '''
 
-        selection.a.DataFrame.Display(['PNet_W_%stag__nom'%('mis' if category=='ttbar' else '')]).Print()
-
-    if not selection.a.isData:
-        selection.a.DataFrame.Display(['genW__nom']).Print()
-    # Having added the tagging and mistagging SFs to the appropriate processes, make uncertainty columns
-    print('Tracking corrections: \n%s'%('\n\t- '.join(list(selection.a.GetCorrectionNames()))))
-    kinOnly = selection.a.MakeWeightCols(
+    # Having added the tagging and mistagging SFs to the appropriate processes, make uncertainty cols
+    print('Tracking corrections:\n\t%s'%("\n\t- ".join(list(selection.a.GetCorrectionNames()))))
+    VRSR_CHECKPOINT = selection.a.MakeWeightCols(
         correctionNames = list(selection.a.GetCorrectionNames()),
-        extraNominal = '' if selection.a.isData else str(selection.GetXsecScale())
+        extraNominal = '' if selection.a.isData else f'{selection.GetXsecScale()}'
     )
+
     # Prepare a root file to save the templates
     if (args.njobs == 1):
         outFileName = f'rootfiles/XHYbbWWselection_{args.setname}_{args.year}%s.root'%('_'+args.variation if args.variation != 'None' else '')
@@ -75,117 +79,74 @@ def selection(args):
         outFileName = f'rootfiles/XHYbbWWselection_{args.setname}_{args.year}%s_{args.ijob}of{args.njobs}.root'%('_'+args.variation if args.variation != 'None' else '')
     out = ROOT.TFile.Open(outFileName,'RECREATE')
     out.cd()
-    # -----------------------------------------------------------------------------------------------------
-    # Main SR/CR logic happens in this loop
-    # -----------------------------------------------------------------------------------------------------
-    cuts     = OrderedDict()
+
     PassFail = OrderedDict()
 
-    for region in ['SR','CR']:
-        print('-----------------------------------------------------------------------------------------------------')
-        print(f'Selecting candidate %sWs in {region}...............'%('(anti-)' if 'CR' in region else ''))
-        print('-----------------------------------------------------------------------------------------------------')
-        selection.a.SetActiveNode(kinOnly)
-        cuts[f'N_BEFORE_W_PICK_{region}'] = selection.getNweighted()
-        objIdxs = f'ObjIdxs_{region}'
+    '''
+    Main SR/VR logic happens in the following loop
+    We have now selected:
+        - one H candidate based on leading Hbb score
+        - two W candidates with Wqq score and W mass requirements
+    Now we can begin the creation of VR and SR, which differ only by the Hbb mass req
+        - VR : [75, 100) || (150, 175] GeV
+        - SR : [100, 150] GeV
+    Both use identical Fail/Pass Hbb score requirements
+    '''
+    for region in ['VR']:
+        print(f'-----------------------------------------------------------------')
+        print(f'Creating {region} with corresponding mass window requirement')
+        print(f'-----------------------------------------------------------------')
+        selection.a.SetActiveNode(VRSR_CHECKPOINT)
 
-        # lower bound for CR Wtag inversion
-        if 'CR' in region:
-            lowerBound = 0.5 
-        else:
-            lowerBound = 0.123456   # not used for SR 
-
-        selection.a.Define(
-            objIdxs,
-            'Pick_W_candidates_standard(%s, %s, %s, {0, 1, 2}, %s)'%(
-                'Trijet_'+w_tagger,
-                w_wp,
-                'true' if region == 'CR' else 'false',
-                lowerBound
-            )
-        )
-        selection.a.Define(f'w1Idx','{}[0]'.format(objIdxs))
-        selection.a.Define(f'w2Idx','{}[1]'.format(objIdxs))
-        selection.a.Define(f'hIdx', '{}[2]'.format(objIdxs))
-        selection.a.Cut('Has2Ws',f'(w1Idx > -1) && (w2Idx > -1) && (hIdx > -1)')
-        cuts[f'N_AFTER_W_PICK_{region}'] = selection.getNweighted()
-        # Perform the mass window cut in the SR
         if region == 'SR':
-            mW1 = f'Trijet_mregressed_corr[w1Idx]'
-            mW2 = f'Trijet_mregressed_corr[w2Idx]'
-            window = [60.,110.]
-            mWcut = f'({mW1} >= {window[0]}) && ({mW1} <= {window[1]}) && ({mW2} >= {window[0]}) && ({mW2} <= {window[1]})'
-            selection.a.Cut('mW_window_cut',mWcut)
-            cuts[f'N_AFTER_WMASS_CUT_{region}'] = selection.getNweighted()
-        # At this point, rename Trijet -> W1/W2/Higgs based on its index determined above
-        cols_to_skip = ['vect_msoftdrop','vect_mregressed','vect_msoftdrop_corr','vect_mregressed_corr','tau2','tau3','tau1','tau4','particleNetMD_QCD','deepTagMD_HbbvsQCD','particleNet_TvsQCD','particleNetMD_Xcc','deepTagMD_WvsQCD','particleNet_QCD','jetId','particleNetMD_Xbb','particleNet_WvsQCD','deepTagMD_ZHbbvsQCD','deepTag_TvsQCD','rawFactor','particleNetMD_Xqq']
-        cols = ['Trijet_%s'%i for i in cols_to_skip]
-        selection.a.ObjectFromCollection(f'W1','Trijet',f'w1Idx',skip=cols)
-        selection.a.ObjectFromCollection(f'W2','Trijet',f'w2Idx',skip=cols)
-        selection.a.ObjectFromCollection(f'H','Trijet',f'hIdx',skip=cols)
-        # In order to avoid column naming duplicates, call these LeadW,SubleadW,Higgs
-        selection.a.Define('LeadW_vect_softdrop','hardware::TLvector(W1_pt_corr, W1_eta, W1_phi, W1_msoftdrop_corr)')
-        selection.a.Define('SubleadW_vect_softdrop','hardware::TLvector(W2_pt_corr, W2_eta, W2_phi, W2_msoftdrop_corr)')
-        selection.a.Define('Higgs_vect_softdrop','hardware::TLvector(H_pt_corr, H_eta, H_phi, H_msoftdrop_corr)')
-        # ------- regressed mass --------------
-        selection.a.Define('LeadW_vect_regressed','hardware::TLvector(W1_pt_corr, W1_eta, W1_phi, W1_mregressed_corr)')
-        selection.a.Define('SubleadW_vect_regressed','hardware::TLvector(W2_pt_corr, W2_eta, W2_phi, W2_mregressed_corr)')
-        selection.a.Define('Higgs_vect_regressed','hardware::TLvector(H_pt_corr, H_eta, H_phi, H_mregressed_corr)')
-        # make X and Y mass for both softdrop and regressed masses
-        selection.a.Define('mhww_softdrop','hardware::InvariantMass({LeadW_vect_softdrop,SubleadW_vect_softdrop,Higgs_vect_softdrop})')
-        selection.a.Define('mww_softdrop','hardware::InvariantMass({LeadW_vect_softdrop,SubleadW_vect_softdrop})')
-        selection.a.Define('mhww_regressed','hardware::InvariantMass({LeadW_vect_regressed, SubleadW_vect_regressed, Higgs_vect_regressed})')
-        checkpoint = selection.a.Define('mww_regressed','hardware::InvariantMass({LeadW_vect_regressed,SubleadW_vect_regressed})')
-        # Now create pass/fail regions
-        print(f'Defining Fail and Pass categories based on Higgs candidate score in {region}')
-        for pf in ['fail','pass']: # without higgs mass cut
-            selection.a.SetActiveNode(checkpoint)
-            print(f'Tagging Higgs candidate in {region} {pf}....')
-            # NOTE: "fail" is really just the former "loose" region.
-            # Originally, we used:
-            #   fail  : Hbb < 0.8
-            #   loose : 0.8 < Hbb < 0.98
-            #   pass  : Hbb > 0.98
-            #
-            # But now we just use Fail=Loose and Pass.
-            if pf == 'fail': # really the "loose" region
-                hCut = f'H_{h_tagger} >= 0.8 && H_{h_tagger} < {h_wp}'
+            # Higgs mass window
+            cutval = f'(H_mregressed_corr >= 100) && (H_mregressed_corr <= 150)'
+        else: 
+            # Higgs mass sidebands
+            cutval = f'((H_mregressed_corr >= 75) && (H_mregressed_corr < 100)) || ((H_mregressed_corr > 150) && (H_mregressed_corr <= 175))'
+
+        cutname = f'{region}_Hbb_mass_cut'
+        PF_CHECKPOINT = selection.a.Cut(cutname,cutval)
+        cuts[f'n_after_{region}_HbbMassCut'] = selection.getNweighted()
+
+        # Now create Fail and Pass based on Hbb score cut 
+        for pf in ['fail','pass']:
+            print(f'-----------------------------------------------------------------')
+            print(f'Creating {region} {pf} with corresponding Hbb score requirement  ')
+            print(f'-----------------------------------------------------------------')
+            selection.a.SetActiveNode(PF_CHECKPOINT)
+            print(f'\tSwitched to node {PF_CHECKPOINT.name}')
+            if pf == 'pass':
+                cutVal = f'H_particleNetMD_HbbvsQCD >= 0.98'
             else:
-                hCut = f'H_{h_tagger} >= {h_wp}'
+                cutVal = f'H_particleNetMD_HbbvsQCD < 0.98'
+            cutname = f'{region}_{pf}_HbbCut'
+            PassFail[f'{region}_{pf}'] = selection.a.Cut(cutname,cutVal)
+            cuts[f'n_after_{region}_{pf}_HbbScoreCut'] = selection.getNweighted()
 
-            PassFail[f'{region}_{pf}'] = selection.a.Cut(f'{region}_{pf}_cut',hCut)
-            cuts[f'N_AFTER_HIGGS_PICK_{region}_{pf}'] = selection.getNweighted()
-
-        for pf in ['fail_mH_window','pass_mH_window']: # higgs regressed mass window cut
-            selection.a.SetActiveNode(checkpoint)
-            print(f'Tagging Higgs candidate in {region} {pf} with additional regressed mass window requirement...')
-            if region == 'SR':
-                mreg_cut = f'H_mregressed_corr >= 100 && H_mregressed_corr < 150'
-            else:
-                mreg_cut = f'(H_mregressed_corr >= 90 && H_mregressed_corr < 110) || (H_mregressed_corr >= 150 && H_mregressed_corr < 200)'
-            selection.a.Cut(f'Higgs_mass_window_cut_{region}_{pf}',mreg_cut)
-            hCut = f'H_{h_tagger} %s {h_wp}'%('>' if 'pass' in pf else '<')
-            PassFail[f'{region}_{pf}'] = selection.a.Cut(f'{region}_{pf}_cut',hCut)
-            cuts[f'N_AFTER_HIGGS_PICK_{region}_{pf}'] = selection.getNweighted()
-
-    # We now have an ordered dict of pass/fail regions and the associated TIMBER nodes
-    # We will use this to construct 2D templates for each region and systematic variation
+    '''
+    We now have an ordered dict of fail/pass regions and the associated TIMBER nodes.
+    We will use this to construct 2D templates for each region and systmatic variation.
+    '''
     binsX = [45,0,4500]
-    binsY = [35,0,3500]
+    binsY = [45,0,4500]
     for pf_region, node in PassFail.items():
-        print(f'Generating 2D template for region {pf_region}.......')
+        print(f'Generating 2D template for region {pf_region}......')
         selection.a.SetActiveNode(node)
         templates = selection.a.MakeTemplateHistos(
             ROOT.TH2F(
-                f'MXvMY_{pf_region}', f'MX vs MY {pf_region}',
+                f'MXvsMY_{pf_region}', f'MX vs MY {pf_region}',
                 binsX[0], binsX[1], binsX[2],
                 binsY[0], binsY[1], binsY[2]
             ),
-            ['mhww_softdrop','mww_softdrop']
+            ['mhww','mww']
         )
+        print(templates)
         templates.Do('Write')
-    # Save out cutflow information
+
+    # Save out the cutflow information 
     hCutflow = ROOT.TH1F('cutflow','Number of events after each cut',len(cuts),0.5,len(cuts)+0.5)
+    nBin = 1
     nBin = 1
     for cutname, cutval  in cuts.items():
         print(f'Obtaining cutflow for {cutname}')
@@ -194,11 +155,10 @@ def selection(args):
         hCutflow.GetXaxis().SetBinLabel(nBin, cutname)
         hCutflow.AddBinContent(nBin, nCut)
         nBin += 1
-    print('Writring cutflow histogram to file')
+    print('Writing cutflow histogram to file')
     hCutflow.Write()
     out.Close()
     print('Script finished')
-
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
@@ -240,5 +200,9 @@ if __name__ == "__main__":
         )
     else:
         args.trigEff = None
+
+
     CompileCpp('HWWmodules.cc')
+
+
     selection(args)
