@@ -13,3 +13,5 @@ raw_nano/*.txt
 plots/*
 rootfiles/*.root
 *.txt
+.ipynb_checkpoints/
+.root_hist
