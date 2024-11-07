@@ -178,28 +178,38 @@ float PNetMDWSF_weight::GetEff(float pt, float eta, int jetCat) {
     // 0:other, 1: qq, 2: bq, 3:bqq
     int cat = jetCat;
 
+    std::string WTAG_WP;
+    std::string base;
+    std::string end = "_TEff";
+    if (_year == "16APV") { WTAG_WP = "WP0p637"; }
+    else if (_year == "16") { WTAG_WP = "WP0p642"; }
+    else if (_year == "17") { WTAG_WP = "WP0p579"; }
+    else { WTAG_WP = "WP0p59"; }
+
     if (_category == "signal") {
-        // NOTE: for the gen matching, the "real" Ws (not from top) are actually called 'top_qq-matched', so just use that for the W-tagging eff
-        //_effmap = (TEfficiency*)_effroot->Get("W-matched_Trijet_particleNetMD_WvsQCD_WP0p8_TEff");
-        _effmap = (TEfficiency*)_effroot->Get("top_qq-matched_Trijet_particleNetMD_WvsQCD_WP0p8_TEff");
+        // NOTE: for the gen matching, the Ws from top are actually called 'top_qq-matched', so just use that for the W-tagging eff
+        base = "top_qq-matched_Trijet_particleNetMD_WvsQCD_";
     }
     else if (_category == "ttbar") {
         if (cat == 0) {
-            _effmap = (TEfficiency*)_effroot->Get("other-matched_Trijet_particleNetMD_WvsQCD_WP0p8_TEff");
+            base = "other-matched_Trijet_particleNetMD_WvsQCD_";
         }
         else if (cat == 1) {
-            _effmap = (TEfficiency*)_effroot->Get("top_qq-matched_Trijet_particleNetMD_WvsQCD_WP0p8_TEff");
+            base = "top_qq-matched_Trijet_particleNetMD_WvsQCD_";
         }
         else if (cat == 2) {
-            _effmap = (TEfficiency*)_effroot->Get("top_bq-matched_Trijet_particleNetMD_WvsQCD_WP0p8_TEff");
+            base = "top_bq-matched_Trijet_particleNetMD_WvsQCD_";
         }
         else if (cat == 3) {
-            _effmap = (TEfficiency*)_effroot->Get("top_bqq-matched_Trijet_particleNetMD_WvsQCD_WP0p8_TEff");
+            base = "top_bqq-matched_Trijet_particleNetMD_WvsQCD_";
         }
         else { // 4, 5 correspond to Higgs, W (not from top), so just make these other?
-            _effmap = (TEfficiency*)_effroot->Get("other-matched_Trijet_particleNetMD_WvsQCD_WP0p8_TEff");
+            base = "other-matched_Trijet_particleNetMD_WvsQCD_";
         }
     }
+
+    std::string full = base + WTAG_WP + end;
+    _effmap = (TEfficiency*)_effroot->Get(full.c_str());
 
     int globalbin = _effmap->FindFixBin(pt, eta);
     eff = _effmap->GetEfficiency(globalbin);

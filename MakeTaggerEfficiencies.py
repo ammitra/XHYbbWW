@@ -45,6 +45,8 @@ def analyze(selection, args):
         '18': 0.59
     }
 
+    effs = {}
+
     for tagger in ['Trijet_particleNetMD_HbbvsQCD','Trijet_particleNetMD_WvsQCD']:
         for matching, statuscode in statuses.items():
             if 'HbbvsQCD' in tagger: wp = 0.98
@@ -57,9 +59,12 @@ def analyze(selection, args):
             selection.a.SubCollection('%sJets_all_%s'%(matching,tagger),'Trijet','jetCats == %s'%statuscode)
             selection.a.SubCollection('%sJets_tag_%s'%(matching,tagger),'Trijet','jetCats == %s && %s > %s'%(statuscode,tagger,wp))
 
-            denominator = selection.a.GetActiveNode().DataFrame.Histo2D(('%s_%s_d'%(matching,tagger),'denominator',13,200,1500,4,-2.4,2.4),'%sJets_all_%s_pt_corr'%(matching,tagger),'%sJets_all_%s_eta'%(matching,tagger)).GetValue()
-            numerator   = selection.a.GetActiveNode().DataFrame.Histo2D(('%s_%s_n'%(matching,tagger),'numerator',13,200,1500,4,-2.4,2.4),'%sJets_tag_%s_pt_corr'%(matching,tagger),'%sJets_tag_%s_eta'%(matching,tagger)).GetValue()
+            denominator = selection.a.GetActiveNode().DataFrame.Histo2D(('%s_%s_d'%(matching,tagger),'denominator',60,0,3000,4,-2.4,2.4),'%sJets_all_%s_pt_corr'%(matching,tagger),'%sJets_all_%s_eta'%(matching,tagger))#.GetValue()
+            numerator   = selection.a.GetActiveNode().DataFrame.Histo2D(('%s_%s_n'%(matching,tagger),'numerator',60,0,3000,4,-2.4,2.4),'%sJets_tag_%s_pt_corr'%(matching,tagger),'%sJets_tag_%s_eta'%(matching,tagger))#.GetValue()
 
+            effs[f'{matching}-{tagger}-{wp}'] = [numerator, denominator]
+
+            '''
             print('Creating TEfficiency for (jetCat == {0} && {1} > {2})/(jetCat == {0})'.format(matching,tagger,wp))
             eff = ROOT.TEfficiency(numerator,denominator)
             hist = eff.CreateHistogram()
@@ -71,7 +76,23 @@ def analyze(selection, args):
             hist.Write()
             eff.SetDirectory(0)
             hist.SetDirectory(0)
-
+            '''
+    
+    for eff, nd in effs.items():
+        print(eff)
+        matching, tagger, wp = eff.split('-')
+        print(f'Creating TEfficiency for (jetCat == {matching} && {tagger} > {wp}) / (jetCat == {matching})')
+        num = nd[0].GetPtr()
+        den = nd[1].GetPtr()
+        eff = ROOT.TEfficiency(num,den)
+        hist = eff.CreateHistogram()
+        hist.SetTitle(f'{matching}-matched_{tagger}_WP{wp.replace(".","p")}_eff')
+        hist.SetName(f'{matching}-matched_{tagger}_WP{wp.replace(".","p")}_eff')
+        eff.SetTitle(f'{matching}-matched_{tagger}_WP{wp.replace(".","p")}_TEff')
+        eff.SetName(f'{matching}-matched_{tagger}_WP{wp.replace(".","p")}_TEff')
+        eff.Write()
+        hist.Write()
+            
     print('Writing kinematic histograms...')
     hists.Do('Write')
     outFile.Close()

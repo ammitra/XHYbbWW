@@ -1,6 +1,6 @@
 import ROOT, time
 from TIMBER.Analyzer import HistGroup, Correction, Node
-from TIMBER.Tools.Common import CompileCpp
+from TIMBER.Tools.Common import CompileCpp, ExecuteCmd
 from collections import OrderedDict
 import TIMBER.Tools.AutoJME as AutoJME
 from XHYbbWW_class import XHYbbWW
@@ -29,9 +29,11 @@ def selection(args):
 
     # Apply tagging (signal) or mistagging (ttbar) scale factors 
     eosdir  = 'root://cmseos.fnal.gov//store/user/ammitra/XHYbbWW/TaggerEfficiencies'
-    #effpath = f'{eosdir}/{args.setname}_{args.year}_Efficiencies.root'
+    eospath = f'{eosdir}/{args.setname}_{args.year}_Efficiencies.root'
     effpath = f'ParticleNetSFs/EfficiencyMaps/{args.setname}_{args.year}_Efficiencies.root'
     if ('ttbar' in args.setname) or ('NMSSM' in args.setname):
+        # Copy the file locally so we don't have to worry about xrootd latency
+        ExecuteCmd(f'xrdcp {eospath} ./ParticleNetSFs/EfficiencyMaps/')
         # Constants
         w_tagger = 'particleNetMD_WvsQCD'
         h_tagger = 'particleNetMD_HbbvsQCD'
@@ -71,6 +73,7 @@ def selection(args):
         )
 
         #selection.a.DataFrame.Display(['PNet_W_%stag__nom'%('mis' if category=='ttbar' else '')]).Print()
+
 
 
 
@@ -204,7 +207,12 @@ def selection(args):
     print('Writing cutflow histogram to file')
     hCutflow.Write()
     out.Close()
+
+    ExecuteCmd(f'rm ParticleNetSFs/EfficiencyMaps/{args.setname}_{args.year}_Efficiencies.root')
+
     print('Script finished')
+
+
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
