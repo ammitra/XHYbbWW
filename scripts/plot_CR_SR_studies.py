@@ -170,16 +170,22 @@ def plot_stack(
         ax.step(x=edges, y=np.hstack([sigarr,sigarr[-1]])*scaling, where='post', color=val[1], label=r'%s $\times$ %s'%(key,round(scaling,1)))
     
     if logyFlag:
+        '''
         if totalBkg.max() >= data.max():
             ax.set_ylim(0.001, totalBkg.max()*1e5)
         else:
             ax.set_ylim(0.001, data.max()*1e5)
+        '''
+        ax.set_ylim(0.001, totalBkg.max()*1e5)
         ax.set_yscale('log')
     else:
+        '''
         if totalBkg.max() >= data.max():
             ax.set_ylim(0, totalBkg.max()*1.5)
         else:
             ax.set_ylim(0, data.max()*1.5)
+        '''
+        ax.set_ylim(0, totalBkg.max()*1.5)
 
     ax.legend()
     ax.margins(x=0)
@@ -225,7 +231,10 @@ print('STARTING SCRIPT')
 
 for i,histName in enumerate(histNames):
     
-    #if ('VR_pass' not in histName) or ('ww' not in histName): continue
+    if (('VR_pass' not in histName) and ('VR_fail' not in histName) and ('SR_fail' not in histName) and ('SR_pass' not in histName)) or ('ww' not in histName):
+        print(histName)
+        continue
+
     #if ('preselection' not in histName) and ('stage2' not in histName): continue
     
 
@@ -273,16 +282,18 @@ for i,histName in enumerate(histNames):
     tt = [np.zeros_like(testHist),'red']
     wj = [np.zeros_like(testHist),'green']
     zj = [np.zeros_like(testHist),'blue']
-    xy = [np.zeros_like(testHist),'black']
     st = [np.zeros_like(testHist),'purple']
     qcd = [np.zeros_like(testHist),'yellow']
     data = [np.zeros_like(testHist),'black']
     dib = [np.zeros_like(testHist),'lime']
     hbb  = [np.zeros_like(testHist),'teal']
     hww = [np.zeros_like(testHist),'grey']
+    xy_1 = [np.zeros_like(testHist),'black']
+    xy_2 = [np.zeros_like(testHist),'lime']
+    xy_3 = [np.zeros_like(testHist),'teal']
+    xy_4 = [np.zeros_like(testHist),'fuchsia']
 
     #print('Running over procs')
-
     '''
     # diboson
     for proc in ['WW','ZZ','WZ']:
@@ -328,7 +339,6 @@ for i,histName in enumerate(histNames):
             hww[0] += a
             f.Close()
     '''
-
     for proc in ['ttbar-allhad','ttbar-semilep']:
         for year in ['16','16APV','17','18']:
             if not fileExists(proc,year):
@@ -371,6 +381,20 @@ for i,histName in enumerate(histNames):
             zj[0] += a
             f.Close()
 
+    for proc in ['NMSSM-XHY-1000-500']:
+        for year in ['16','16APV','17','18']:
+            if not fileExists(proc,year):
+                print(f'\t\t{proc} {year} does not exist')
+                continue
+
+            print(f'	Adding histogram for {proc}_{year}')
+            f = ROOT.TFile.Open(fname.format(redir=redir,proc=proc,year=year),'READ')
+            h = f.Get(histName)
+            #h = rebin(h,new_edges)
+            a = hist2array(h)
+            xy_1[0] += a
+            f.Close()
+
     for proc in ['NMSSM-XHY-1800-1200']:
         for year in ['16','16APV','17','18']:
             if not fileExists(proc,year):
@@ -382,8 +406,38 @@ for i,histName in enumerate(histNames):
             h = f.Get(histName)
             #h = rebin(h,new_edges)
             a = hist2array(h)
-            xy[0] += a
+            xy_2[0] += a
             f.Close()
+
+    for proc in ['NMSSM-XHY-2600-1400']:
+        for year in ['16','16APV','17','18']:
+            if not fileExists(proc,year):
+                print(f'\t\t{proc} {year} does not exist')
+                continue
+
+            print(f'	Adding histogram for {proc}_{year}')
+            f = ROOT.TFile.Open(fname.format(redir=redir,proc=proc,year=year),'READ')
+            h = f.Get(histName)
+            #h = rebin(h,new_edges)
+            a = hist2array(h)
+            xy_3[0] += a
+            f.Close()
+
+    '''
+    for proc in ['NMSSM-XHY-4000-2000']:
+        for year in ['16','16APV','17','18']:
+            if not fileExists(proc,year):
+                print(f'\t\t{proc} {year} does not exist')
+                continue
+
+            print(f'	Adding histogram for {proc}_{year}')
+            f = ROOT.TFile.Open(fname.format(redir=redir,proc=proc,year=year),'READ')
+            h = f.Get(histName)
+            #h = rebin(h,new_edges)
+            a = hist2array(h)
+            xy_4[0] += a
+            f.Close()
+    '''
 
     for proc in ['QCDHT700','QCDHT1000','QCDHT1500','QCDHT2000']: # HT1000 didn't generate
         for year in ['16','16APV','17','18']:
@@ -447,7 +501,13 @@ for i,histName in enumerate(histNames):
             #(r'Hbb (incl.)',hbb)
         ]
     )
-    sigHists = OrderedDict([(r'$X_{1800}, Y_{1200}$',xy)])
+    sigHists = OrderedDict([
+        (r'$X_{1000}, Y_{500}$',xy_1),
+        (r'$X_{1800}, Y_{1200}$',xy_2),
+        (r'$X_{2600}, Y_{1400}$',xy_3)
+        #(r'$X_{4000}, Y_{2000}$',xy_4)
+    ])
+
 
     # First do with QCD MC 
     plot_stack(
@@ -463,7 +523,6 @@ for i,histName in enumerate(histNames):
         extraText=''
     )
 
-    '''
     # then do without QCD MC 
     bkgHists = OrderedDict(
         [
@@ -488,11 +547,13 @@ for i,histName in enumerate(histNames):
         lumiText=r'$138 fb^{-1}$ (13 TeV)',
         extraText=''
     )
-    '''
 
     # now do it with log scale
     bkgHists = OrderedDict(
         [
+            #(r'Diboson',dib),
+            #(r'HWW (incl.)',hww),
+            #(r'Hbb (incl.)',hbb),
             (r'ST',st),
             (r'Z+Jets',zj),
             (r'W+Jets',wj),

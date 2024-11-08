@@ -343,7 +343,7 @@ class XHYbbWW:
             'Trijet_particleNetMD_Xcc', 'Trijet_particleNet_QCD','Trijet_particleNet_WvsQCD',
             #'HLT_PFHT.*', 'HLT_PFJet.*', 'HLT_AK8.*', 'HLT_Mu50', 'HLT_IsoMu*', 'HLT_IsoTkMu*',
             'event', 'eventWeight', 'luminosityBlock', 'run',
-            'NPROC', 'NJETS', 'NPT', 'NETA', 'NMSD'
+            'NPROC', 'NFLAGS', 'NJETS', 'NPT', 'NETA', 'NMSD'
         ]
         # append triggers for the specific year, don't wildcard...
         #columns.append(self.trigs[int(self.year) if 'APV' not in self.year else 16])

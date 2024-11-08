@@ -135,7 +135,7 @@ for i, wp in enumerate(wps[args.era]):
     print('Step 4: Make TLvectors, calculate invariant masses')
     selection.a.Define(f'Higgs_vect_SR{i}',f'hardware::TLvector(H_SR{i}_pt_corr,H_SR{i}_eta,H_SR{i}_phi,H_SR{i}_msoftdrop_corr)')
     selection.a.Define(f'LeadW_vect_SR{i}',f'hardware::TLvector(W1_SR{i}_pt_corr,W1_SR{i}_eta,W1_SR{i}_phi,W1_SR{i}_msoftdrop_corr)')
-    selection.a.Define(f'SubleadW_vect_SR{i}',f'hardware::TLvector(W1_SR{i}_pt_corr,W2_SR{i}_eta,W2_SR{i}_phi,W2_SR{i}_msoftdrop_corr)')
+    selection.a.Define(f'SubleadW_vect_SR{i}',f'hardware::TLvector(W2_SR{i}_pt_corr,W2_SR{i}_eta,W2_SR{i}_phi,W2_SR{i}_msoftdrop_corr)')
 
     selection.a.Define(f'mhww_SR{i}','hardware::InvariantMass({LeadW_vect_SR%s, SubleadW_vect_SR%s, Higgs_vect_SR%s})'%(i,i,i))
     selection.a.Define(f'mww_SR{i}','hardware::InvariantMass({LeadW_vect_SR%s, SubleadW_vect_SR%s})'%(i,i))

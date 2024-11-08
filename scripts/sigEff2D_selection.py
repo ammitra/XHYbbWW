@@ -19,27 +19,30 @@ eos_path = '/store/user/ammitra/XHYbbWW/selection'
 def GetEfficiencies(year):
     efficiencies = OrderedDict([(i,mY.copy()) for i in [240,280,300,320,360,400,500,600,700,800,900,1000,1200,1400,1600,1800,2000,2200,2400,2500,2600,2800,3000,3500,4000]])
     # get the selection files via xrdfsls
-    selection_files_str = subprocess.check_output('xrdfs {} ls -u {} | grep NMSSM | grep {}.root'.format(redirector,eos_path,year), shell=True)
+    selection_files_str = subprocess.check_output('xrdfs {} ls -u {} | grep NMSSM | grep -e "{}.root"'.format(redirector,eos_path,year), shell=True, text=True)
     selection_files = selection_files_str.split()
     print('There are {} nominal selection files for {}'.format(len(selection_files),year))
     for selection in selection_files:
-	xmass = int(selection.split('/')[-1].split('_')[2].split('-')[2])
-	ymass = int(selection.split('/')[-1].split('_')[2].split('-')[3])
-	print('processing ({},{})'.format(xmass,ymass))
-	f = ROOT.TFile.Open(selection,'READ')
-	h = f.Get('cutflow')
-	if not h: 
-	    print('WARNING: Cutflow not found for ({},{})'.format(xmass,ymass))
-	    continue
-        start = h.GetBinContent(5) # preselection
-        end   = h.GetBinContent(8) # final cut on tight Hbb (SR pass)
-	if start == 0.0:
-	    print('\t start: {}\tend: {}'.format(start,end))
-	    eff = 0.0
-	else:
+        if selection == '': continue
+        print(selection)
+        xmass = int(selection.split('-')[2])
+        ymass = int(selection.split('-')[-1].split('_')[0])
+
+        print('processing ({},{})'.format(xmass,ymass))
+        f = ROOT.TFile.Open(selection,'READ')
+        h = f.Get('cutflow')
+        if not h: 
+            print('WARNING: Cutflow not found for ({},{})'.format(xmass,ymass))
+            continue
+        start = h.GetBinContent(1) # preselection
+        end   = h.GetBinContent(10) # final cut on tight Hbb (SR pass)
+        if start == 0.0:
+            print('\t start: {}\tend: {}'.format(start,end))
+            eff = 0.0
+        else:
             eff = end/start
         efficiencies[xmass][ymass] = eff
-	f.Close()
+        f.Close()
 
     effArr = np.zeros((25,31),dtype=float)
     #effArr = np.zeros((6,4),dtype=float)
@@ -84,7 +87,7 @@ def GetEfficiencies(year):
     ax.set_aspect('auto')
     plt.xlabel(r"$m_{X}$ [GeV]",fontsize='large')
     plt.ylabel(r"$m_{Y}$ [GeV]",fontsize='large')
-    plt.savefig('sigEff2D_selection_{}.png'.format(year),dpi=300)
+    plt.savefig('plots/sigEff2D_selection_{}.pdf'.format(year),dpi=200)
 
 if __name__ == "__main__":
     for year in ['16','16APV','17','18']:
