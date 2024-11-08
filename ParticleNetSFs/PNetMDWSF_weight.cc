@@ -181,10 +181,11 @@ float PNetMDWSF_weight::GetEff(float pt, float eta, int jetCat) {
     std::string WTAG_WP;
     std::string base;
     std::string end = "_TEff";
-    if (_year == "16APV") { WTAG_WP = "WP0p637"; }
-    else if (_year == "16") { WTAG_WP = "WP0p642"; }
-    else if (_year == "17") { WTAG_WP = "WP0p579"; }
-    else { WTAG_WP = "WP0p59"; }
+    
+    if      (_year == "16APV") { WTAG_WP = "WP0p637"; }
+    else if (_year == "16")    { WTAG_WP = "WP0p642"; }
+    else if (_year == "17")    { WTAG_WP = "WP0p579"; }
+    else                       { WTAG_WP = "WP0p59"; }
 
     if (_category == "signal") {
         // NOTE: for the gen matching, the Ws from top are actually called 'top_qq-matched', so just use that for the W-tagging eff
